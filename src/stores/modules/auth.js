@@ -5,17 +5,17 @@ export const useAuthStore = defineStore({
   id: 'kunlun-auth',
   state: () => ({
     authMenuList: [],
-    routeName: ''
+    routeName: '',
   }),
   getters: {
     authMenuListGet: (state) => state.authMenuList,
     showMenuListGet: (state) => {
-      return state.authMenuList.filter(item => !item.meta?.isHide)
+      return state.authMenuList.filter((item) => !item.meta?.isHide)
     },
     flatMenuListGet: (state) => {
       const flatList = []
       const flatten = (menuList) => {
-        menuList.forEach(item => {
+        menuList.forEach((item) => {
           if (item.children && item.children.length > 0) {
             flatten(item.children)
           } else {
@@ -25,7 +25,7 @@ export const useAuthStore = defineStore({
       }
       flatten(state.authMenuList)
       return flatList
-    }
+    },
   },
   actions: {
     async getAuthMenuList() {
@@ -43,6 +43,6 @@ export const useAuthStore = defineStore({
     },
     setRouteName(name) {
       this.routeName = name
-    }
-  }
+    },
+  },
 })

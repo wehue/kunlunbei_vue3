@@ -3,18 +3,18 @@ import { defineStore } from 'pinia'
 export const useTabsStore = defineStore({
   id: 'kunlun-tabs',
   state: () => ({
-    tabsMenuList: []
+    tabsMenuList: [],
   }),
   getters: {},
   actions: {
     addTabs(tabItem) {
-      const isExist = this.tabsMenuList.some(item => item.path === tabItem.path)
+      const isExist = this.tabsMenuList.some((item) => item.path === tabItem.path)
       if (!isExist) {
         this.tabsMenuList.push(tabItem)
       }
     },
     removeTabs(path, isCurrent) {
-      const index = this.tabsMenuList.findIndex(item => item.path === path)
+      const index = this.tabsMenuList.findIndex((item) => item.path === path)
       if (index !== -1) {
         this.tabsMenuList.splice(index, 1)
       }
@@ -23,7 +23,7 @@ export const useTabsStore = defineStore({
       this.tabsMenuList = tabsList
     },
     closeTabsOnSide(path, type) {
-      const currentIndex = this.tabsMenuList.findIndex(item => item.path === path)
+      const currentIndex = this.tabsMenuList.findIndex((item) => item.path === path)
       if (currentIndex !== -1) {
         if (type === 'left') {
           this.tabsMenuList = this.tabsMenuList.slice(currentIndex)
@@ -39,10 +39,10 @@ export const useTabsStore = defineStore({
     },
     closeAllTabs() {
       this.tabsMenuList = []
-    }
+    },
   },
   persist: {
     key: 'kunlun-tabs',
-    storage: localStorage
-  }
+    storage: localStorage,
+  },
 })

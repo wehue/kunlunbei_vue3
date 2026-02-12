@@ -3,7 +3,7 @@ function menuUtil() {
     getFlatMenuList(menuList) {
       const flatList = []
       const flatten = (list) => {
-        list.forEach(item => {
+        list.forEach((item) => {
           if (item.children && item.children.length > 0) {
             flatten(item.children)
           } else {
@@ -18,14 +18,14 @@ function menuUtil() {
     getShowMenuList(menuList) {
       const showList = []
       const filter = (list) => {
-        list.forEach(item => {
+        list.forEach((item) => {
           if (!item.meta?.isHide) {
             if (item.children && item.children.length > 0) {
               const children = filter(item.children)
               if (children.length > 0) {
                 showList.push({
                   ...item,
-                  children
+                  children,
                 })
               }
             } else {
@@ -41,7 +41,7 @@ function menuUtil() {
     getAllBreadcrumbList(menuList) {
       const breadcrumbMap = {}
       const traverse = (list, parentPath = []) => {
-        list.forEach(item => {
+        list.forEach((item) => {
           const currentPath = [...parentPath, item]
           if (!item.children || item.children.length === 0) {
             breadcrumbMap[item.path] = currentPath
@@ -65,7 +65,7 @@ function menuUtil() {
         }
       }
       return null
-    }
+    },
   }
 }
 

@@ -8,7 +8,7 @@ export const useUserStore = defineStore(
     const userInfo = ref({
       id: '',
       name: '',
-      role: ''
+      role: '',
     })
 
     const setToken = (t) => {
@@ -26,7 +26,7 @@ export const useUserStore = defineStore(
       userInfo.value = {
         id: '',
         name: '',
-        role: ''
+        role: '',
       }
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
@@ -53,13 +53,13 @@ export const useUserStore = defineStore(
       setToken,
       setUserInfo,
       logout,
-      initFromStorage
+      initFromStorage,
     }
   },
   {
     persist: {
       key: 'kunlun-user',
-      storage: localStorage
-    }
-  }
+      storage: localStorage,
+    },
+  },
 )

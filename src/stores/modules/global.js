@@ -7,7 +7,7 @@ export const useGlobalStore = defineStore({
     accordion: true,
     breadcrumb: true,
     tabs: true,
-    footer: true
+    footer: true,
   }),
   getters: {},
   actions: {
@@ -16,10 +16,10 @@ export const useGlobalStore = defineStore({
     },
     setCollapse(isCollapse) {
       this.isCollapse = isCollapse
-    }
+    },
   },
   persist: {
     key: 'kunlun-global',
-    storage: localStorage
-  }
+    storage: localStorage,
+  },
 })
