@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export const useUserStore = defineStore(
   'user',
@@ -9,6 +9,16 @@ export const useUserStore = defineStore(
       id: '',
       name: '',
       role: '',
+    })
+
+    const roleHomeMap = {
+      admin: '/admin-index',
+      designer: '/designer-index',
+      supervisor: '/supervisor-index',
+    }
+
+    const homeUrl = computed(() => {
+      return roleHomeMap[userInfo.value.role] || '/admin-index'
     })
 
     const setToken = (t) => {
@@ -50,6 +60,7 @@ export const useUserStore = defineStore(
     return {
       token,
       userInfo,
+      homeUrl,
       setToken,
       setUserInfo,
       logout,

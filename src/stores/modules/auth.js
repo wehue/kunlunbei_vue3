@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
-import request from '@/utils/request'
+import router from '@/router'
 
-export const useAuthStore = defineStore({
-  id: 'kunlun-auth',
+export const useAuthStore = defineStore('kunlun-auth', {
   state: () => ({
     authMenuList: [],
     routeName: '',
@@ -26,17 +25,51 @@ export const useAuthStore = defineStore({
       flatten(state.authMenuList)
       return flatList
     },
+    breadcrumbListGet: (state) => {
+      const breadcrumbList = {}
+      const processRoutes = (routes, parentPath = '') => {
+        routes.forEach((route) => {
+          if (route.meta && !route.meta.isHide) {
+            const fullPath = route.path.startsWith('/')
+              ? route.path
+              : (parentPath + '/' + route.path).replace(/\/+/g, '/')
+            breadcrumbList[fullPath] = [{ path: fullPath, meta: route.meta }]
+          }
+          if (route.children) {
+            processRoutes(route.children, route.path)
+          }
+        })
+      }
+      processRoutes(router.options.routes)
+      return breadcrumbList
+    },
   },
   actions: {
     async getAuthMenuList() {
-      try {
-        const res = await request.get('/api/menu/list')
-        if (res.data.code === 0) {
-          this.authMenuList = res.data.data
+      const routes = router.options.routes
+      const menuList = []
+
+      routes.forEach((route) => {
+        if (route.children && route.children.length > 0) {
+          route.children.forEach((child) => {
+            if (child.meta && !child.meta.isHide) {
+              menuList.push({
+                path: '/' + child.path,
+                name: child.name,
+                meta: child.meta,
+              })
+            }
+          })
+        } else if (route.meta && !route.meta.isHide && route.component) {
+          menuList.push({
+            path: route.path,
+            name: route.name,
+            meta: route.meta,
+          })
         }
-      } catch (err) {
-        console.error('获取菜单失败', err)
-      }
+      })
+
+      this.authMenuList = menuList
     },
     setAuthMenuList(menuList) {
       this.authMenuList = menuList

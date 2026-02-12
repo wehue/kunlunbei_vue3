@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
 
-export const useGlobalStore = defineStore({
-  id: 'kunlun-global',
+export const useGlobalStore = defineStore('kunlun-global', {
   state: () => ({
     isCollapse: false,
     accordion: true,
     breadcrumb: true,
+    breadcrumbIcon: true,
     tabs: true,
-    footer: true,
+    tabsIcon: true,
+    maximize: false,
   }),
   getters: {},
   actions: {
