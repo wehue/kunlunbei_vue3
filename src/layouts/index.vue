@@ -47,7 +47,7 @@ import SubMenu from '@/layouts/components/Menu/SubMenu.vue'
 import ToolBarLeft from '@/layouts/components/Header/ToolBarLeft.vue'
 import ToolBarRight from '@/layouts/components/Header/ToolBarRight.vue'
 
-const title = import.meta.env.VITE_GLOB_APP_TITLE || '昆仑13杯'
+const title = import.meta.env.VITE_GLOB_APP_TITLE || '智造精艺'
 
 const route = useRoute()
 const authStore = useAuthStore()

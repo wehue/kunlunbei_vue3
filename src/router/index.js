@@ -294,7 +294,7 @@ const routes = [
       {
         path: 'log-manage',
         name: 'LogManage',
-        component: () => import('@/views/common_share/log_manage_info/index.vue'),
+        redirect: '/log-manage/login-log',
         meta: { title: '日志管理', icon: 'Tickets', roles: ['admin'] },
         children: [
           {
@@ -374,6 +374,20 @@ const routes = [
             name: 'MessageDetail',
             component: () => import('@/views/designer/message_detail/index.vue'),
             meta: { title: '消息详情', icon: 'Message', roles: ['designer'], isHide: true },
+          },
+        ],
+      },
+      {
+        path: 'designer-log-manage',
+        name: 'DesignerLogManage',
+        redirect: 'designer-log-manage/operation-log',
+        meta: { title: '日志管理', icon: 'Tickets', roles: ['designer'] },
+        children: [
+          {
+            path: 'operation-log',
+            name: 'DesignerOperationLog',
+            component: () => import('@/views/common_share/operation_log/index.vue'),
+            meta: { title: '操作日志', icon: 'Tickets', roles: ['designer'] },
           },
         ],
       },

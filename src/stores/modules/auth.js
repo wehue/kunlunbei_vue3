@@ -29,42 +29,49 @@ export const useAuthStore = defineStore('kunlun-auth', {
     breadcrumbListGet: (state) => {
       const breadcrumbList = {}
 
+      // 从根路由开始处理
+      const rootRoutes = router.options.routes
+
       // 递归构建面包屑路径
       const processRoutes = (routes, parentPath = '', parentBreadcrumb = []) => {
         routes.forEach((route) => {
-          if (route.meta && !route.meta.isHide) {
-            // 构建当前路由的完整路径
-            const fullPath = route.path.startsWith('/')
-              ? route.path
-              : (parentPath + '/' + route.path).replace(/\/+/g, '/')
+          // 跳过隐藏的路由
+          if (route.meta && route.meta.isHide) {
+            return
+          }
 
-            // 构建当前路由的面包屑项
-            const currentBreadcrumbItem = {
-              path: fullPath,
-              meta: route.meta,
+          // 构建当前路由的完整路径
+          let currentPath = route.path
+          if (!currentPath.startsWith('/')) {
+            if (parentPath) {
+              currentPath = `${parentPath}/${currentPath}`
+            } else {
+              currentPath = `/${currentPath}`
             }
+          }
+          // 清理路径，去掉多余的 /
+          currentPath = currentPath.replace(/\/+/g, '/')
 
-            // 构建完整的面包屑路径（包含所有父级）
-            const currentBreadcrumbList = [...parentBreadcrumb, currentBreadcrumbItem]
+          // 构建当前路由的面包屑项
+          const currentBreadcrumbItem = {
+            path: currentPath,
+            meta: route.meta || {},
+          }
 
-            // 存储面包屑路径
-            breadcrumbList[fullPath] = currentBreadcrumbList
+          // 构建完整的面包屑路径（包含所有父级）
+          const currentBreadcrumbList = [...parentBreadcrumb, currentBreadcrumbItem]
 
-            // 递归处理子路由
-            if (route.children) {
-              processRoutes(route.children, fullPath, currentBreadcrumbList)
-            }
-          } else if (route.children) {
-            // 即使当前路由隐藏，也要处理子路由
-            const fullPath = route.path.startsWith('/')
-              ? route.path
-              : (parentPath + '/' + route.path).replace(/\/+/g, '/')
-            processRoutes(route.children, fullPath, parentBreadcrumb)
+          // 存储面包屑路径
+          breadcrumbList[currentPath] = currentBreadcrumbList
+
+          // 递归处理子路由
+          if (route.children && route.children.length > 0) {
+            processRoutes(route.children, currentPath, currentBreadcrumbList)
           }
         })
       }
 
-      processRoutes(router.options.routes)
+      processRoutes(rootRoutes)
       return breadcrumbList
     },
   },
@@ -130,13 +137,14 @@ export const useAuthStore = defineStore('kunlun-auth', {
       routes.forEach((route) => {
         if (route.children && route.children.length > 0) {
           route.children.forEach((child) => {
-            const menuItem = processRoute(child, '')
+            // 传递根路径 '/' 作为父路径
+            const menuItem = processRoute(child, '/')
             if (menuItem) {
               menuList.push(menuItem)
             }
           })
         } else {
-          const menuItem = processRoute(route, '')
+          const menuItem = processRoute(route, '/')
           if (menuItem) {
             menuList.push(menuItem)
           }
