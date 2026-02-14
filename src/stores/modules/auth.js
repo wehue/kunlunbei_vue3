@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import router from '@/router'
+import { useUserStore } from './user'
 
 export const useAuthStore = defineStore('kunlun-auth', {
   state: () => ({
@@ -27,49 +28,125 @@ export const useAuthStore = defineStore('kunlun-auth', {
     },
     breadcrumbListGet: (state) => {
       const breadcrumbList = {}
-      const processRoutes = (routes, parentPath = '') => {
+
+      // 递归构建面包屑路径
+      const processRoutes = (routes, parentPath = '', parentBreadcrumb = []) => {
         routes.forEach((route) => {
           if (route.meta && !route.meta.isHide) {
+            // 构建当前路由的完整路径
             const fullPath = route.path.startsWith('/')
               ? route.path
               : (parentPath + '/' + route.path).replace(/\/+/g, '/')
-            breadcrumbList[fullPath] = [{ path: fullPath, meta: route.meta }]
-          }
-          if (route.children) {
-            processRoutes(route.children, route.path)
+
+            // 构建当前路由的面包屑项
+            const currentBreadcrumbItem = {
+              path: fullPath,
+              meta: route.meta,
+            }
+
+            // 构建完整的面包屑路径（包含所有父级）
+            const currentBreadcrumbList = [...parentBreadcrumb, currentBreadcrumbItem]
+
+            // 存储面包屑路径
+            breadcrumbList[fullPath] = currentBreadcrumbList
+
+            // 递归处理子路由
+            if (route.children) {
+              processRoutes(route.children, fullPath, currentBreadcrumbList)
+            }
+          } else if (route.children) {
+            // 即使当前路由隐藏，也要处理子路由
+            const fullPath = route.path.startsWith('/')
+              ? route.path
+              : (parentPath + '/' + route.path).replace(/\/+/g, '/')
+            processRoutes(route.children, fullPath, parentBreadcrumb)
           }
         })
       }
+
       processRoutes(router.options.routes)
       return breadcrumbList
     },
   },
   actions: {
     async getAuthMenuList() {
+      const userStore = useUserStore()
+      const currentRole = userStore.userInfo.role
+
+      if (!currentRole) {
+        this.authMenuList = []
+        return
+      }
+
       const routes = router.options.routes
       const menuList = []
 
+      const processRoute = (route, parentPath = '') => {
+        // 过滤出有角色权限的路由
+        if (route.meta && route.meta.roles && !route.meta.roles.includes(currentRole)) {
+          return null
+        }
+
+        // 构建当前路由的完整路径
+        let currentPath = route.path
+        if (!currentPath.startsWith('/')) {
+          if (parentPath) {
+            currentPath = `${parentPath}/${currentPath}`
+          } else {
+            currentPath = `/${currentPath}`
+          }
+        }
+        // 清理路径，去掉多余的 /
+        currentPath = currentPath.replace(/\/+/g, '/')
+
+        // 处理子路由
+        let children = []
+        if (route.children && route.children.length > 0) {
+          children = route.children.map((child) => processRoute(child, currentPath)).filter(Boolean)
+        }
+
+        // 构建菜单项
+        if (route.meta && !route.meta.isHide) {
+          // 有子路由的菜单项不需要 component
+          if (children.length > 0 || route.component) {
+            const menuItem = {
+              path: currentPath,
+              name: route.name,
+              meta: route.meta,
+            }
+
+            if (children.length > 0) {
+              menuItem.children = children
+            }
+
+            return menuItem
+          }
+        }
+
+        return null
+      }
+
+      // 处理所有路由
       routes.forEach((route) => {
         if (route.children && route.children.length > 0) {
           route.children.forEach((child) => {
-            if (child.meta && !child.meta.isHide) {
-              menuList.push({
-                path: '/' + child.path,
-                name: child.name,
-                meta: child.meta,
-              })
+            const menuItem = processRoute(child, '')
+            if (menuItem) {
+              menuList.push(menuItem)
             }
           })
-        } else if (route.meta && !route.meta.isHide && route.component) {
-          menuList.push({
-            path: route.path,
-            name: route.name,
-            meta: route.meta,
-          })
+        } else {
+          const menuItem = processRoute(route, '')
+          if (menuItem) {
+            menuList.push(menuItem)
+          }
         }
       })
 
-      this.authMenuList = menuList
+      // 将首页菜单移到最前面
+      const homeMenu = menuList.filter((item) => item.meta && item.meta.isAffix)
+      const otherMenu = menuList.filter((item) => !(item.meta && item.meta.isAffix))
+      this.authMenuList = [...homeMenu, ...otherMenu]
     },
     setAuthMenuList(menuList) {
       this.authMenuList = menuList

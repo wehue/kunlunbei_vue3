@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useAuthStore } from './auth'
 
 export const useUserStore = defineStore(
   'user',
@@ -29,6 +30,11 @@ export const useUserStore = defineStore(
     const setUserInfo = (info) => {
       userInfo.value = info
       localStorage.setItem('userInfo', JSON.stringify(info))
+      // 当用户角色变化时，重新获取菜单
+      if (info.role) {
+        const authStore = useAuthStore()
+        authStore.getAuthMenuList()
+      }
     }
 
     const logout = () => {
@@ -40,6 +46,9 @@ export const useUserStore = defineStore(
       }
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
+      // 退出登录时清空菜单
+      const authStore = useAuthStore()
+      authStore.setAuthMenuList([])
     }
 
     const initFromStorage = () => {
@@ -51,11 +60,27 @@ export const useUserStore = defineStore(
       if (savedUserInfo) {
         try {
           userInfo.value = JSON.parse(savedUserInfo)
+          // 初始化时获取菜单
+          if (userInfo.value.role) {
+            const authStore = useAuthStore()
+            authStore.getAuthMenuList()
+          }
         } catch (e) {
           console.error('Failed to parse userInfo from storage', e)
         }
       }
     }
+
+    // 监听角色变化，重新获取菜单
+    watch(
+      () => userInfo.value.role,
+      (newRole) => {
+        if (newRole) {
+          const authStore = useAuthStore()
+          authStore.getAuthMenuList()
+        }
+      }
+    )
 
     return {
       token,

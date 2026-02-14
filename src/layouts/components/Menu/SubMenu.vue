@@ -33,6 +33,7 @@ defineProps({
 const router = useRouter()
 const handleClickMenu = (subItem) => {
   if (subItem.meta.isLink) return window.open(subItem.meta.isLink, '_blank')
+  console.log('正在跳转到：', subItem.path)
   router.push(subItem.path)
 }
 </script>

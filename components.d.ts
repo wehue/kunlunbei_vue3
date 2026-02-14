@@ -11,6 +11,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    403: typeof import('./src/components/ErrorMessage/403.vue')['default']
+    404: typeof import('./src/components/ErrorMessage/404.vue')['default']
+    500: typeof import('./src/components/ErrorMessage/500.vue')['default']
     ColSetting: typeof import('./src/components/ProTable/components/ColSetting.vue')['default']
     ECharts: typeof import('./src/components/ECharts/index.vue')['default']
     ElAside: typeof import('element-plus/es')['ElAside']
@@ -23,7 +26,6 @@ declare module 'vue' {
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']
     ElDropdownMenu: typeof import('element-plus/es')['ElDropdownMenu']
-    ElFooter: typeof import('element-plus/es')['ElFooter']
     ElForm: typeof import('element-plus/es')['ElForm']
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
     ElHeader: typeof import('element-plus/es')['ElHeader']
