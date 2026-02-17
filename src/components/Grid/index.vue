@@ -18,15 +18,12 @@ import {
   onActivated,
 } from 'vue'
 
-const props = withDefaults(
-  defineProps({
-    cols: { type: [Number, Object], default: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }) },
-    collapsed: { type: Boolean, default: false },
-    collapsedRows: { type: Number, default: 1 },
-    gap: { type: [Array, Number], default: 0 },
-  }),
-  {},
-)
+const props = defineProps({
+  cols: { type: [Number, Object], default: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }) },
+  collapsed: { type: Boolean, default: false },
+  collapsedRows: { type: Number, default: 1 },
+  gap: { type: [Array, Number], default: 0 },
+})
 
 onBeforeMount(() => props.collapsed && findIndex())
 onMounted(() => {

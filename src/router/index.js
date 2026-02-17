@@ -51,7 +51,7 @@ const routes = [
       {
         path: 'device-manage',
         name: 'DeviceManage',
-        redirect: 'device-manage-info',
+        redirect: '/device-manage/device-manage-info',
         meta: { title: '设备管理', icon: 'Monitor', roles: ['admin', 'supervisor', 'designer'] },
         children: [
           {

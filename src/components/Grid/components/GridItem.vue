@@ -6,19 +6,16 @@
 <script setup name="GridItem">
 import { computed, inject, ref, useAttrs, watch } from 'vue'
 
-const props = withDefaults(
-  defineProps({
-    offset: { type: Number, default: 0 },
-    span: { type: Number, default: 1 },
-    suffix: { type: Boolean, default: false },
-    xs: { type: Object, default: undefined },
-    sm: { type: Object, default: undefined },
-    md: { type: Object, default: undefined },
-    lg: { type: Object, default: undefined },
-    xl: { type: Object, default: undefined },
-  }),
-  {},
-)
+const props = defineProps({
+  offset: { type: Number, default: 0 },
+  span: { type: Number, default: 1 },
+  suffix: { type: Boolean, default: false },
+  xs: { type: Object, default: undefined },
+  sm: { type: Object, default: undefined },
+  md: { type: Object, default: undefined },
+  lg: { type: Object, default: undefined },
+  xl: { type: Object, default: undefined },
+})
 
 const attrs = useAttrs()
 const isShow = ref(true)

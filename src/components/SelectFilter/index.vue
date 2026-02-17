@@ -26,16 +26,13 @@
 <script setup name="SelectFilter">
 import { ref, watch } from 'vue'
 
-const props = withDefaults(
-  defineProps({
-    list: { type: Array, default: () => [] },
-    title: { type: String, default: undefined },
-    defaultValue: { type: [String, Number, Array], default: undefined },
-    multiple: { type: Boolean, default: false },
-    props: { type: Object, default: () => ({ label: 'label', value: 'value', count: 'count' }) },
-  }),
-  {},
-)
+const props = defineProps({
+  list: { type: Array, default: () => [] },
+  title: { type: String, default: undefined },
+  defaultValue: { type: [String, Number, Array], default: undefined },
+  multiple: { type: Boolean, default: false },
+  props: { type: Object, default: () => ({ label: 'label', value: 'value', count: 'count' }) },
+})
 
 const emit = defineEmits(['change'])
 

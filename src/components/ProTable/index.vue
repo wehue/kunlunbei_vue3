@@ -18,28 +18,6 @@
           :is-selected="isSelected"
         />
       </div>
-      <div v-if="toolButton" class="header-button-ri">
-        <slot name="toolButton">
-          <el-button
-            v-if="showToolButton('refresh')"
-            :icon="Refresh"
-            circle
-            @click="getTableList"
-          />
-          <el-button
-            v-if="showToolButton('setting') && columns.length"
-            :icon="Operation"
-            circle
-            @click="openColSetting"
-          />
-          <el-button
-            v-if="showToolButton('search') && searchColumns?.length"
-            :icon="Search"
-            circle
-            @click="isShowSearch = !isShowSearch"
-          />
-        </slot>
-      </div>
     </div>
     <el-table
       ref="tableRef"
@@ -113,24 +91,21 @@ import ColSetting from './components/ColSetting.vue'
 import TableColumn from './components/TableColumn.vue'
 import Sortable from 'sortablejs'
 
-const props = withDefaults(
-  defineProps({
-    columns: { type: Array, default: () => [] },
-    data: { type: Array, default: undefined },
-    requestApi: { type: Function, default: undefined },
-    requestAuto: { type: Boolean, default: true },
-    requestError: { type: Function, default: undefined },
-    dataCallback: { type: Function, default: undefined },
-    title: { type: String, default: undefined },
-    pagination: { type: Boolean, default: true },
-    initParam: { type: Object, default: () => ({}) },
-    border: { type: Boolean, default: true },
-    toolButton: { type: [Array, Boolean], default: true },
-    rowKey: { type: String, default: 'id' },
-    searchCol: { type: [Number, Object], default: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }) },
-  }),
-  {},
-)
+const props = defineProps({
+  columns: { type: Array, default: () => [] },
+  data: { type: Array, default: undefined },
+  requestApi: { type: Function, default: undefined },
+  requestAuto: { type: Boolean, default: true },
+  requestError: { type: Function, default: undefined },
+  dataCallback: { type: Function, default: undefined },
+  title: { type: String, default: undefined },
+  pagination: { type: Boolean, default: true },
+  initParam: { type: Object, default: () => ({}) },
+  border: { type: Boolean, default: true },
+  toolButton: { type: [Array, Boolean], default: true },
+  rowKey: { type: String, default: 'id' },
+  searchCol: { type: [Number, Object], default: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }) },
+})
 
 const tableRef = ref()
 

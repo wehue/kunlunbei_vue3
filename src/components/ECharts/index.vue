@@ -18,18 +18,15 @@ import { useDebounceFn } from '@vueuse/core'
 import { useGlobalStore } from '@/stores/modules/global'
 import { storeToRefs } from 'pinia'
 
-const props = withDefaults(
-  defineProps({
-    option: { type: Object, required: true },
-    renderer: { type: String, default: 'canvas' },
-    resize: { type: Boolean, default: true },
-    theme: { type: [Object, String], default: undefined },
-    width: { type: [Number, String], default: undefined },
-    height: { type: [Number, String], default: undefined },
-    onClick: { type: Function, default: undefined },
-  }),
-  {},
-)
+const props = defineProps({
+  option: { type: Object, required: true },
+  renderer: { type: String, default: 'canvas' },
+  resize: { type: Boolean, default: true },
+  theme: { type: [Object, String], default: undefined },
+  width: { type: [Number, String], default: undefined },
+  height: { type: [Number, String], default: undefined },
+  onClick: { type: Function, default: undefined },
+})
 
 const echartsStyle = computed(() => {
   return props.width || props.height

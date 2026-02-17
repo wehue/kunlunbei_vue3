@@ -33,19 +33,16 @@
 <script setup name="TreeFilter">
 import { ref, watch, onMounted } from 'vue'
 
-const props = withDefaults(
-  defineProps({
-    data: { type: Array, default: () => [] },
-    id: { type: String, default: 'id' },
-    label: { type: String, default: 'label' },
-    children: { type: String, default: 'children' },
-    multiple: { type: Boolean, default: false },
-    defaultValue: { type: [String, Number, Array], default: undefined },
-    checkStrictly: { type: Boolean, default: false },
-    height: { type: Number, default: 500 },
-  }),
-  {},
-)
+const props = defineProps({
+  data: { type: Array, default: () => [] },
+  id: { type: String, default: 'id' },
+  label: { type: String, default: 'label' },
+  children: { type: String, default: 'children' },
+  multiple: { type: Boolean, default: false },
+  defaultValue: { type: [String, Number, Array], default: undefined },
+  checkStrictly: { type: Boolean, default: false },
+  height: { type: Number, default: 500 },
+})
 
 const emit = defineEmits(['change'])
 

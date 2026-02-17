@@ -1,7 +1,7 @@
 <template>
   <div v-if="columns.length" class="card table-search">
     <el-form ref="formRef" :model="searchParam">
-      <Grid ref="gridRef" :collapsed="collapsed" :gap="[20, 0]" :cols="searchCol">
+      <Grid ref="gridRef" :collapsed="collapsed" :gap="[20, 20]" :cols="searchCol">
         <GridItem
           v-for="(item, index) in columns"
           :key="item.prop"
@@ -55,16 +55,13 @@ import SearchFormItem from './components/SearchFormItem.vue'
 import Grid from '@/components/Grid/index.vue'
 import GridItem from '@/components/Grid/components/GridItem.vue'
 
-const props = withDefaults(
-  defineProps({
-    columns: { type: Array, default: () => [] },
-    searchParam: { type: Object, default: () => ({}) },
-    searchCol: { type: [Number, Object], default: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }) },
-    search: { type: Function, default: () => {} },
-    reset: { type: Function, default: () => {} },
-  }),
-  {},
-)
+const props = defineProps({
+  columns: { type: Array, default: () => [] },
+  searchParam: { type: Object, default: () => ({}) },
+  searchCol: { type: [Number, Object], default: () => ({ xs: 1, sm: 2, md: 2, lg: 3, xl: 4 }) },
+  search: { type: Function, default: () => {} },
+  reset: { type: Function, default: () => {} },
+})
 
 const getResponsive = (item) => {
   return {
