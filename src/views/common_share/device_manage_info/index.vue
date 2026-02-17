@@ -2,7 +2,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, View, Download } from '@element-plus/icons-vue'
+import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 
@@ -10,24 +10,36 @@ const router = useRouter()
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
-const dialogTitle = ref('')
 const formRef = ref()
-const isEdit = ref(false)
+const extendFields = ref([])
 
-const brandOptions = ref([
+const brandOptions = [
   { label: '西门子', value: '西门子' },
   { label: '三菱', value: '三菱' },
   { label: '欧姆龙', value: '欧姆龙' },
   { label: 'ABB', value: 'ABB' },
   { label: '施耐德', value: '施耐德' },
-])
+]
 
-const locationOptions = ref([
+const locationOptions = [
   { label: '车间A', value: '车间A' },
   { label: '车间B', value: '车间B' },
   { label: '仓库C', value: '仓库C' },
   { label: '实验室', value: '实验室' },
-])
+]
+
+const depreciationOptions = [
+  { label: '直线法', value: '直线法' },
+  { label: '年数总和法', value: '年数总和法' },
+  { label: '双倍余额递减法', value: '双倍余额递减法' },
+]
+
+const unitOptions = [
+  { label: '台', value: '台' },
+  { label: '套', value: '套' },
+  { label: '件', value: '件' },
+  { label: '个', value: '个' },
+]
 
 const mockData = ref([
   {
@@ -141,14 +153,174 @@ const columns = reactive([
     enum: locationOptions,
   },
   { prop: 'specModel', label: '规格型号' },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 150, fixed: 'right' },
 ])
 
-const searchType = ref('fuzzy')
-const searchTypeOptions = [
-  { label: '模糊查询', value: 'fuzzy' },
-  { label: '精确查询', value: 'exact' },
-]
+const formData = reactive({
+  deviceCode: '',
+  deviceName: '',
+  manufacturer: '',
+  brand: '',
+  specModel: '',
+  supplier: '',
+  productionDate: '',
+  serviceLife: 10,
+  depreciationMethod: '直线法',
+  location: '',
+  stockQuantity: 1,
+  unit: '台',
+})
+
+const rules = {
+  deviceName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
+  manufacturer: [{ required: true, message: '请输入生产厂家', trigger: 'blur' }],
+  brand: [{ required: true, message: '请选择品牌', trigger: 'change' }],
+  specModel: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
+  supplier: [{ required: true, message: '请输入供应商', trigger: 'blur' }],
+  productionDate: [{ required: true, message: '请选择生产日期', trigger: 'change' }],
+  serviceLife: [{ required: true, message: '请输入使用年限', trigger: 'blur' }],
+  depreciationMethod: [{ required: true, message: '请选择折旧方式', trigger: 'change' }],
+  location: [{ required: true, message: '请选择位置', trigger: 'change' }],
+  stockQuantity: [{ required: true, message: '请输入库存数量', trigger: 'blur' }],
+  unit: [{ required: true, message: '请选择单位', trigger: 'change' }],
+}
+
+const generateDeviceCode = () => {
+  const year = new Date().getFullYear()
+  const maxId = mockData.value.reduce((max, item) => {
+    const id = parseInt(item.id)
+    return id > max ? id : max
+  }, 0)
+  const newId = String(maxId + 1).padStart(4, '0')
+  return `DEV${year}${newId}`
+}
+
+const initExtendFields = () => {
+  extendFields.value = [
+    { key: 'technicalParams', label: '技术参数信息', value: '', type: 'textarea' },
+    { key: 'spareParts', label: '备品备件信息', value: '', type: 'textarea' },
+    { key: 'remark', label: '备注', value: '', type: 'textarea' },
+  ]
+}
+
+const handleAddExtendField = () => {
+  const newKey = `custom_${Date.now()}`
+  extendFields.value.push({
+    key: newKey,
+    label: '自定义字段',
+    value: '',
+    type: 'textarea',
+    isNew: true,
+  })
+}
+
+const handleRemoveExtendField = (index) => {
+  extendFields.value.splice(index, 1)
+}
+
+const handleAdd = () => {
+  Object.assign(formData, {
+    deviceCode: generateDeviceCode(),
+    deviceName: '',
+    manufacturer: '',
+    brand: '',
+    specModel: '',
+    supplier: '',
+    productionDate: '',
+    serviceLife: 10,
+    depreciationMethod: '直线法',
+    location: '',
+    stockQuantity: 1,
+    unit: '台',
+  })
+  initExtendFields()
+  dialogVisible.value = true
+}
+
+const handleSubmit = async () => {
+  if (!formRef.value) return
+
+  await formRef.value.validate((valid) => {
+    if (valid) {
+      const extendData = {}
+      extendFields.value.forEach((field) => {
+        extendData[field.key] = field.value
+      })
+
+      const maxId = mockData.value.reduce((max, item) => {
+        const id = parseInt(item.id)
+        return id > max ? id : max
+      }, 0)
+
+      const newDevice = {
+        id: maxId + 1,
+        deviceCode: formData.deviceCode,
+        deviceName: formData.deviceName,
+        brand: formData.brand,
+        location: formData.location,
+        specModel: formData.specModel,
+        manufacturer: formData.manufacturer,
+        supplier: formData.supplier,
+        productionDate: formData.productionDate,
+        serviceLife: formData.serviceLife,
+        depreciationMethod: formData.depreciationMethod,
+        stockQuantity: formData.stockQuantity,
+        unit: formData.unit,
+        ...extendData,
+      }
+
+      mockData.value.push(newDevice)
+      ElMessage.success('新增成功')
+      dialogVisible.value = false
+      proTableRef.value?.getTableList()
+    }
+  })
+}
+
+const handleCancel = () => {
+  dialogVisible.value = false
+}
+
+const handleView = (row) => {
+  router.push(`/device-manage/device-manage-detail/${row.id}`)
+}
+
+const exportToExcel = (data, fileName = '设备列表') => {
+  const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
+  XLSX.writeFile(workbook, `${fileName}.xlsx`)
+}
+
+const handleExportSingle = (row) => {
+  const exportData = [
+    {
+      设备编码: row.deviceCode,
+      设备名称: row.deviceName,
+      品牌: row.brand,
+      位置: row.location,
+      规格型号: row.specModel,
+    },
+  ]
+  exportToExcel(exportData, `设备_${row.deviceCode}`)
+  ElMessage.success('导出成功')
+}
+
+const handleExportBatch = (selectedList) => {
+  if (!selectedList || selectedList.length === 0) {
+    ElMessage.warning('请先选择要导出的设备')
+    return
+  }
+  const exportData = selectedList.map((row) => ({
+    设备编码: row.deviceCode,
+    设备名称: row.deviceName,
+    品牌: row.brand,
+    位置: row.location,
+    规格型号: row.specModel,
+  }))
+  exportToExcel(exportData, `设备列表_${new Date().toLocaleDateString()}`)
+  ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
+}
 
 const getTableList = async (params) => {
   return new Promise((resolve) => {
@@ -176,7 +348,7 @@ const getTableList = async (params) => {
       const startIndex = (pageNum - 1) * pageSize
       const endIndex = startIndex + pageSize
       const paginatedData = filteredData.slice(startIndex, endIndex)
-      
+
       const dataWithIndex = paginatedData.map((item, index) => ({
         ...item,
         index: startIndex + index + 1,
@@ -191,66 +363,6 @@ const getTableList = async (params) => {
     }, 300)
   })
 }
-
-const handleAdd = () => {
-  ElMessage.info('新增功能开发中')
-}
-
-const handleEdit = (row) => {
-  ElMessage.info('编辑功能开发中')
-}
-
-const handleView = (row) => {
-  router.push(`/device-manage/device-manage-detail/${row.id}`)
-}
-
-const handleDelete = (row) => {
-  ElMessageBox.confirm('确定要删除该设备吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(() => {
-    ElMessage.success('删除成功')
-    proTableRef.value?.getTableList()
-  })
-}
-
-const exportToExcel = (data, fileName = '设备列表') => {
-  const worksheet = XLSX.utils.json_to_sheet(data)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
-  XLSX.writeFile(workbook, `${fileName}.xlsx`)
-}
-
-const handleExportSingle = (row) => {
-  const exportData = [
-    {
-      '设备编码': row.deviceCode,
-      '设备名称': row.deviceName,
-      '品牌': row.brand,
-      '位置': row.location,
-      '规格型号': row.specModel,
-    },
-  ]
-  exportToExcel(exportData, `设备_${row.deviceCode}`)
-  ElMessage.success('导出成功')
-}
-
-const handleExportBatch = (selectedList) => {
-  if (!selectedList || selectedList.length === 0) {
-    ElMessage.warning('请先选择要导出的设备')
-    return
-  }
-  const exportData = selectedList.map((row) => ({
-    '设备编码': row.deviceCode,
-    '设备名称': row.deviceName,
-    '品牌': row.brand,
-    '位置': row.location,
-    '规格型号': row.specModel,
-  }))
-  exportToExcel(exportData, `设备列表_${new Date().toLocaleDateString()}`)
-  ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
-}
 </script>
 
 <template>
@@ -259,7 +371,7 @@ const handleExportBatch = (selectedList) => {
       ref="proTableRef"
       :columns="columns"
       :request-api="getTableList"
-      :init-param="{ searchType: searchType }"
+      :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增设备</el-button>
@@ -283,61 +395,363 @@ const handleExportBatch = (selectedList) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="primary" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">导出</el-button>
-        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
-          >删除</el-button
+        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)"
+          >导出</el-button
         >
       </template>
     </ProTable>
+
+    <el-dialog
+      v-model="dialogVisible"
+      width="900px"
+      :close-on-click-modal="false"
+      destroy-on-close
+      class="device-dialog"
+    >
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">新增设备</span>
+        </div>
+      </template>
+      <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-text">基本信息</span>
+          </div>
+          <div class="form-grid">
+            <el-form-item label="设备编码">
+              <el-input v-model="formData.deviceCode" disabled placeholder="系统自动生成" />
+            </el-form-item>
+            <el-form-item label="设备名称" prop="deviceName">
+              <el-input v-model="formData.deviceName" placeholder="请输入设备名称" />
+            </el-form-item>
+            <el-form-item label="生产厂家" prop="manufacturer">
+              <el-input v-model="formData.manufacturer" placeholder="请输入生产厂家" />
+            </el-form-item>
+            <el-form-item label="品牌" prop="brand">
+              <el-select v-model="formData.brand" placeholder="请选择品牌" style="width: 100%">
+                <el-option
+                  v-for="item in brandOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="规格型号" prop="specModel">
+              <el-input v-model="formData.specModel" placeholder="请输入规格型号" />
+            </el-form-item>
+            <el-form-item label="供应商" prop="supplier">
+              <el-input v-model="formData.supplier" placeholder="请输入供应商" />
+            </el-form-item>
+            <el-form-item label="生产日期" prop="productionDate">
+              <el-date-picker
+                v-model="formData.productionDate"
+                type="date"
+                placeholder="请选择生产日期"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="使用年限" prop="serviceLife">
+              <el-input-number
+                v-model="formData.serviceLife"
+                :min="1"
+                :max="100"
+                placeholder="请输入使用年限"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="折旧方式" prop="depreciationMethod">
+              <el-select
+                v-model="formData.depreciationMethod"
+                placeholder="请选择折旧方式"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in depreciationOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="位置" prop="location">
+              <el-select v-model="formData.location" placeholder="请选择位置" style="width: 100%">
+                <el-option
+                  v-for="item in locationOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="库存数量" prop="stockQuantity">
+              <el-input-number
+                v-model="formData.stockQuantity"
+                :min="0"
+                placeholder="请输入库存数量"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="单位" prop="unit">
+              <el-select v-model="formData.unit" placeholder="请选择单位" style="width: 100%">
+                <el-option
+                  v-for="item in unitOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-text">扩展信息</span>
+            <el-button type="primary" link :icon="Plus" @click="handleAddExtendField">
+              添加字段
+            </el-button>
+          </div>
+          <div class="extend-fields">
+            <div v-for="(field, index) in extendFields" :key="field.key" class="extend-field-item">
+              <div class="field-header">
+                <el-input
+                  v-if="field.isNew"
+                  v-model="field.label"
+                  class="field-label-input"
+                  placeholder="请输入字段名称"
+                />
+                <span v-else class="field-label">{{ field.label }}</span>
+                <el-button
+                  v-if="field.isNew"
+                  type="danger"
+                  link
+                  :icon="Delete"
+                  @click="handleRemoveExtendField(index)"
+                >
+                  删除
+                </el-button>
+              </div>
+              <el-input v-model="field.value" type="textarea" :rows="3" placeholder="请输入内容" />
+            </div>
+          </div>
+        </div>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleCancel">取消</el-button>
+          <el-button type="primary" @click="handleSubmit">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .device-manage-container {
-  .search-type-wrapper {
-    display: inline-block;
-    margin-right: 16px;
+  :deep(.table-search) {
+    margin-bottom: 10px !important;
   }
-}
 
-:deep(.table-search) {
-  margin-bottom: 10px !important;
-}
+  :deep(.el-table) {
+    .el-table__body-wrapper {
+      .el-table__body {
+        .el-table__row {
+          .el-table__cell:last-child {
+            .cell {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 4px 8px;
+              justify-items: stretch;
+              align-items: stretch;
 
-:deep(.el-table) {
-  .el-table__body-wrapper {
-    .el-table__body {
-      .el-table__row {
-        .el-table__cell:last-child {
-          .cell {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 4px 8px;
-            justify-items: stretch;
-            align-items: stretch;
-            
-            .el-button {
-              width: 100%;
-              min-width: 60px;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              padding: 4px 8px !important;
-              margin: 0 !important;
-              
-              .el-icon {
-                margin-right: 4px;
-                font-size: 14px;
-              }
-              
-              span {
-                font-size: 14px;
-                white-space: nowrap;
+              .el-button {
+                width: 100%;
+                min-width: 60px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 4px 8px !important;
+                margin: 0 !important;
+
+                .el-icon {
+                  margin-right: 4px;
+                  font-size: 14px;
+                }
+
+                span {
+                  font-size: 14px;
+                  white-space: nowrap;
+                }
               }
             }
           }
         }
+      }
+    }
+  }
+}
+
+.device-dialog {
+  :deep(.el-dialog__header) {
+    padding: 14px 21px;
+    border-bottom: 1px solid #ebeef5;
+    margin-right: 0;
+  }
+
+  .dialog-header {
+    .dialog-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #303133;
+    }
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 0;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 14px 20px;
+    border-top: 1px solid #ebeef5;
+  }
+
+  .form-section {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ebeef5;
+    margin-bottom: 26px;
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .title-text {
+        font-size: 20px;
+        font-weight: 500;
+        color: #303133;
+        position: relative;
+        padding-left: 10px;
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 14px;
+          background: #409eff;
+          border-radius: 2px;
+        }
+      }
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px 20px;
+
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+
+        .el-form-item__label {
+          font-size: 16px;
+          color: #303133;
+          font-weight: 400;
+          padding-bottom: 6px;
+        }
+
+        .el-input__inner,
+        .el-input__wrapper .el-input__inner {
+          font-size: 16px;
+        }
+
+        .el-select {
+          .el-input__wrapper .el-input__inner,
+          .el-input__inner {
+            font-size: 16px;
+          }
+        }
+      }
+    }
+
+    .extend-fields {
+      .extend-field-item {
+        margin-bottom: 14px;
+        padding: 14px;
+        background: #fafafa;
+        border-radius: 4px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .field-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+
+          .field-label {
+            font-size: 16px;
+            color: #303133;
+            font-weight: 400;
+          }
+
+          .field-label-input {
+            flex: 1;
+            margin-right: 10px;
+
+            :deep(.el-input__wrapper) {
+              padding: 4px 11px;
+
+              .el-input__inner {
+                font-size: 16px;
+                font-weight: 500;
+              }
+            }
+          }
+        }
+
+        :deep(.el-textarea__inner) {
+          font-size: 16px;
+        }
+
+        :deep(.el-textarea__wrapper) {
+          .el-textarea__inner {
+            font-size: 16px;
+          }
+        }
+      }
+    }
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    .el-button {
+      font-size: 16px;
+      padding: 10px 20px;
+    }
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .device-dialog {
+    .form-section {
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
   }
