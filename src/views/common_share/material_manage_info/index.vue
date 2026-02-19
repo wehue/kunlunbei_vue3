@@ -708,9 +708,9 @@ const getTableList = async (params) => {
   }
 
   .version-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    // display: flex;
+    // align-items: center;
+    // gap: 8px;
 
     .version-icon {
       cursor: pointer;

@@ -712,8 +712,8 @@ const getTableList = async (params) => {
   }
 
   .version-cell {
-    display: flex;
-    align-items: center;
+    // display: flex;
+    // align-items: center;
     gap: 8px;
 
     .version-icon {
