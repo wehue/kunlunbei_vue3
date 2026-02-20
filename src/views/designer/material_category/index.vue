@@ -2,13 +2,16 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/modules/user'
+
+const userStore = useUserStore()
 
 const dialogVisible = ref(false)
 const dialogType = ref('add')
 const formRef = ref()
 const treeRef = ref()
 
-const currentRole = ref('admin')
+const currentRole = computed(() => userStore.userInfo.role || 'admin')
 
 const formData = reactive({
   id: null,

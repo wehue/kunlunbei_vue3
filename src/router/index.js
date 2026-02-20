@@ -188,6 +188,17 @@ const routes = [
               isHide: true,
             },
           },
+          {
+            path: 'process-route-manage-add',
+            name: 'ProcessRouteManageAdd',
+            component: () => import('@/views/common_share/process_route_manage_add/index.vue'),
+            meta: {
+              title: '新增工艺路线',
+              icon: 'Guide',
+              roles: ['designer'],
+              isHide: true,
+            },
+          },
         ],
       },
       // 管理员专属路由
