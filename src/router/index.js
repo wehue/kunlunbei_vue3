@@ -332,7 +332,7 @@ const routes = [
       {
         path: 'audit-manage',
         name: 'AuditManage',
-        component: () => import('@/views/supervisor/audit_pending/index.vue'),
+        redirect: '/audit-manage/audit-pending',
         meta: { title: '审核管理', icon: 'Check', roles: ['supervisor'] },
         children: [
           {
@@ -358,6 +358,20 @@ const routes = [
             name: 'AuditRecordDetail',
             component: () => import('@/views/supervisor/audit_record_detail/index.vue'),
             meta: { title: '审核记录详情', icon: 'Document', roles: ['supervisor'], isHide: true },
+          },
+        ],
+      },
+      {
+        path: 'supervisor-log-manage',
+        name: 'SupervisorLogManage',
+        redirect: 'supervisor-log-manage/operation-log',
+        meta: { title: '日志管理', icon: 'Tickets', roles: ['supervisor'] },
+        children: [
+          {
+            path: 'operation-log',
+            name: 'SupervisorOperationLog',
+            component: () => import('@/views/common_share/operation_log/index.vue'),
+            meta: { title: '操作日志', icon: 'Tickets', roles: ['supervisor'] },
           },
         ],
       },
@@ -407,7 +421,7 @@ const routes = [
         path: 'personal-center',
         name: 'PersonalCenter',
         component: () => import('@/views/common/personal_center/index.vue'),
-        meta: { title: '个人中心', icon: 'User', roles: ['supervisor', 'designer'] },
+        meta: { title: '个人中心', icon: 'User', roles: ['admin', 'supervisor', 'designer'] },
       },
     ],
   },

@@ -1,6 +1,6 @@
 <template>
   <div class="tool-bar-ri">
-    <div class="header-icon">
+    <div class="header-icon" v-if="showMessage">
       <Message id="message" />
     </div>
     <span class="username">{{ username }}</span>
@@ -16,6 +16,9 @@ import Avatar from './components/Avatar.vue'
 
 const userStore = useUserStore()
 const username = computed(() => userStore.userInfo?.name || '用户')
+const currentRole = computed(() => userStore.userInfo?.role)
+
+const showMessage = computed(() => currentRole.value === 'designer')
 </script>
 
 <style scoped lang="scss">
