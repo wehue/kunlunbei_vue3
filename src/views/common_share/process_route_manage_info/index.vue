@@ -5,14 +5,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Check } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
-import { useUserStore } from '@/stores/modules/user'
+import { usePermission } from '@/hooks/usePermission'
 
 const router = useRouter()
-const userStore = useUserStore()
+const { hasPermission, isAdminRole, isSupervisorRole, isDesignerRole, currentRole } =
+  usePermission()
 
 const proTableRef = ref()
 const showAllVersions = ref(false)
-const currentRole = computed(() => userStore.userInfo.role || 'admin')
 
 const statusOptions = [
   { label: '待审核', value: 'pending' },
@@ -209,10 +209,10 @@ const displayData = computed(() => {
   return allRouteData.value.filter((r) => r.isCurrent)
 })
 
-const canAdd = computed(() => currentRole.value === 'designer')
-const canApprove = computed(() => currentRole.value === 'supervisor')
-const canEdit = computed(() => currentRole.value === 'designer')
-const canSubmitAudit = computed(() => currentRole.value === 'designer')
+const canAdd = computed(() => isDesignerRole.value)
+const canApprove = computed(() => isSupervisorRole.value)
+const canEdit = computed(() => isDesignerRole.value)
+const canSubmitAudit = computed(() => isDesignerRole.value)
 
 const getStatusType = (status) => {
   const map = {
@@ -452,7 +452,7 @@ const getTableList = async (params) => {
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button
           v-if="canApprove && scope.row.status === 'pending'"
-          type="success"
+          type="primary"
           link
           :icon="Check"
           @click="handleSubmitAudit(scope.row)"
@@ -467,9 +467,9 @@ const getTableList = async (params) => {
         >
           提交审核
         </el-button>
-        <el-button type="info" link :icon="Download" @click="handleExportSingle(scope.row)"
-          >导出</el-button
-        >
+        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
+          导出
+        </el-button>
       </template>
     </ProTable>
   </div>

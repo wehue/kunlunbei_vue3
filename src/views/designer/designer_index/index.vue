@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Edit,
   DataAnalysis,
+  RefreshRight,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -35,19 +36,79 @@ const trendData = ref({
 })
 
 const todoList = ref([
-  { id: 1, title: '审核驳回的工艺路线需重新提交', type: 'urgent', time: '2024-01-15 10:30', route: '/process-route-manage/process-route-manage-info' },
-  { id: 2, title: '新增物料信息待完善', type: 'normal', time: '2024-01-15 09:20', route: '/material-manage/material-manage-info' },
-  { id: 3, title: 'BOM清单版本需要更新', type: 'normal', time: '2024-01-14 16:45', route: '/material-manage/bom-manage' },
-  { id: 4, title: '工艺路线PR003待提交审核', type: 'pending', time: '2024-01-14 14:00', route: '/process-route-manage/process-route-manage-info' },
+  {
+    id: 1,
+    title: '审核驳回的工艺路线需重新提交',
+    type: 'urgent',
+    time: '2024-01-15 10:30',
+    route: '/process-route-manage/process-route-manage-info',
+  },
+  {
+    id: 2,
+    title: '新增物料信息待完善',
+    type: 'normal',
+    time: '2024-01-15 09:20',
+    route: '/material-manage/material-manage-info',
+  },
+  {
+    id: 3,
+    title: 'BOM清单版本需要更新',
+    type: 'normal',
+    time: '2024-01-14 16:45',
+    route: '/material-manage/bom-manage',
+  },
+  {
+    id: 4,
+    title: '工艺路线PR003待提交审核',
+    type: 'pending',
+    time: '2024-01-14 14:00',
+    route: '/process-route-manage/process-route-manage-info',
+  },
 ])
 
 const quickActions = ref([
-  { id: 1, title: '新增物料', icon: Box, color: '#409eff', route: '/material-manage/material-manage-info' },
-  { id: 2, title: '新增设备', icon: Cpu, color: '#67c23a', route: '/device-manage/device-manage-info' },
-  { id: 3, title: '新增工序', icon: Operation, color: '#e6a23c', route: '/process-manage/process-manage-info' },
-  { id: 4, title: '新增工艺路线', icon: Guide, color: '#f56c6c', route: '/process-route-manage/process-route-manage-add' },
-  { id: 5, title: '新增BOM', icon: Document, color: '#909399', route: '/material-manage/bom-manage' },
-  { id: 6, title: '物料分类管理', icon: DataAnalysis, color: '#9c27b0', route: '/material-manage/material-category' },
+  {
+    id: 1,
+    title: '新增物料',
+    icon: Box,
+    color: '#409eff',
+    route: '/material-manage/material-manage-info',
+  },
+  {
+    id: 2,
+    title: '新增设备',
+    icon: Cpu,
+    color: '#67c23a',
+    route: '/device-manage/device-manage-info',
+  },
+  {
+    id: 3,
+    title: '新增工序',
+    icon: Operation,
+    color: '#e6a23c',
+    route: '/process-manage/process-manage-info',
+  },
+  {
+    id: 4,
+    title: '新增工艺路线',
+    icon: Guide,
+    color: '#f56c6c',
+    route: '/process-route-manage/process-route-manage-add',
+  },
+  {
+    id: 5,
+    title: '新增BOM',
+    icon: Document,
+    color: '#909399',
+    route: '/material-manage/bom-manage',
+  },
+  {
+    id: 6,
+    title: '物料分类管理',
+    icon: DataAnalysis,
+    color: '#9c27b0',
+    route: '/material-manage/material-category',
+  },
 ])
 
 const materialCategoryData = ref([
@@ -341,7 +402,7 @@ const getTodoTypeLabel = (type) => {
   return map[type] || ''
 }
 
-onMounted(() => {
+const fetchData = () => {
   loading.value = true
   setTimeout(() => {
     loading.value = false
@@ -350,6 +411,10 @@ onMounted(() => {
     animateNumber(overviewData.value, 'processTotal', 342)
     animateNumber(overviewData.value, 'routeTotal', 156)
   }, 300)
+}
+
+onMounted(() => {
+  fetchData()
 })
 </script>
 
@@ -364,6 +429,9 @@ onMounted(() => {
         </div>
       </div>
       <div class="header-right">
+        <el-button type="primary" :icon="RefreshRight" @click="fetchData" :loading="loading"
+          >刷新数据</el-button
+        >
         <span class="update-time">数据更新时间：{{ new Date().toLocaleString() }}</span>
       </div>
     </div>

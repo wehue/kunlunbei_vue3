@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, ArrowLeft, Download } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
+import { usePermission } from '@/hooks/usePermission'
 
 const route = useRoute()
 const router = useRouter()
+const { isDesignerRole } = usePermission()
 
 const isEdit = ref(false)
 const loading = ref(false)
@@ -532,7 +534,9 @@ watch(
           </el-select>
         </div>
         <template v-if="!isEdit">
-          <el-button type="primary" :icon="Edit" @click="handleEdit">编辑</el-button>
+          <el-button v-if="isDesignerRole" type="primary" :icon="Edit" @click="handleEdit"
+            >编辑</el-button
+          >
           <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>
         </template>
         <template v-else>

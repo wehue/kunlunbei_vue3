@@ -1,17 +1,11 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
-import { useUserStore } from '@/stores/modules/user'
-
-const userStore = useUserStore()
-const currentRole = computed(() => userStore.userInfo.role)
 
 const proTableRef = ref()
-const dateRange = ref([])
-const enableDedup = ref(false)
 
 const operationTypeOptions = ref([
   { label: '新增', value: '新增' },
@@ -232,7 +226,21 @@ const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'operator', label: '操作人', search: { el: 'input', key: 'operator' } },
-  { prop: 'operationTime', label: '操作时间', minWidth: 160 },
+  {
+    prop: 'operationTime',
+    label: '操作时间',
+    minWidth: 160,
+    search: {
+      el: 'date-picker',
+      key: 'dateRange',
+      props: {
+        type: 'daterange',
+        valueFormat: 'YYYY-MM-DD',
+        startPlaceholder: '开始时间',
+        endPlaceholder: '结束时间',
+      },
+    },
+  },
   {
     prop: 'operationType',
     label: '操作类型',
@@ -247,30 +255,7 @@ const columns = reactive([
     enum: operationResultOptions,
   },
   { prop: 'operationModule', label: '操作模块', minWidth: 100 },
-  { prop: 'ipAddress', label: 'IP地址', minWidth: 120 },
 ])
-
-const handleDateRangeChange = (val) => {
-  if (val && val.length === 2) {
-    proTableRef.value.searchParam.startTime = val[0]
-    proTableRef.value.searchParam.endTime = val[1]
-  } else {
-    proTableRef.value.searchParam.startTime = ''
-    proTableRef.value.searchParam.endTime = ''
-  }
-}
-
-const deduplicateData = (data) => {
-  const seen = new Map()
-  return data.filter((item) => {
-    const key = `${item.operator}_${item.operationContent}_${item.operationType}_${item.operationResult}`
-    if (seen.has(key)) {
-      return false
-    }
-    seen.set(key, true)
-    return true
-  })
-}
 
 const exportToExcel = (data, fileName) => {
   const worksheet = XLSX.utils.json_to_sheet(data)
@@ -279,44 +264,7 @@ const exportToExcel = (data, fileName) => {
   XLSX.writeFile(workbook, `${fileName}.xlsx`)
 }
 
-const handleExportCurrent = () => {
-  const params = proTableRef.value?.searchParam || {}
-  let filteredData = filterData(mockData.value, params)
-  if (enableDedup.value) {
-    filteredData = deduplicateData(filteredData)
-  }
-  const exportData = filteredData.map((item) => ({
-    操作人: item.operator,
-    操作时间: item.operationTime,
-    操作类型: item.operationType,
-    操作内容: item.operationContent,
-    操作结果: item.operationResult,
-    操作模块: item.operationModule,
-    IP地址: item.ipAddress,
-  }))
-  exportToExcel(exportData, `操作日志_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
-}
-
-const handleExportAll = () => {
-  let dataToExport = [...mockData.value]
-  if (enableDedup.value) {
-    dataToExport = deduplicateData(dataToExport)
-  }
-  const exportData = dataToExport.map((item) => ({
-    操作人: item.operator,
-    操作时间: item.operationTime,
-    操作类型: item.operationType,
-    操作内容: item.operationContent,
-    操作结果: item.operationResult,
-    操作模块: item.operationModule,
-    IP地址: item.ipAddress,
-  }))
-  exportToExcel(exportData, `操作日志_全部_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
-}
-
-const handleExportSelected = (selectedList) => {
+const handleExportBatch = (selectedList) => {
   if (!selectedList || selectedList.length === 0) {
     ElMessage.warning('请先选择要导出的数据')
     return
@@ -328,9 +276,8 @@ const handleExportSelected = (selectedList) => {
     操作内容: item.operationContent,
     操作结果: item.operationResult,
     操作模块: item.operationModule,
-    IP地址: item.ipAddress,
   }))
-  exportToExcel(exportData, `操作日志_选中_${new Date().toLocaleDateString()}`)
+  exportToExcel(exportData, `操作日志_${new Date().toLocaleDateString()}`)
   ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
 }
 
@@ -349,10 +296,10 @@ const filterData = (data, params) => {
     filteredData = filteredData.filter((item) => item.operationResult === params.operationResult)
   }
 
-  if (params?.startTime && params?.endTime) {
+  if (params?.dateRange && params.dateRange.length === 2) {
     filteredData = filteredData.filter((item) => {
       const operationDate = item.operationTime.split(' ')[0]
-      return operationDate >= params.startTime && operationDate <= params.endTime
+      return operationDate >= params.dateRange[0] && operationDate <= params.dateRange[1]
     })
   }
 
@@ -363,10 +310,6 @@ const getTableList = async (params) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       let filteredData = filterData(mockData.value, params)
-
-      if (enableDedup.value && currentRole.value === 'supervisor') {
-        filteredData = deduplicateData(filteredData)
-      }
 
       const pageNum = params?.pageNum || 1
       const pageSize = params?.pageSize || 10
@@ -399,34 +342,13 @@ const getTableList = async (params) => {
       :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          style="margin-right: 12px"
-          @change="handleDateRangeChange"
-        />
-        <el-checkbox
-          v-if="currentRole === 'supervisor'"
-          v-model="enableDedup"
-          style="margin-right: 12px"
-        >
-          启用去重
-        </el-checkbox>
-        <el-button type="success" :icon="Download" @click="handleExportCurrent"
-          >导出当前结果</el-button
-        >
-        <el-button type="success" :icon="Download" @click="handleExportAll">导出全部</el-button>
         <el-button
           type="success"
           :icon="Download"
           :disabled="!scope.isSelected"
-          @click="handleExportSelected(scope.selectedList)"
+          @click="handleExportBatch(scope.selectedList)"
         >
-          导出选中
+          批量导出
         </el-button>
       </template>
 

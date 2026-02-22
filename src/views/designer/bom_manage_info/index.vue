@@ -5,8 +5,10 @@ import { ElMessage } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { usePermission } from '@/hooks/usePermission'
 
 const router = useRouter()
+const { isAdminRole } = usePermission()
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
@@ -505,7 +507,9 @@ const getTableList = async (params) => {
       <template #tableHeader="scope">
         <div class="header-controls">
           <div class="header-left">
-            <el-button type="primary" :icon="Plus" @click="handleAdd">新建BOM</el-button>
+            <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd"
+              >新建BOM</el-button
+            >
             <el-button
               type="success"
               :icon="Download"

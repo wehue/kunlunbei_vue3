@@ -238,11 +238,6 @@ onMounted(() => {
 
 <template>
   <div class="personal-center-container">
-    <div class="page-header">
-      <h2 class="page-title">个人中心</h2>
-      <span class="page-subtitle">管理您的个人信息和账户安全</span>
-    </div>
-
     <div class="content-wrapper">
       <div class="section-card">
         <div class="section-header">
@@ -265,9 +260,6 @@ onMounted(() => {
               </el-upload>
             </div>
             <div class="avatar-info">
-              <div class="avatar-tips">
-                <p>支持 JPG/PNG 格式，文件大小不超过 5MB</p>
-              </div>
               <el-upload
                 :show-file-list="false"
                 :before-upload="handleAvatarChange"
@@ -478,14 +470,6 @@ onMounted(() => {
             show-password
           />
         </el-form-item>
-        <div class="password-tips">
-          <p>密码复杂度要求：</p>
-          <ul>
-            <li>长度为8-20位</li>
-            <li>必须包含字母和数字</li>
-            <li>必须包含至少一个特殊字符（如：!@#$%^&*）</li>
-          </ul>
-        </div>
       </el-form>
       <template #footer>
         <el-button @click="editPasswordDialogVisible = false">取消</el-button>
@@ -497,25 +481,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .personal-center-container {
-  padding: 20px;
-
-  .page-header {
-    margin-bottom: 24px;
-
-    .page-title {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
-      color: #303133;
-    }
-
-    .page-subtitle {
-      font-size: 14px;
-      color: #909399;
-      margin-top: 8px;
-      display: block;
-    }
-  }
+  padding: 3px;
 
   .content-wrapper {
     .section-card {
@@ -616,14 +582,6 @@ onMounted(() => {
             display: flex;
             flex-direction: column;
             gap: 12px;
-
-            .avatar-tips {
-              p {
-                margin: 0;
-                font-size: 13px;
-                color: #909399;
-              }
-            }
           }
         }
 
@@ -679,31 +637,6 @@ onMounted(() => {
   }
 }
 
-.password-tips {
-  background: #f4f4f5;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin-left: 100px;
-
-  p {
-    margin: 0 0 8px;
-    font-size: 13px;
-    color: #606266;
-    font-weight: 500;
-  }
-
-  ul {
-    margin: 0;
-    padding-left: 20px;
-
-    li {
-      font-size: 12px;
-      color: #909399;
-      line-height: 1.8;
-    }
-  }
-}
-
 @keyframes rotating {
   from {
     transform: rotate(0deg);
@@ -741,10 +674,6 @@ onMounted(() => {
         }
       }
     }
-  }
-
-  .password-tips {
-    margin-left: 0;
   }
 }
 </style>

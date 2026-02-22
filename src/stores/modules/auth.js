@@ -52,21 +52,26 @@ export const useAuthStore = defineStore('kunlun-auth', {
           // 清理路径，去掉多余的 /
           currentPath = currentPath.replace(/\/+/g, '/')
 
-          // 构建当前路由的面包屑项
-          const currentBreadcrumbItem = {
-            path: currentPath,
-            meta: route.meta || {},
-          }
+          // 构建当前路由的面包屑项 - 只有有title的才添加
+          if (route.meta && route.meta.title) {
+            const currentBreadcrumbItem = {
+              path: currentPath,
+              meta: route.meta || {},
+            }
 
-          // 构建完整的面包屑路径（包含所有父级）
-          const currentBreadcrumbList = [...parentBreadcrumb, currentBreadcrumbItem]
+            // 构建完整的面包屑路径（包含所有父级）
+            const currentBreadcrumbList = [...parentBreadcrumb, currentBreadcrumbItem]
 
-          // 存储面包屑路径
-          breadcrumbList[currentPath] = currentBreadcrumbList
+            // 存储面包屑路径
+            breadcrumbList[currentPath] = currentBreadcrumbList
 
-          // 递归处理子路由
-          if (route.children && route.children.length > 0) {
-            processRoutes(route.children, currentPath, currentBreadcrumbList)
+            // 递归处理子路由
+            if (route.children && route.children.length > 0) {
+              processRoutes(route.children, currentPath, currentBreadcrumbList)
+            }
+          } else if (route.children && route.children.length > 0) {
+            // 没有title的路由，直接传递父面包屑继续处理子路由
+            processRoutes(route.children, currentPath, parentBreadcrumb)
           }
         })
       }

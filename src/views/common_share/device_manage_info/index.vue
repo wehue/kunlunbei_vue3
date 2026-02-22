@@ -5,8 +5,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { usePermission } from '@/hooks/usePermission'
 
 const router = useRouter()
+const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
@@ -374,7 +376,9 @@ const getTableList = async (params) => {
       :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
-        <el-button type="primary" :icon="Plus" @click="handleAdd">新增设备</el-button>
+        <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd">
+          新增设备
+        </el-button>
         <el-button
           type="success"
           :icon="Download"
@@ -395,9 +399,9 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)"
-          >导出</el-button
-        >
+        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
+          导出
+        </el-button>
       </template>
     </ProTable>
 

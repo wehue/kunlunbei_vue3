@@ -47,7 +47,7 @@ const routes = [
         component: () => import('@/views/admin/admin_index/index.vue'),
         meta: { title: '管理员首页', icon: 'HomeFilled', isAffix: true, roles: ['admin'] },
       },
-      // 设备管理
+      // 设备管理 - 设计师：全部操作权限，主管：仅查看，管理员：查看+运维（批量导入导出、数据备份恢复）
       {
         path: 'device-manage',
         name: 'DeviceManage',
@@ -77,7 +77,7 @@ const routes = [
           },
         ],
       },
-      // 物料管理
+      // 物料管理 - 设计师：全部操作权限+物料分类+BOM管理，主管：仅查看，管理员：查看+运维
       {
         path: 'material-manage',
         name: 'MaterialManage',
@@ -134,7 +134,7 @@ const routes = [
           },
         ],
       },
-      // 工序管理
+      // 工序管理 - 设计师：全部操作权限，主管：仅查看，管理员：查看+运维
       {
         path: 'process-manage',
         name: 'ProcessManage',
@@ -164,7 +164,7 @@ const routes = [
           },
         ],
       },
-      // 工艺路线管理
+      // 工艺路线管理 - 设计师：全部操作权限，主管：查看+审核，管理员：查看+运维
       {
         path: 'process-route-manage',
         name: 'ProcessRouteManage',

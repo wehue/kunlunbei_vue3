@@ -9,8 +9,6 @@ import {
   DocumentChecked,
   RefreshRight,
   TrendCharts,
-  ArrowUp,
-  ArrowDown,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -56,6 +54,53 @@ const generateWeekData = () => {
 }
 
 const trendData = ref(generate30DaysData())
+
+const efficiencyData = ref({
+  avgApprovalTime: 2.5,
+  passRate: 87.6,
+  onTimeRate: 92.3,
+  weeklyTrend: [
+    { week: '第1周', avgTime: 3.2, passRate: 82 },
+    { week: '第2周', avgTime: 2.8, passRate: 85 },
+    { week: '第3周', avgTime: 2.5, passRate: 88 },
+    { week: '第4周', avgTime: 2.3, passRate: 90 },
+  ],
+})
+
+const designerRanking = ref([
+  { rank: 1, name: '张三', dept: '设计一部', submitCount: 45, passRate: 96, avgTime: 1.8 },
+  { rank: 2, name: '李四', dept: '设计二部', submitCount: 42, passRate: 94, avgTime: 2.0 },
+  { rank: 3, name: '王五', dept: '设计一部', submitCount: 38, passRate: 92, avgTime: 2.2 },
+  { rank: 4, name: '赵六', dept: '设计三部', submitCount: 35, passRate: 91, avgTime: 2.4 },
+  { rank: 5, name: '钱七', dept: '设计二部', submitCount: 32, passRate: 88, avgTime: 2.6 },
+])
+
+const overdueWarnings = ref([
+  {
+    id: 1,
+    routeName: '电机组装工艺路线V2.1',
+    designer: '张三',
+    submitTime: '2024-01-10 09:30',
+    overdueHours: 72,
+    status: 'urgent',
+  },
+  {
+    id: 2,
+    routeName: '控制器测试流程V1.0',
+    designer: '李四',
+    submitTime: '2024-01-11 14:20',
+    overdueHours: 48,
+    status: 'warning',
+  },
+  {
+    id: 3,
+    routeName: '传感器校准工序V3.0',
+    designer: '王五',
+    submitTime: '2024-01-12 11:00',
+    overdueHours: 24,
+    status: 'notice',
+  },
+])
 
 const chartOption = computed(() => ({
   tooltip: {
@@ -161,6 +206,85 @@ const chartOption = computed(() => ({
   ],
 }))
 
+const efficiencyChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'axis',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#eee',
+    borderWidth: 1,
+    textStyle: { color: '#333' },
+  },
+  legend: {
+    data: ['平均审批时长(小时)', '通过率(%)'],
+    top: 10,
+    textStyle: { color: '#666' },
+  },
+  grid: {
+    left: '3%',
+    right: '4%',
+    bottom: '3%',
+    top: 60,
+    containLabel: true,
+  },
+  xAxis: {
+    type: 'category',
+    data: efficiencyData.value.weeklyTrend.map((item) => item.week),
+    axisLabel: { color: '#666' },
+    axisLine: { lineStyle: { color: '#ddd' } },
+  },
+  yAxis: [
+    {
+      type: 'value',
+      name: '时长(小时)',
+      axisLabel: { color: '#666' },
+      axisLine: { show: true, lineStyle: { color: '#ddd' } },
+      splitLine: { lineStyle: { color: '#f0f0f0' } },
+    },
+    {
+      type: 'value',
+      name: '通过率(%)',
+      min: 0,
+      max: 100,
+      axisLabel: { color: '#666' },
+      axisLine: { show: true, lineStyle: { color: '#ddd' } },
+      splitLine: { show: false },
+    },
+  ],
+  series: [
+    {
+      name: '平均审批时长(小时)',
+      type: 'bar',
+      barWidth: '40%',
+      itemStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: '#409eff' },
+            { offset: 1, color: '#79bbff' },
+          ],
+        },
+        borderRadius: [4, 4, 0, 0],
+      },
+      data: efficiencyData.value.weeklyTrend.map((item) => item.avgTime),
+    },
+    {
+      name: '通过率(%)',
+      type: 'line',
+      yAxisIndex: 1,
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 8,
+      lineStyle: { width: 3, color: '#67c23a' },
+      itemStyle: { color: '#67c23a', borderWidth: 2, borderColor: '#fff' },
+      data: efficiencyData.value.weeklyTrend.map((item) => item.passRate),
+    },
+  ],
+}))
+
 const handleGranularityChange = (type) => {
   timeGranularity.value = type
   if (type === 'day') {
@@ -257,15 +381,7 @@ onUnmounted(() => {
             <div class="card-value">{{ overviewData.materialTotal.value }}</div>
             <div class="card-label">物料总数</div>
           </div>
-          <div
-            class="card-trend"
-            :class="overviewData.materialTotal.isUp ? 'trend-up' : 'trend-down'"
-          >
-            <el-icon
-              ><component :is="overviewData.materialTotal.isUp ? ArrowUp : ArrowDown"
-            /></el-icon>
-            <span>{{ Math.abs(overviewData.materialTotal.trend) }}%</span>
-          </div>
+          <div class="card-decoration"></div>
         </div>
 
         <div class="overview-card equipment-card">
@@ -276,15 +392,7 @@ onUnmounted(() => {
             <div class="card-value">{{ overviewData.equipmentTotal.value }}</div>
             <div class="card-label">设备总数</div>
           </div>
-          <div
-            class="card-trend"
-            :class="overviewData.equipmentTotal.isUp ? 'trend-up' : 'trend-down'"
-          >
-            <el-icon
-              ><component :is="overviewData.equipmentTotal.isUp ? ArrowUp : ArrowDown"
-            /></el-icon>
-            <span>{{ Math.abs(overviewData.equipmentTotal.trend) }}%</span>
-          </div>
+          <div class="card-decoration"></div>
         </div>
 
         <div class="overview-card route-card">
@@ -295,12 +403,7 @@ onUnmounted(() => {
             <div class="card-value">{{ overviewData.routeTotal.value }}</div>
             <div class="card-label">工艺路线总数</div>
           </div>
-          <div class="card-trend" :class="overviewData.routeTotal.isUp ? 'trend-up' : 'trend-down'">
-            <el-icon
-              ><component :is="overviewData.routeTotal.isUp ? ArrowUp : ArrowDown"
-            /></el-icon>
-            <span>{{ Math.abs(overviewData.routeTotal.trend) }}%</span>
-          </div>
+          <div class="card-decoration"></div>
         </div>
 
         <div class="overview-card pending-card">
@@ -311,15 +414,7 @@ onUnmounted(() => {
             <div class="card-value">{{ overviewData.pendingApproval.value }}</div>
             <div class="card-label">待办审批数</div>
           </div>
-          <div
-            class="card-trend"
-            :class="overviewData.pendingApproval.isUp ? 'trend-up' : 'trend-down'"
-          >
-            <el-icon
-              ><component :is="overviewData.pendingApproval.isUp ? ArrowUp : ArrowDown"
-            /></el-icon>
-            <span>{{ Math.abs(overviewData.pendingApproval.trend) }}%</span>
-          </div>
+          <div class="card-decoration"></div>
         </div>
 
         <div class="overview-card rejected-card">
@@ -330,15 +425,7 @@ onUnmounted(() => {
             <div class="card-value">{{ overviewData.rejectedNotResubmit.value }}</div>
             <div class="card-label">驳回未重提数</div>
           </div>
-          <div
-            class="card-trend"
-            :class="overviewData.rejectedNotResubmit.isUp ? 'trend-up' : 'trend-down'"
-          >
-            <el-icon
-              ><component :is="overviewData.rejectedNotResubmit.isUp ? ArrowUp : ArrowDown"
-            /></el-icon>
-            <span>{{ Math.abs(overviewData.rejectedNotResubmit.trend) }}%</span>
-          </div>
+          <div class="card-decoration"></div>
         </div>
       </div>
     </div>
@@ -358,6 +445,108 @@ onUnmounted(() => {
       </div>
       <div class="chart-container">
         <ECharts :option="chartOption" />
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-section efficiency-chart">
+        <div class="section-header">
+          <div class="section-title">
+            <el-icon><Timer /></el-icon>
+            <span>审核效率统计</span>
+          </div>
+        </div>
+        <div class="efficiency-stats">
+          <div class="stat-item">
+            <div class="stat-value">{{ efficiencyData.avgApprovalTime }}h</div>
+            <div class="stat-label">平均审批时长</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ efficiencyData.passRate }}%</div>
+            <div class="stat-label">审批通过率</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ efficiencyData.onTimeRate }}%</div>
+            <div class="stat-label">按时处理率</div>
+          </div>
+        </div>
+        <div class="chart-container" style="height: 280px">
+          <ECharts :option="efficiencyChartOption" />
+        </div>
+      </div>
+
+      <div class="chart-section ranking-chart">
+        <div class="section-header">
+          <div class="section-title">
+            <el-icon><TrophyBase /></el-icon>
+            <span>设计师绩效排名</span>
+          </div>
+        </div>
+        <div class="ranking-list">
+          <div
+            v-for="item in designerRanking"
+            :key="item.rank"
+            class="ranking-item"
+            :class="'rank-' + item.rank"
+          >
+            <div class="rank-badge">{{ item.rank }}</div>
+            <div class="rank-info">
+              <div class="rank-name">{{ item.name }}</div>
+              <div class="rank-dept">{{ item.dept }}</div>
+            </div>
+            <div class="rank-stats">
+              <div class="stat">
+                <span class="stat-num">{{ item.submitCount }}</span>
+                <span class="stat-text">提交</span>
+              </div>
+              <div class="stat">
+                <span class="stat-num">{{ item.passRate }}%</span>
+                <span class="stat-text">通过率</span>
+              </div>
+              <div class="stat">
+                <span class="stat-num">{{ item.avgTime }}h</span>
+                <span class="stat-text">平均时长</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-section warning-chart">
+        <div class="section-header">
+          <div class="section-title">
+            <el-icon><Warning /></el-icon>
+            <span>审批超时预警</span>
+          </div>
+        </div>
+        <div class="warning-list">
+          <div
+            v-for="item in overdueWarnings"
+            :key="item.id"
+            class="warning-item"
+            :class="item.status"
+          >
+            <div class="warning-icon">
+              <el-icon><Clock /></el-icon>
+            </div>
+            <div class="warning-content">
+              <div class="warning-title">{{ item.routeName }}</div>
+              <div class="warning-meta">
+                <span>提交人：{{ item.designer }}</span>
+                <span>提交时间：{{ item.submitTime }}</span>
+              </div>
+            </div>
+            <div class="warning-time">
+              <div class="overdue-hours">超时{{ item.overdueHours }}小时</div>
+              <el-button
+                type="primary"
+                size="small"
+                @click="router.push('/audit-pending/audit-pending-info')"
+                >立即处理</el-button
+              >
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -417,81 +606,96 @@ onUnmounted(() => {
     .overview-cards {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
+      gap: 20px;
       .overview-card {
         position: relative;
-        padding: 20px;
+        padding: 24px;
         background: #fff;
         border-radius: 12px;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
         display: flex;
-        flex-direction: column;
-        gap: 12px;
+        align-items: center;
+        gap: 20px;
         overflow: hidden;
         transition: all 0.3s ease;
-        cursor: pointer;
         &:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
         .card-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
+          width: 64px;
+          height: 64px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 28px;
           color: #fff;
+          flex-shrink: 0;
         }
         .card-content {
+          flex: 1;
           .card-value {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
             color: #303133;
             line-height: 1.2;
             font-family: 'DIN', sans-serif;
           }
           .card-label {
-            font-size: 13px;
+            font-size: 14px;
             color: #909399;
             margin-top: 4px;
           }
         }
-        .card-trend {
+        .card-decoration {
           position: absolute;
-          top: 16px;
-          right: 16px;
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          font-size: 12px;
-          font-weight: 500;
-          padding: 4px 8px;
-          border-radius: 12px;
-          &.trend-up {
-            color: #67c23a;
-            background: rgba(103, 194, 58, 0.1);
+          right: -20px;
+          bottom: -20px;
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          opacity: 0.1;
+        }
+        &.material-card {
+          .card-icon {
+            background: linear-gradient(135deg, #409eff 0%, #79bbff 100%);
           }
-          &.trend-down {
-            color: #f56c6c;
-            background: rgba(245, 108, 108, 0.1);
+          .card-decoration {
+            background: #409eff;
           }
         }
-        &.material-card .card-icon {
-          background: linear-gradient(135deg, #409eff 0%, #79bbff 100%);
+        &.equipment-card {
+          .card-icon {
+            background: linear-gradient(135deg, #67c23a 0%, #95d475 100%);
+          }
+          .card-decoration {
+            background: #67c23a;
+          }
         }
-        &.equipment-card .card-icon {
-          background: linear-gradient(135deg, #67c23a 0%, #95d475 100%);
+        &.route-card {
+          .card-icon {
+            background: linear-gradient(135deg, #e6a23c 0%, #eebe77 100%);
+          }
+          .card-decoration {
+            background: #e6a23c;
+          }
         }
-        &.route-card .card-icon {
-          background: linear-gradient(135deg, #e6a23c 0%, #eebe77 100%);
+        &.pending-card {
+          .card-icon {
+            background: linear-gradient(135deg, #909399 0%, #c0c4cc 100%);
+          }
+          .card-decoration {
+            background: #909399;
+          }
         }
-        &.pending-card .card-icon {
-          background: linear-gradient(135deg, #909399 0%, #c0c4cc 100%);
-        }
-        &.rejected-card .card-icon {
-          background: linear-gradient(135deg, #f56c6c 0%, #f89898 100%);
+        &.rejected-card {
+          .card-icon {
+            background: linear-gradient(135deg, #f56c6c 0%, #f89898 100%);
+          }
+          .card-decoration {
+            background: #f56c6c;
+          }
         }
       }
     }
@@ -524,6 +728,191 @@ onUnmounted(() => {
     .chart-container {
       height: 400px;
       padding: 20px;
+    }
+  }
+
+  .charts-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 24px;
+
+    .chart-section {
+      .efficiency-stats {
+        display: flex;
+        justify-content: space-around;
+        padding: 16px 20px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+        .stat-item {
+          text-align: center;
+          .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #11998e;
+            font-family: 'DIN', sans-serif;
+          }
+          .stat-label {
+            font-size: 12px;
+            color: #909399;
+            margin-top: 4px;
+          }
+        }
+      }
+    }
+
+    .ranking-chart {
+      .ranking-list {
+        padding: 16px;
+        .ranking-item {
+          display: flex;
+          align-items: center;
+          padding: 12px;
+          margin-bottom: 8px;
+          background: #f5f7fa;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+          &:hover {
+            background: #ecf5ff;
+            transform: translateX(4px);
+          }
+          &.rank-1 .rank-badge {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+            color: #fff;
+          }
+          &.rank-2 .rank-badge {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+            color: #fff;
+          }
+          &.rank-3 .rank-badge {
+            background: linear-gradient(135deg, #cd7f32 0%, #daa06d 100%);
+            color: #fff;
+          }
+          .rank-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #e4e7ed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #606266;
+            margin-right: 12px;
+            flex-shrink: 0;
+          }
+          .rank-info {
+            flex: 1;
+            .rank-name {
+              font-size: 14px;
+              font-weight: 500;
+              color: #303133;
+            }
+            .rank-dept {
+              font-size: 12px;
+              color: #909399;
+            }
+          }
+          .rank-stats {
+            display: flex;
+            gap: 16px;
+            .stat {
+              text-align: center;
+              .stat-num {
+                display: block;
+                font-size: 14px;
+                font-weight: 600;
+                color: #409eff;
+              }
+              .stat-text {
+                font-size: 11px;
+                color: #909399;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .warning-chart {
+      .warning-list {
+        padding: 16px;
+        .warning-item {
+          display: flex;
+          align-items: center;
+          padding: 12px;
+          margin-bottom: 12px;
+          border-radius: 8px;
+          border-left: 4px solid;
+          background: #fafafa;
+          &.urgent {
+            border-color: #f56c6c;
+            background: #fef0f0;
+            .warning-icon {
+              background: #f56c6c;
+            }
+            .overdue-hours {
+              color: #f56c6c;
+            }
+          }
+          &.warning {
+            border-color: #e6a23c;
+            background: #fdf6ec;
+            .warning-icon {
+              background: #e6a23c;
+            }
+            .overdue-hours {
+              color: #e6a23c;
+            }
+          }
+          &.notice {
+            border-color: #409eff;
+            background: #ecf5ff;
+            .warning-icon {
+              background: #409eff;
+            }
+            .overdue-hours {
+              color: #409eff;
+            }
+          }
+          .warning-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 18px;
+            margin-right: 12px;
+            flex-shrink: 0;
+          }
+          .warning-content {
+            flex: 1;
+            .warning-title {
+              font-size: 14px;
+              font-weight: 500;
+              color: #303133;
+              margin-bottom: 4px;
+            }
+            .warning-meta {
+              font-size: 12px;
+              color: #909399;
+              span {
+                margin-right: 12px;
+              }
+            }
+          }
+          .warning-time {
+            text-align: right;
+            .overdue-hours {
+              font-size: 12px;
+              font-weight: 500;
+              margin-bottom: 6px;
+            }
+          }
+        }
+      }
     }
   }
 }

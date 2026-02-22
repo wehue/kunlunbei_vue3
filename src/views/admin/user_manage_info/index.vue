@@ -429,10 +429,12 @@ const exportToExcel = (data, fileName) => {
   XLSX.writeFile(workbook, `${fileName}.xlsx`)
 }
 
-const handleExportCurrent = () => {
-  const params = proTableRef.value?.searchParam || {}
-  const filteredData = filterData(mockData.value, params)
-  const exportData = filteredData.map((item) => ({
+const handleExportBatch = (selectedList) => {
+  if (!selectedList || selectedList.length === 0) {
+    ElMessage.warning('请先选择要导出的数据')
+    return
+  }
+  const exportData = selectedList.map((item) => ({
     用户ID: item.userId,
     用户名: item.userName,
     手机号: item.phone,
@@ -443,22 +445,7 @@ const handleExportCurrent = () => {
     最后登录时间: item.lastLoginTime,
   }))
   exportToExcel(exportData, `用户数据_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
-}
-
-const handleExportAll = () => {
-  const exportData = mockData.value.map((item) => ({
-    用户ID: item.userId,
-    用户名: item.userName,
-    手机号: item.phone,
-    邮箱: item.email,
-    角色: item.role,
-    用户状态: item.status,
-    注册时间: item.registerTime,
-    最后登录时间: item.lastLoginTime,
-  }))
-  exportToExcel(exportData, `用户数据_全部_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
+  ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
 }
 
 const handleSubmit = async () => {
@@ -593,10 +580,14 @@ const getTableList = async (params) => {
         >
           批量删除
         </el-button>
-        <el-button type="success" :icon="Download" @click="handleExportCurrent"
-          >导出当前结果</el-button
+        <el-button
+          type="success"
+          :icon="Download"
+          :disabled="!scope.isSelected"
+          @click="handleExportBatch(scope.selectedList)"
         >
-        <el-button type="success" :icon="Download" @click="handleExportAll">导出全部</el-button>
+          批量导出
+        </el-button>
       </template>
 
       <template #role="scope">

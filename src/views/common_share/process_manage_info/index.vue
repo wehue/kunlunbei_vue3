@@ -5,7 +5,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { usePermission } from '@/hooks/usePermission'
 
+const { hasPermission, isDesignerRole } = usePermission()
 const router = useRouter()
 
 const proTableRef = ref()
@@ -276,7 +278,9 @@ const getTableList = async (params) => {
       :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
-        <el-button type="primary" :icon="Plus" @click="handleAdd">新增工序</el-button>
+        <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd">
+          新增工序
+        </el-button>
         <el-button
           type="success"
           :icon="Download"
@@ -295,9 +299,9 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)"
-          >导出</el-button
-        >
+        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
+          导出
+        </el-button>
       </template>
     </ProTable>
 
@@ -345,11 +349,7 @@ const getTableList = async (params) => {
           </div>
           <div class="dynamic-list">
             <div v-for="(device, index) in formData.devices" :key="device.id" class="dynamic-item">
-              <el-select
-                v-model="device.deviceName"
-                placeholder="请选择设备"
-                style="width: 200px"
-              >
+              <el-select v-model="device.deviceName" placeholder="请选择设备" style="width: 200px">
                 <el-option
                   v-for="item in deviceOptions"
                   :key="item.id"
@@ -423,7 +423,11 @@ const getTableList = async (params) => {
             </el-button>
           </div>
           <div class="dynamic-list">
-            <div v-for="(material, index) in formData.materials" :key="material.id" class="dynamic-item">
+            <div
+              v-for="(material, index) in formData.materials"
+              :key="material.id"
+              class="dynamic-item"
+            >
               <el-select
                 v-model="material.materialName"
                 placeholder="请选择物料"

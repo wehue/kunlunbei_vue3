@@ -5,6 +5,9 @@ import { ElMessage } from 'element-plus'
 import { Plus, View, Download } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { usePermission } from '@/hooks/usePermission'
+
+const { hasPermission, isDesignerRole } = usePermission()
 
 const router = useRouter()
 
@@ -539,7 +542,9 @@ const getTableList = async (params) => {
       <template #tableHeader="scope">
         <div class="header-controls">
           <div class="header-left">
-            <el-button type="primary" :icon="Plus" @click="handleAdd">新增物料</el-button>
+            <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd">
+              新增物料
+            </el-button>
             <el-button
               type="success"
               :icon="Download"
@@ -589,9 +594,9 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)"
-          >导出</el-button
-        >
+        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
+          导出
+        </el-button>
       </template>
     </ProTable>
 

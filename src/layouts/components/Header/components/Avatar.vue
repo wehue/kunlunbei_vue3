@@ -5,32 +5,24 @@
     </div>
     <template #dropdown>
       <el-dropdown-menu>
-        <el-dropdown-item @click="openDialog('infoRef')">
-          <el-icon><User /></el-icon>个人中心
-        </el-dropdown-item>
-        <el-dropdown-item @click="openDialog('passwordRef')">
-          <el-icon><Edit /></el-icon>修改密码
-        </el-dropdown-item>
-        <el-dropdown-item divided @click="logout">
-          <el-icon><SwitchButton /></el-icon>退出登录
-        </el-dropdown-item>
+        <el-dropdown-item @click="goToProfile">个人中心</el-dropdown-item>
+        <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
       </el-dropdown-menu>
     </template>
   </el-dropdown>
-  <InfoDialog ref="infoRef"></InfoDialog>
-  <PasswordDialog ref="passwordRef"></PasswordDialog>
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/modules/user'
-import { ElMessageBox, ElMessage } from 'element-plus'
-import InfoDialog from './InfoDialog.vue'
-import PasswordDialog from './PasswordDialog.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const goToProfile = () => {
+  router.push('/personal-center')
+}
 
 const logout = () => {
   ElMessageBox.confirm('您是否确认退出登录?', '温馨提示', {
@@ -40,16 +32,11 @@ const logout = () => {
   }).then(async () => {
     userStore.setToken('')
     userStore.setUserInfo(null)
+    localStorage.removeItem('token')
+    localStorage.removeItem('userInfo')
     router.replace('/login')
     ElMessage.success('退出登录成功！')
   })
-}
-
-const infoRef = ref(null)
-const passwordRef = ref(null)
-const openDialog = (refName) => {
-  if (refName == 'infoRef') infoRef.value?.openDialog()
-  if (refName == 'passwordRef') passwordRef.value?.openDialog()
 }
 </script>
 

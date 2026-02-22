@@ -2,16 +2,14 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
-import { useUserStore } from '@/stores/modules/user'
+import { usePermission } from '@/hooks/usePermission'
 
-const userStore = useUserStore()
+const { isAdminRole } = usePermission()
 
 const dialogVisible = ref(false)
 const dialogType = ref('add')
 const formRef = ref()
 const treeRef = ref()
-
-const currentRole = computed(() => userStore.userInfo.role || 'admin')
 
 const formData = reactive({
   id: null,
@@ -213,9 +211,9 @@ const defaultProps = {
   label: 'label',
 }
 
-const canAdd = computed(() => currentRole.value === 'admin' || currentRole.value === 'supervisor')
-const canEdit = computed(() => currentRole.value === 'admin' || currentRole.value === 'supervisor')
-const canDelete = computed(() => currentRole.value === 'admin')
+const canAdd = computed(() => isAdminRole.value)
+const canEdit = computed(() => isAdminRole.value)
+const canDelete = computed(() => isAdminRole.value)
 
 const isLeaf = (node) => {
   return !node.children || node.children.length === 0

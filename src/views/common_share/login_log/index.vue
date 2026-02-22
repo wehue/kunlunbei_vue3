@@ -1,25 +1,11 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
-import { useUserStore } from '@/stores/modules/user'
-
-const router = useRouter()
-const userStore = useUserStore()
-const currentRole = computed(() => userStore.userInfo.role)
-
-onMounted(() => {
-  if (currentRole.value !== 'admin') {
-    ElMessage.warning('您没有权限访问登录日志')
-    router.push('/admin-index')
-  }
-})
 
 const proTableRef = ref()
-const dateRange = ref([])
 
 const loginStatusOptions = ref([
   { label: '成功', value: '成功' },
@@ -154,7 +140,21 @@ const columns = reactive([
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'userId', label: '用户ID', search: { el: 'input', key: 'userId' } },
   { prop: 'userName', label: '用户名', search: { el: 'input', key: 'userName' } },
-  { prop: 'loginTime', label: '登录时间', minWidth: 160 },
+  {
+    prop: 'loginTime',
+    label: '登录时间',
+    minWidth: 160,
+    search: {
+      el: 'date-picker',
+      key: 'dateRange',
+      props: {
+        type: 'daterange',
+        valueFormat: 'YYYY-MM-DD',
+        startPlaceholder: '开始时间',
+        endPlaceholder: '结束时间',
+      },
+    },
+  },
   {
     prop: 'loginStatus',
     label: '登录状态',
@@ -164,16 +164,6 @@ const columns = reactive([
   { prop: 'failReason', label: '失败原因', minWidth: 120 },
 ])
 
-const handleDateRangeChange = (val) => {
-  if (val && val.length === 2) {
-    proTableRef.value.searchParam.startTime = val[0]
-    proTableRef.value.searchParam.endTime = val[1]
-  } else {
-    proTableRef.value.searchParam.startTime = ''
-    proTableRef.value.searchParam.endTime = ''
-  }
-}
-
 const exportToExcel = (data, fileName) => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -181,33 +171,7 @@ const exportToExcel = (data, fileName) => {
   XLSX.writeFile(workbook, `${fileName}.xlsx`)
 }
 
-const handleExportCurrent = () => {
-  const params = proTableRef.value?.searchParam || {}
-  let filteredData = filterData(mockData.value, params)
-  const exportData = filteredData.map((item) => ({
-    用户ID: item.userId,
-    用户名: item.userName,
-    登录时间: item.loginTime,
-    登录状态: item.loginStatus,
-    失败原因: item.failReason || '-',
-  }))
-  exportToExcel(exportData, `登录日志_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
-}
-
-const handleExportAll = () => {
-  const exportData = mockData.value.map((item) => ({
-    用户ID: item.userId,
-    用户名: item.userName,
-    登录时间: item.loginTime,
-    登录状态: item.loginStatus,
-    失败原因: item.failReason || '-',
-  }))
-  exportToExcel(exportData, `登录日志_全部_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
-}
-
-const handleExportSelected = (selectedList) => {
+const handleExportBatch = (selectedList) => {
   if (!selectedList || selectedList.length === 0) {
     ElMessage.warning('请先选择要导出的数据')
     return
@@ -219,7 +183,7 @@ const handleExportSelected = (selectedList) => {
     登录状态: item.loginStatus,
     失败原因: item.failReason || '-',
   }))
-  exportToExcel(exportData, `登录日志_选中_${new Date().toLocaleDateString()}`)
+  exportToExcel(exportData, `登录日志_${new Date().toLocaleDateString()}`)
   ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
 }
 
@@ -238,10 +202,10 @@ const filterData = (data, params) => {
     filteredData = filteredData.filter((item) => item.loginStatus === params.loginStatus)
   }
 
-  if (params?.startTime && params?.endTime) {
+  if (params?.dateRange && params.dateRange.length === 2) {
     filteredData = filteredData.filter((item) => {
       const loginDate = item.loginTime.split(' ')[0]
-      return loginDate >= params.startTime && loginDate <= params.endTime
+      return loginDate >= params.dateRange[0] && loginDate <= params.dateRange[1]
     })
   }
 
@@ -284,27 +248,13 @@ const getTableList = async (params) => {
       :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          style="margin-right: 12px"
-          @change="handleDateRangeChange"
-        />
-        <el-button type="success" :icon="Download" @click="handleExportCurrent"
-          >导出当前结果</el-button
-        >
-        <el-button type="success" :icon="Download" @click="handleExportAll">导出全部</el-button>
         <el-button
           type="success"
           :icon="Download"
           :disabled="!scope.isSelected"
-          @click="handleExportSelected(scope.selectedList)"
+          @click="handleExportBatch(scope.selectedList)"
         >
-          导出选中
+          批量导出
         </el-button>
       </template>
 

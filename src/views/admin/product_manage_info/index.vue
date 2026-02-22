@@ -12,35 +12,19 @@ const dialogVisible = ref(false)
 const formRef = ref()
 const isEdit = ref(false)
 
-const productTypeOptions = ref([
-  { label: '电子产品', value: '电子产品' },
-  { label: '机械产品', value: '机械产品' },
-  { label: '化工产品', value: '化工产品' },
-  { label: '食品饮料', value: '食品饮料' },
-  { label: '纺织服装', value: '纺织服装' },
-  { label: '建材产品', value: '建材产品' },
-  { label: '其他', value: '其他' },
-])
-
-const statusOptions = ref([
-  { label: '在产', value: '在产' },
-  { label: '停产', value: '停产' },
-  { label: '研发中', value: '研发中' },
-])
-
 const mockData = ref([
-  { id: 1, productCode: 'PRD20240001', productName: '智能手表A1', productType: '电子产品', specification: '42mm/黑色', unit: '台', description: '智能穿戴设备，支持心率监测、运动追踪', status: '在产', createTime: '2024-01-15' },
-  { id: 2, productCode: 'PRD20240002', productName: '数控机床X5', productType: '机械产品', specification: 'X5-500', unit: '台', description: '高精度数控加工设备', status: '在产', createTime: '2024-02-20' },
-  { id: 3, productCode: 'PRD20240003', productName: '工业润滑油', productType: '化工产品', specification: '5L/桶', unit: '桶', description: '高温润滑专用', status: '在产', createTime: '2024-03-10' },
-  { id: 4, productCode: 'PRD20240004', productName: '矿泉水', productType: '食品饮料', specification: '550ml', unit: '瓶', description: '天然矿泉水', status: '在产', createTime: '2024-04-05' },
-  { id: 5, productCode: 'PRD20240005', productName: '运动T恤', productType: '纺织服装', specification: 'M/L/XL', unit: '件', description: '透气速干面料', status: '在产', createTime: '2024-05-12' },
-  { id: 6, productCode: 'PRD20240006', productName: '瓷砖', productType: '建材产品', specification: '800x800mm', unit: '片', description: '高档抛光砖', status: '在产', createTime: '2024-06-18' },
-  { id: 7, productCode: 'PRD20240007', productName: '智能音箱S1', productType: '电子产品', specification: '白色/黑色', unit: '台', description: 'AI语音助手，智能家居控制', status: '在产', createTime: '2024-07-22' },
-  { id: 8, productCode: 'PRD20240008', productName: '激光切割机', productType: '机械产品', specification: 'LC-3000', unit: '台', description: '高功率激光切割设备', status: '研发中', createTime: '2024-08-08' },
-  { id: 9, productCode: 'PRD20240009', productName: '清洗剂', productType: '化工产品', specification: '1L/瓶', unit: '瓶', description: '工业清洗专用', status: '在产', createTime: '2024-09-15' },
-  { id: 10, productCode: 'PRD20240010', productName: '果汁饮料', productType: '食品饮料', specification: '330ml', unit: '罐', description: '100%纯果汁', status: '在产', createTime: '2024-10-20' },
-  { id: 11, productCode: 'PRD20240011', productName: '牛仔裤', productType: '纺织服装', specification: '28-36码', unit: '条', description: '经典直筒版型', status: '停产', createTime: '2024-11-05' },
-  { id: 12, productCode: 'PRD20240012', productName: '水泥', productType: '建材产品', specification: '42.5级', unit: '吨', description: '普通硅酸盐水泥', status: '在产', createTime: '2024-12-01' },
+  { id: 1, productCode: 'PRD20240001', productName: '智能手表A1', description: '智能穿戴设备，支持心率监测、运动追踪' },
+  { id: 2, productCode: 'PRD20240002', productName: '数控机床X5', description: '高精度数控加工设备' },
+  { id: 3, productCode: 'PRD20240003', productName: '工业润滑油', description: '高温润滑专用' },
+  { id: 4, productCode: 'PRD20240004', productName: '矿泉水', description: '天然矿泉水' },
+  { id: 5, productCode: 'PRD20240005', productName: '运动T恤', description: '透气速干面料' },
+  { id: 6, productCode: 'PRD20240006', productName: '瓷砖', description: '高档抛光砖' },
+  { id: 7, productCode: 'PRD20240007', productName: '智能音箱S1', description: 'AI语音助手，智能家居控制' },
+  { id: 8, productCode: 'PRD20240008', productName: '激光切割机', description: '高功率激光切割设备' },
+  { id: 9, productCode: 'PRD20240009', productName: '清洗剂', description: '工业清洗专用' },
+  { id: 10, productCode: 'PRD20240010', productName: '果汁饮料', description: '100%纯果汁' },
+  { id: 11, productCode: 'PRD20240011', productName: '牛仔裤', description: '经典直筒版型' },
+  { id: 12, productCode: 'PRD20240012', productName: '水泥', description: '普通硅酸盐水泥' },
 ])
 
 const columns = reactive([
@@ -48,10 +32,6 @@ const columns = reactive([
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'productCode', label: '产品编号', search: { el: 'input', key: 'productCode' } },
   { prop: 'productName', label: '产品名称', search: { el: 'input', key: 'productName' } },
-  { prop: 'productType', label: '产品类型', search: { el: 'select', key: 'productType' }, enum: productTypeOptions },
-  { prop: 'specification', label: '规格型号' },
-  { prop: 'unit', label: '单位' },
-  { prop: 'status', label: '状态' },
   { prop: 'description', label: '产品描述', minWidth: 200 },
   { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
 ])
@@ -60,20 +40,11 @@ const formData = reactive({
   id: null,
   productCode: '',
   productName: '',
-  productType: '',
-  specification: '',
-  unit: '',
   description: '',
-  status: '在产',
-  createTime: '',
 })
 
 const rules = {
   productName: [{ required: true, message: '请输入产品名称', trigger: 'blur' }],
-  productType: [{ required: true, message: '请选择产品类型', trigger: 'change' }],
-  specification: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
-  unit: [{ required: true, message: '请输入单位', trigger: 'blur' }],
-  status: [{ required: true, message: '请选择状态', trigger: 'change' }],
 }
 
 const generateProductCode = () => {
@@ -88,17 +59,11 @@ const generateProductCode = () => {
 
 const handleAdd = () => {
   isEdit.value = false
-  const today = new Date().toISOString().split('T')[0]
   Object.assign(formData, {
     id: null,
     productCode: generateProductCode(),
     productName: '',
-    productType: '',
-    specification: '',
-    unit: '',
     description: '',
-    status: '在产',
-    createTime: today,
   })
   dialogVisible.value = true
 }
@@ -113,12 +78,7 @@ const handleEdit = (row) => {
     id: row.id,
     productCode: row.productCode,
     productName: row.productName,
-    productType: row.productType,
-    specification: row.specification,
-    unit: row.unit,
     description: row.description,
-    status: row.status,
-    createTime: row.createTime,
   })
   dialogVisible.value = true
 }
@@ -260,32 +220,6 @@ const getTableList = async (params) => {
             </el-form-item>
             <el-form-item label="产品名称" prop="productName">
               <el-input v-model="formData.productName" placeholder="请输入产品名称" />
-            </el-form-item>
-            <el-form-item label="产品类型" prop="productType">
-              <el-select v-model="formData.productType" placeholder="请选择产品类型" style="width: 100%">
-                <el-option
-                  v-for="item in productTypeOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="规格型号" prop="specification">
-              <el-input v-model="formData.specification" placeholder="请输入规格型号" />
-            </el-form-item>
-            <el-form-item label="单位" prop="unit">
-              <el-input v-model="formData.unit" placeholder="请输入单位" />
-            </el-form-item>
-            <el-form-item label="状态" prop="status">
-              <el-select v-model="formData.status" placeholder="请选择状态" style="width: 100%">
-                <el-option
-                  v-for="item in statusOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
             </el-form-item>
           </div>
         </div>

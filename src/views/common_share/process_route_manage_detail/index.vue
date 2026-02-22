@@ -2,20 +2,28 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, ArrowLeft, Download, Check, Close, Rank, Plus, Delete } from '@element-plus/icons-vue'
+import {
+  Edit,
+  ArrowLeft,
+  Download,
+  Check,
+  Close,
+  Rank,
+  Plus,
+  Delete,
+} from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import draggable from 'vuedraggable'
-import { useUserStore } from '@/stores/modules/user'
+import { usePermission } from '@/hooks/usePermission'
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
+const { isDesignerRole, isSupervisorRole } = usePermission()
 
 const isEdit = ref(false)
 const loading = ref(false)
 const routeData = ref({})
 const currentVersionId = ref(null)
-const currentRole = computed(() => userStore.userInfo.role || 'admin')
 const selectedStepId = ref(null)
 
 const selectedStep = computed(() => {
@@ -264,11 +272,11 @@ const versionOptions = computed(() => {
 })
 
 const canEdit = computed(() => {
-  return currentRole.value === 'designer' && routeData.value.status === 'rejected'
+  return isDesignerRole.value && routeData.value.status === 'rejected'
 })
 
 const canApprove = computed(() => {
-  return currentRole.value === 'supervisor' && routeData.value.status === 'pending'
+  return isSupervisorRole.value && routeData.value.status === 'pending'
 })
 
 const getStatusType = (status) => {
@@ -723,7 +731,10 @@ watch(
             </div>
 
             <div
-              v-if="(isEdit && formData.processSteps.length === 0) || (!isEdit && !routeData.processSteps?.length)"
+              v-if="
+                (isEdit && formData.processSteps.length === 0) ||
+                (!isEdit && !routeData.processSteps?.length)
+              "
               class="empty-steps"
             >
               暂无工序

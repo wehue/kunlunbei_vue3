@@ -42,7 +42,6 @@ const columns = reactive([
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'deptCode', label: '部门编号', search: { el: 'input', key: 'deptCode' } },
   { prop: 'deptName', label: '部门名称', search: { el: 'input', key: 'deptName' } },
-  { prop: 'parentName', label: '所属部门', search: { el: 'select', key: 'parentId' }, enum: deptOptions },
   { prop: 'establishDate', label: '成立时间' },
   { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
 ])

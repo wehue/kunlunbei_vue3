@@ -37,18 +37,90 @@ const positionOptions = ref([
 ])
 
 const mockOperatorData = {
-  1: { id: 1, employeeCode: 'EMP20240001', employeeName: '张三', deptName: '技术部', position: '工程师' },
-  2: { id: 2, employeeCode: 'EMP20240002', employeeName: '李四', deptName: '生产部', position: '操作工' },
-  3: { id: 3, employeeCode: 'EMP20240003', employeeName: '王五', deptName: '质量部', position: '质检员' },
-  4: { id: 4, employeeCode: 'EMP20240004', employeeName: '赵六', deptName: '采购部', position: '采购员' },
-  5: { id: 5, employeeCode: 'EMP20240005', employeeName: '钱七', deptName: '销售部', position: '销售员' },
-  6: { id: 6, employeeCode: 'EMP20240006', employeeName: '孙八', deptName: '财务部', position: '会计' },
-  7: { id: 7, employeeCode: 'EMP20240007', employeeName: '周九', deptName: '人力资源部', position: '人事专员' },
-  8: { id: 8, employeeCode: 'EMP20240008', employeeName: '吴十', deptName: '技术部', position: '技术员' },
-  9: { id: 9, employeeCode: 'EMP20240009', employeeName: '郑十一', deptName: '生产部', position: '主管' },
-  10: { id: 10, employeeCode: 'EMP20240010', employeeName: '王十二', deptName: '技术部', position: '经理' },
-  11: { id: 11, employeeCode: 'EMP20240011', employeeName: '刘明', deptName: '质量部', position: '质检员' },
-  12: { id: 12, employeeCode: 'EMP20240012', employeeName: '陈华', deptName: '生产部', position: '操作工' },
+  1: {
+    id: 1,
+    employeeCode: 'EMP20240001',
+    employeeName: '张三',
+    deptName: '技术部',
+    position: '工程师',
+  },
+  2: {
+    id: 2,
+    employeeCode: 'EMP20240002',
+    employeeName: '李四',
+    deptName: '生产部',
+    position: '操作工',
+  },
+  3: {
+    id: 3,
+    employeeCode: 'EMP20240003',
+    employeeName: '王五',
+    deptName: '质量部',
+    position: '质检员',
+  },
+  4: {
+    id: 4,
+    employeeCode: 'EMP20240004',
+    employeeName: '赵六',
+    deptName: '采购部',
+    position: '采购员',
+  },
+  5: {
+    id: 5,
+    employeeCode: 'EMP20240005',
+    employeeName: '钱七',
+    deptName: '销售部',
+    position: '销售员',
+  },
+  6: {
+    id: 6,
+    employeeCode: 'EMP20240006',
+    employeeName: '孙八',
+    deptName: '财务部',
+    position: '会计',
+  },
+  7: {
+    id: 7,
+    employeeCode: 'EMP20240007',
+    employeeName: '周九',
+    deptName: '人力资源部',
+    position: '人事专员',
+  },
+  8: {
+    id: 8,
+    employeeCode: 'EMP20240008',
+    employeeName: '吴十',
+    deptName: '技术部',
+    position: '技术员',
+  },
+  9: {
+    id: 9,
+    employeeCode: 'EMP20240009',
+    employeeName: '郑十一',
+    deptName: '生产部',
+    position: '主管',
+  },
+  10: {
+    id: 10,
+    employeeCode: 'EMP20240010',
+    employeeName: '王十二',
+    deptName: '技术部',
+    position: '经理',
+  },
+  11: {
+    id: 11,
+    employeeCode: 'EMP20240011',
+    employeeName: '刘明',
+    deptName: '质量部',
+    position: '质检员',
+  },
+  12: {
+    id: 12,
+    employeeCode: 'EMP20240012',
+    employeeName: '陈华',
+    deptName: '生产部',
+    position: '操作工',
+  },
 }
 
 const loadOperatorData = () => {
@@ -172,7 +244,11 @@ onMounted(() => {
                 <el-input v-model="formData.employeeName" placeholder="请输入姓名" />
               </el-form-item>
               <el-form-item label="所属部门" prop="deptName">
-                <el-select v-model="formData.deptName" placeholder="请选择所属部门" style="width: 100%">
+                <el-select
+                  v-model="formData.deptName"
+                  placeholder="请选择所属部门"
+                  style="width: 100%"
+                >
                   <el-option
                     v-for="item in deptOptions"
                     :key="item.value"
