@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElNotification } from 'element-plus'
 import ECharts from '@/components/ECharts/index.vue'
 import {
   Box,
@@ -17,8 +18,10 @@ import {
   DataAnalysis,
   RefreshRight,
 } from '@element-plus/icons-vue'
+import { useMessageStore } from '@/stores/modules/message'
 
 const router = useRouter()
+const messageStore = useMessageStore()
 const loading = ref(false)
 
 const overviewData = ref({
@@ -415,6 +418,22 @@ const fetchData = () => {
 
 onMounted(() => {
   fetchData()
+  messageStore.startPolling((newMsg) => {
+    ElNotification({
+      title: newMsg.title,
+      message: newMsg.summary,
+      type: newMsg.auditStatus === '已通过' ? 'success' : 'warning',
+      duration: 5000,
+      position: 'top-right',
+      onClick: () => {
+        router.push('/message-manage/message-info')
+      },
+    })
+  })
+})
+
+onUnmounted(() => {
+  messageStore.stopPolling()
 })
 </script>
 

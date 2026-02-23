@@ -322,6 +322,12 @@ const routes = [
           },
         ],
       },
+      {
+        path: 'backup-manage',
+        name: 'BackupManage',
+        component: () => import('@/views/admin/backup_manage/index.vue'),
+        meta: { title: '数据备份', icon: 'Box', roles: ['admin'] },
+      },
       // 主管路由
       {
         path: 'supervisor-index',

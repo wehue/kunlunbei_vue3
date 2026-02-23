@@ -195,22 +195,85 @@ const formData = reactive({
   password: '',
 })
 
+const validateUserName = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入用户名'))
+    return
+  }
+  if (value.length < 2 || value.length > 20) {
+    callback(new Error('用户名长度应在2-20个字符之间'))
+    return
+  }
+  const exists = mockData.value.some((item) => item.userName === value && item.id !== formData.id)
+  if (exists) {
+    callback(new Error('用户名已存在'))
+  } else {
+    callback()
+  }
+}
+
+const validatePhone = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入手机号'))
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(value)) {
+    callback(new Error('请输入正确的手机号'))
+    return
+  }
+  const exists = mockData.value.some((item) => item.phone === value && item.id !== formData.id)
+  if (exists) {
+    callback(new Error('该手机号已被注册'))
+  } else {
+    callback()
+  }
+}
+
+const validateEmail = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入邮箱'))
+    return
+  }
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!emailRegex.test(value)) {
+    callback(new Error('请输入正确的邮箱格式'))
+    return
+  }
+  const exists = mockData.value.some((item) => item.email === value && item.id !== formData.id)
+  if (exists) {
+    callback(new Error('该邮箱已被注册'))
+  } else {
+    callback()
+  }
+}
+
+const validatePassword = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入密码'))
+    return
+  }
+  if (value.length < 6 || value.length > 20) {
+    callback(new Error('密码长度为6-20个字符'))
+    return
+  }
+  if (!/[a-zA-Z]/.test(value)) {
+    callback(new Error('密码必须包含字母'))
+    return
+  }
+  if (!/\d/.test(value)) {
+    callback(new Error('密码必须包含数字'))
+    return
+  }
+  callback()
+}
+
 const rules = {
-  userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
-  ],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
-  ],
+  userName: [{ required: true, validator: validateUserName, trigger: 'blur' }],
+  phone: [{ required: true, validator: validatePhone, trigger: 'blur' }],
+  email: [{ required: true, validator: validateEmail, trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   status: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度为6-20个字符', trigger: 'blur' },
-  ],
+  password: [{ required: true, validator: validatePassword, trigger: 'blur' }],
 }
 
 const generateUserId = () => {

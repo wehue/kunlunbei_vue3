@@ -1,11 +1,21 @@
 <script setup>
-import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Download } from '@element-plus/icons-vue'
+import { ref, reactive, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Download, RefreshLeft, View } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { useOperationLogStore } from '@/stores/modules/operationLog'
+import { useUserStore } from '@/stores/modules/user'
 
 const proTableRef = ref()
+const operationLogStore = useOperationLogStore()
+const userStore = useUserStore()
+
+const currentRole = computed(() => userStore.userInfo.role)
+const canRollback = computed(() => currentRole.value === 'admin')
+
+const detailDialogVisible = ref(false)
+const currentDetail = ref(null)
 
 const operationTypeOptions = ref([
   { label: '新增', value: '新增' },
@@ -31,7 +41,9 @@ const mockData = ref([
     operationType: '新增',
     operationResult: '成功',
     operationModule: '设备管理',
-    ipAddress: '192.168.1.100',
+    canRollback: true,
+    beforeData: null,
+    afterData: { deviceName: '数控车床', deviceCode: 'DEV20240001' },
   },
   {
     id: 2,
@@ -42,7 +54,9 @@ const mockData = ref([
     operationType: '修改',
     operationResult: '成功',
     operationModule: '物料管理',
-    ipAddress: '192.168.1.101',
+    canRollback: true,
+    beforeData: { materialName: '钢材A型', stockQuantity: 100 },
+    afterData: { materialName: '钢材A型', stockQuantity: 150 },
   },
   {
     id: 3,
@@ -53,7 +67,9 @@ const mockData = ref([
     operationType: '审核',
     operationResult: '成功',
     operationModule: '审核管理',
-    ipAddress: '192.168.1.102',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
   {
     id: 4,
@@ -64,7 +80,9 @@ const mockData = ref([
     operationType: '新增',
     operationResult: '失败',
     operationModule: '设备管理',
-    ipAddress: '192.168.1.100',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
   {
     id: 5,
@@ -75,7 +93,9 @@ const mockData = ref([
     operationType: '删除',
     operationResult: '成功',
     operationModule: '物料管理',
-    ipAddress: '192.168.1.103',
+    canRollback: true,
+    beforeData: { categoryName: '废弃分类', categoryId: 'CAT001' },
+    afterData: null,
   },
   {
     id: 6,
@@ -86,7 +106,9 @@ const mockData = ref([
     operationType: '修改',
     operationResult: '成功',
     operationModule: '用户管理',
-    ipAddress: '192.168.1.104',
+    canRollback: true,
+    beforeData: { userName: '用户U001', status: '启用' },
+    afterData: { userName: '用户U001', status: '禁用' },
   },
   {
     id: 7,
@@ -97,7 +119,9 @@ const mockData = ref([
     operationType: '审核',
     operationResult: '成功',
     operationModule: '审核管理',
-    ipAddress: '192.168.1.101',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
   {
     id: 8,
@@ -108,7 +132,9 @@ const mockData = ref([
     operationType: '新增',
     operationResult: '成功',
     operationModule: '部门管理',
-    ipAddress: '192.168.1.105',
+    canRollback: true,
+    beforeData: null,
+    afterData: { deptName: '研发中心', deptCode: 'DEPT001' },
   },
   {
     id: 9,
@@ -119,7 +145,9 @@ const mockData = ref([
     operationType: '修改',
     operationResult: '成功',
     operationModule: '设备管理',
-    ipAddress: '192.168.1.102',
+    canRollback: true,
+    beforeData: { deviceName: '加工中心', status: '运行中' },
+    afterData: { deviceName: '加工中心', status: '维护中' },
   },
   {
     id: 10,
@@ -130,7 +158,9 @@ const mockData = ref([
     operationType: '删除',
     operationResult: '失败',
     operationModule: '用户管理',
-    ipAddress: '192.168.1.106',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
   {
     id: 11,
@@ -141,7 +171,9 @@ const mockData = ref([
     operationType: '新增',
     operationResult: '成功',
     operationModule: '物料管理',
-    ipAddress: '192.168.1.100',
+    canRollback: true,
+    beforeData: null,
+    afterData: { materialName: '铝材B型', materialCode: 'MAT20240011' },
   },
   {
     id: 12,
@@ -152,7 +184,9 @@ const mockData = ref([
     operationType: '审核',
     operationResult: '成功',
     operationModule: '审核管理',
-    ipAddress: '192.168.1.107',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
   {
     id: 13,
@@ -163,7 +197,9 @@ const mockData = ref([
     operationType: '修改',
     operationResult: '成功',
     operationModule: '仓库管理',
-    ipAddress: '192.168.1.103',
+    canRollback: true,
+    beforeData: { warehouseName: '原料仓库A', capacity: 1000 },
+    afterData: { warehouseName: '原料仓库A', capacity: 1500 },
   },
   {
     id: 14,
@@ -174,7 +210,9 @@ const mockData = ref([
     operationType: '新增',
     operationResult: '成功',
     operationModule: '产品管理',
-    ipAddress: '192.168.1.108',
+    canRollback: true,
+    beforeData: null,
+    afterData: { productName: '智能手表A1', productCode: 'PRD20240001' },
   },
   {
     id: 15,
@@ -185,7 +223,9 @@ const mockData = ref([
     operationType: '删除',
     operationResult: '成功',
     operationModule: '设备管理',
-    ipAddress: '192.168.1.101',
+    canRollback: true,
+    beforeData: { deviceName: '旧设备002', deviceCode: 'DEV20230002' },
+    afterData: null,
   },
   {
     id: 16,
@@ -196,7 +236,9 @@ const mockData = ref([
     operationType: '新增',
     operationResult: '成功',
     operationModule: '设备管理',
-    ipAddress: '192.168.1.100',
+    canRollback: true,
+    beforeData: null,
+    afterData: { deviceName: '数控车床', deviceCode: 'DEV20240002' },
   },
   {
     id: 17,
@@ -207,7 +249,9 @@ const mockData = ref([
     operationType: '查询',
     operationResult: '成功',
     operationModule: '设备管理',
-    ipAddress: '192.168.1.102',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
   {
     id: 18,
@@ -218,7 +262,9 @@ const mockData = ref([
     operationType: '导出',
     operationResult: '成功',
     operationModule: '物料管理',
-    ipAddress: '192.168.1.101',
+    canRollback: false,
+    beforeData: null,
+    afterData: null,
   },
 ])
 
@@ -255,6 +301,7 @@ const columns = reactive([
     enum: operationResultOptions,
   },
   { prop: 'operationModule', label: '操作模块', minWidth: 100 },
+  { prop: 'operation', label: '操作', width: 150, fixed: 'right' },
 ])
 
 const exportToExcel = (data, fileName) => {
@@ -279,6 +326,73 @@ const handleExportBatch = (selectedList) => {
   }))
   exportToExcel(exportData, `操作日志_${new Date().toLocaleDateString()}`)
   ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
+}
+
+const handleViewDetail = (row) => {
+  currentDetail.value = row
+  detailDialogVisible.value = true
+}
+
+const handleRollback = async (row) => {
+  if (!canRollback.value) {
+    ElMessage.warning('您没有回滚操作的权限')
+    return
+  }
+
+  if (!row.canRollback) {
+    ElMessage.warning('该操作不支持回滚')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要回滚操作"${row.operationContent}"吗？此操作将撤销该次变更。`,
+      '回滚确认',
+      {
+        confirmButtonText: '确定回滚',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+
+    const rollbackAction = getRollbackAction(row)
+    mockData.value.push({
+      id: mockData.value.length + 1,
+      operator: userStore.userInfo.userName || '系统管理员',
+      operatorId: userStore.userInfo.userId || 'U001',
+      operationTime: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      operationContent: `回滚操作：${row.operationContent}`,
+      operationType: '回滚',
+      operationResult: '成功',
+      operationModule: row.operationModule,
+      canRollback: false,
+      beforeData: row.afterData,
+      afterData: row.beforeData,
+    })
+
+    ElMessage.success(`操作已回滚：${rollbackAction}`)
+    proTableRef.value?.getTableList()
+  } catch {
+    // 用户取消
+  }
+}
+
+const handleRollbackFromDetail = async () => {
+  await handleRollback(currentDetail.value)
+  detailDialogVisible.value = false
+}
+
+const getRollbackAction = (row) => {
+  switch (row.operationType) {
+    case '新增':
+      return `已删除新增的数据`
+    case '修改':
+      return `已恢复修改前的数据`
+    case '删除':
+      return `已恢复被删除的数据`
+    default:
+      return '已撤销操作'
+  }
 }
 
 const filterData = (data, params) => {
@@ -363,9 +477,11 @@ const getTableList = async (params) => {
                   ? 'primary'
                   : scope.row.operationType === '删除'
                     ? 'danger'
-                    : scope.row.operationType === '查询'
+                    : scope.row.operationType === '回滚'
                       ? 'info'
-                      : ''
+                      : scope.row.operationType === '查询'
+                        ? 'info'
+                        : ''
           "
         >
           {{ scope.row.operationType }}
@@ -377,7 +493,69 @@ const getTableList = async (params) => {
           {{ scope.row.operationResult }}
         </el-tag>
       </template>
+
+      <template #operation="scope">
+        <el-button type="primary" link :icon="View" @click="handleViewDetail(scope.row)"
+          >详情</el-button
+        >
+        <el-button
+          v-if="canRollback && scope.row.canRollback && scope.row.operationResult === '成功'"
+          type="warning"
+          link
+          :icon="RefreshLeft"
+          @click="handleRollback(scope.row)"
+        >
+          回滚
+        </el-button>
+      </template>
     </ProTable>
+
+    <el-dialog v-model="detailDialogVisible" title="操作详情" width="600px">
+      <el-descriptions :column="1" border v-if="currentDetail">
+        <el-descriptions-item label="操作人">{{ currentDetail.operator }}</el-descriptions-item>
+        <el-descriptions-item label="操作时间">{{
+          currentDetail.operationTime
+        }}</el-descriptions-item>
+        <el-descriptions-item label="操作类型">{{
+          currentDetail.operationType
+        }}</el-descriptions-item>
+        <el-descriptions-item label="操作内容">{{
+          currentDetail.operationContent
+        }}</el-descriptions-item>
+        <el-descriptions-item label="操作结果">
+          <el-tag :type="currentDetail.operationResult === '成功' ? 'success' : 'danger'">
+            {{ currentDetail.operationResult }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="操作模块">{{
+          currentDetail.operationModule
+        }}</el-descriptions-item>
+        <el-descriptions-item label="变更前数据" v-if="currentDetail.beforeData">
+          <pre class="data-preview">{{ JSON.stringify(currentDetail.beforeData, null, 2) }}</pre>
+        </el-descriptions-item>
+        <el-descriptions-item label="变更后数据" v-if="currentDetail.afterData">
+          <pre class="data-preview">{{ JSON.stringify(currentDetail.afterData, null, 2) }}</pre>
+        </el-descriptions-item>
+        <el-descriptions-item label="是否可回滚">
+          <el-tag :type="currentDetail.canRollback ? 'success' : 'info'">
+            {{ currentDetail.canRollback ? '可回滚' : '不可回滚' }}
+          </el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <el-button
+          v-if="
+            canRollback && currentDetail?.canRollback && currentDetail?.operationResult === '成功'
+          "
+          type="warning"
+          :icon="RefreshLeft"
+          @click="handleRollbackFromDetail"
+        >
+          回滚此操作
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -385,6 +563,19 @@ const getTableList = async (params) => {
 .operation-log-container {
   :deep(.table-search) {
     margin-bottom: 10px !important;
+  }
+
+  .data-preview {
+    margin: 0;
+    padding: 8px 12px;
+    background: #f5f7fa;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
 </style>

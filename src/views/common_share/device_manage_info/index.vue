@@ -173,17 +173,58 @@ const formData = reactive({
   unit: '台',
 })
 
+const validateDeviceName = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入设备名称'))
+    return
+  }
+  const exists = mockData.value.some((item) => item.deviceName === value && item.id !== formData.id)
+  if (exists) {
+    callback(new Error('设备名称已存在，请使用其他名称'))
+  } else {
+    callback()
+  }
+}
+
+const validateStockQuantity = (rule, value, callback) => {
+  if (!value && value !== 0) {
+    callback(new Error('请输入库存数量'))
+    return
+  }
+  if (value < 0) {
+    callback(new Error('库存数量不能为负数'))
+  } else if (value > 999999) {
+    callback(new Error('库存数量超出限制'))
+  } else {
+    callback()
+  }
+}
+
+const validateServiceLife = (rule, value, callback) => {
+  if (!value && value !== 0) {
+    callback(new Error('请输入使用年限'))
+    return
+  }
+  if (value <= 0) {
+    callback(new Error('使用年限必须大于0'))
+  } else if (value > 100) {
+    callback(new Error('使用年限不能超过100年'))
+  } else {
+    callback()
+  }
+}
+
 const rules = {
-  deviceName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
+  deviceName: [{ required: true, validator: validateDeviceName, trigger: 'blur' }],
   manufacturer: [{ required: true, message: '请输入生产厂家', trigger: 'blur' }],
   brand: [{ required: true, message: '请选择品牌', trigger: 'change' }],
   specModel: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
   supplier: [{ required: true, message: '请输入供应商', trigger: 'blur' }],
   productionDate: [{ required: true, message: '请选择生产日期', trigger: 'change' }],
-  serviceLife: [{ required: true, message: '请输入使用年限', trigger: 'blur' }],
+  serviceLife: [{ required: true, validator: validateServiceLife, trigger: 'blur' }],
   depreciationMethod: [{ required: true, message: '请选择折旧方式', trigger: 'change' }],
   location: [{ required: true, message: '请选择位置', trigger: 'change' }],
-  stockQuantity: [{ required: true, message: '请输入库存数量', trigger: 'blur' }],
+  stockQuantity: [{ required: true, validator: validateStockQuantity, trigger: 'blur' }],
   unit: [{ required: true, message: '请选择单位', trigger: 'change' }],
 }
 

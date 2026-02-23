@@ -110,9 +110,36 @@ const formData = reactive({
   materials: [],
 })
 
+const validateProcessName = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入工序名称'))
+    return
+  }
+  const exists = mockData.value.some(
+    (item) => item.processName === value && item.id !== formData.id,
+  )
+  if (exists) {
+    callback(new Error('工序名称已存在，请使用其他名称'))
+  } else {
+    callback()
+  }
+}
+
+const validateProductionStep = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入生产步骤'))
+    return
+  }
+  if (value.length > 500) {
+    callback(new Error('生产步骤描述不能超过500字'))
+  } else {
+    callback()
+  }
+}
+
 const rules = {
-  processName: [{ required: true, message: '请输入工序名称', trigger: 'blur' }],
-  productionStep: [{ required: true, message: '请输入生产步骤', trigger: 'blur' }],
+  processName: [{ required: true, validator: validateProcessName, trigger: 'blur' }],
+  productionStep: [{ required: true, validator: validateProductionStep, trigger: 'blur' }],
 }
 
 const generateProcessCode = () => {

@@ -372,12 +372,57 @@ const formData = reactive({
   location: '',
 })
 
+const validateMaterialName = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入物料名称'))
+    return
+  }
+  const exists = allMaterials.value.some(
+    (item) => item.materialName === value && item.id !== formData.id,
+  )
+  if (exists) {
+    callback(new Error('物料名称已存在，请使用其他名称'))
+  } else {
+    callback()
+  }
+}
+
+const validateSpecModel = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入规格型号'))
+    return
+  }
+  const sameMaterial = allMaterials.value.find(
+    (item) => item.materialName === formData.materialName && item.id !== formData.id,
+  )
+  if (sameMaterial && sameMaterial.specModel === value) {
+    callback(new Error('相同物料名称下规格型号不能重复'))
+  } else {
+    callback()
+  }
+}
+
+const validateStockQuantity = (rule, value, callback) => {
+  if (value === '' || value === null || value === undefined) {
+    callback()
+    return
+  }
+  if (value < 0) {
+    callback(new Error('库存数量不能为负数'))
+  } else if (value > 9999999) {
+    callback(new Error('库存数量超出限制'))
+  } else {
+    callback()
+  }
+}
+
 const rules = {
-  materialName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
-  specModel: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
+  materialName: [{ required: true, validator: validateMaterialName, trigger: 'blur' }],
+  specModel: [{ required: true, validator: validateSpecModel, trigger: 'blur' }],
   supplier: [{ required: true, message: '请输入供应商', trigger: 'blur' }],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
   location: [{ required: true, message: '请选择位置', trigger: 'change' }],
+  stockQuantity: [{ validator: validateStockQuantity, trigger: 'blur' }],
 }
 
 const generateMaterialCode = () => {

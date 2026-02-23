@@ -36,18 +36,90 @@ const positionOptions = ref([
 ])
 
 const mockData = ref([
-  { id: 1, employeeCode: 'EMP20240001', employeeName: '张三', deptName: '技术部', position: '工程师' },
-  { id: 2, employeeCode: 'EMP20240002', employeeName: '李四', deptName: '生产部', position: '操作工' },
-  { id: 3, employeeCode: 'EMP20240003', employeeName: '王五', deptName: '质量部', position: '质检员' },
-  { id: 4, employeeCode: 'EMP20240004', employeeName: '赵六', deptName: '采购部', position: '采购员' },
-  { id: 5, employeeCode: 'EMP20240005', employeeName: '钱七', deptName: '销售部', position: '销售员' },
-  { id: 6, employeeCode: 'EMP20240006', employeeName: '孙八', deptName: '财务部', position: '会计' },
-  { id: 7, employeeCode: 'EMP20240007', employeeName: '周九', deptName: '人力资源部', position: '人事专员' },
-  { id: 8, employeeCode: 'EMP20240008', employeeName: '吴十', deptName: '技术部', position: '技术员' },
-  { id: 9, employeeCode: 'EMP20240009', employeeName: '郑十一', deptName: '生产部', position: '主管' },
-  { id: 10, employeeCode: 'EMP20240010', employeeName: '王十二', deptName: '技术部', position: '经理' },
-  { id: 11, employeeCode: 'EMP20240011', employeeName: '刘明', deptName: '质量部', position: '质检员' },
-  { id: 12, employeeCode: 'EMP20240012', employeeName: '陈华', deptName: '生产部', position: '操作工' },
+  {
+    id: 1,
+    employeeCode: 'EMP20240001',
+    employeeName: '张三',
+    deptName: '技术部',
+    position: '工程师',
+  },
+  {
+    id: 2,
+    employeeCode: 'EMP20240002',
+    employeeName: '李四',
+    deptName: '生产部',
+    position: '操作工',
+  },
+  {
+    id: 3,
+    employeeCode: 'EMP20240003',
+    employeeName: '王五',
+    deptName: '质量部',
+    position: '质检员',
+  },
+  {
+    id: 4,
+    employeeCode: 'EMP20240004',
+    employeeName: '赵六',
+    deptName: '采购部',
+    position: '采购员',
+  },
+  {
+    id: 5,
+    employeeCode: 'EMP20240005',
+    employeeName: '钱七',
+    deptName: '销售部',
+    position: '销售员',
+  },
+  {
+    id: 6,
+    employeeCode: 'EMP20240006',
+    employeeName: '孙八',
+    deptName: '财务部',
+    position: '会计',
+  },
+  {
+    id: 7,
+    employeeCode: 'EMP20240007',
+    employeeName: '周九',
+    deptName: '人力资源部',
+    position: '人事专员',
+  },
+  {
+    id: 8,
+    employeeCode: 'EMP20240008',
+    employeeName: '吴十',
+    deptName: '技术部',
+    position: '技术员',
+  },
+  {
+    id: 9,
+    employeeCode: 'EMP20240009',
+    employeeName: '郑十一',
+    deptName: '生产部',
+    position: '主管',
+  },
+  {
+    id: 10,
+    employeeCode: 'EMP20240010',
+    employeeName: '王十二',
+    deptName: '技术部',
+    position: '经理',
+  },
+  {
+    id: 11,
+    employeeCode: 'EMP20240011',
+    employeeName: '刘明',
+    deptName: '质量部',
+    position: '质检员',
+  },
+  {
+    id: 12,
+    employeeCode: 'EMP20240012',
+    employeeName: '陈华',
+    deptName: '生产部',
+    position: '操作工',
+  },
 ])
 
 const columns = reactive([
@@ -55,7 +127,12 @@ const columns = reactive([
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'employeeCode', label: '工号', search: { el: 'input', key: 'employeeCode' } },
   { prop: 'employeeName', label: '姓名', search: { el: 'input', key: 'employeeName' } },
-  { prop: 'deptName', label: '所属部门', search: { el: 'select', key: 'deptName' }, enum: deptOptions },
+  {
+    prop: 'deptName',
+    label: '所属部门',
+    search: { el: 'select', key: 'deptName' },
+    enum: deptOptions,
+  },
   { prop: 'position', label: '岗位' },
   { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
@@ -168,11 +245,15 @@ const getTableList = async (params) => {
       let filteredData = [...mockData.value]
 
       if (params?.employeeCode) {
-        filteredData = filteredData.filter((item) => item.employeeCode.includes(params.employeeCode))
+        filteredData = filteredData.filter((item) =>
+          item.employeeCode.includes(params.employeeCode),
+        )
       }
 
       if (params?.employeeName) {
-        filteredData = filteredData.filter((item) => item.employeeName.includes(params.employeeName))
+        filteredData = filteredData.filter((item) =>
+          item.employeeName.includes(params.employeeName),
+        )
       }
 
       if (params?.deptName) {
@@ -224,7 +305,9 @@ const getTableList = async (params) => {
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
-        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
+          >删除</el-button
+        >
       </template>
     </ProTable>
 

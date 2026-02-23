@@ -59,9 +59,44 @@ const selectedStep = computed(() => {
   return formData.processSteps.find((step) => step.id === selectedStepId.value) || null
 })
 
+const validateRouteName = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入工艺路线名称'))
+    return
+  }
+  if (value.length < 2 || value.length > 50) {
+    callback(new Error('工艺路线名称长度应在2-50个字符之间'))
+  } else {
+    callback()
+  }
+}
+
+const validateProduct = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请选择所属产品'))
+    return
+  }
+  callback()
+}
+
+const validateProcessSteps = () => {
+  if (formData.processSteps.length === 0) {
+    ElMessage.warning('请至少添加一个工序步骤')
+    return false
+  }
+  for (let i = 0; i < formData.processSteps.length; i++) {
+    const step = formData.processSteps[i]
+    if (!step.stepName) {
+      ElMessage.warning(`第${i + 1}个步骤未填写步骤名称`)
+      return false
+    }
+  }
+  return true
+}
+
 const rules = {
-  routeName: [{ required: true, message: '请输入工艺路线名称', trigger: 'blur' }],
-  product: [{ required: true, message: '请选择所属产品', trigger: 'change' }],
+  routeName: [{ required: true, validator: validateRouteName, trigger: 'blur' }],
+  product: [{ required: true, validator: validateProduct, trigger: 'change' }],
 }
 
 const canSubmitAudit = computed(() => currentRole.value === 'designer')
