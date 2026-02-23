@@ -33,7 +33,7 @@ const columns = reactive([
   { prop: 'productCode', label: '产品编号', search: { el: 'input', key: 'productCode' } },
   { prop: 'productName', label: '产品名称', search: { el: 'input', key: 'productName' } },
   { prop: 'description', label: '产品描述', minWidth: 200 },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({

@@ -13,18 +13,102 @@ const formRef = ref()
 const isEdit = ref(false)
 
 const mockData = ref([
-  { id: 1, deptCode: 'DEPT20240001', deptName: '技术部', parentId: null, parentName: '', establishDate: '2020-01-15' },
-  { id: 2, deptCode: 'DEPT20240002', deptName: '生产部', parentId: null, parentName: '', establishDate: '2020-02-20' },
-  { id: 3, deptCode: 'DEPT20240003', deptName: '质量部', parentId: null, parentName: '', establishDate: '2020-03-10' },
-  { id: 4, deptCode: 'DEPT20240004', deptName: '采购部', parentId: null, parentName: '', establishDate: '2020-04-05' },
-  { id: 5, deptCode: 'DEPT20240005', deptName: '销售部', parentId: null, parentName: '', establishDate: '2020-05-12' },
-  { id: 6, deptCode: 'DEPT20240006', deptName: '财务部', parentId: null, parentName: '', establishDate: '2020-06-18' },
-  { id: 7, deptCode: 'DEPT20240007', deptName: '人力资源部', parentId: null, parentName: '', establishDate: '2020-07-22' },
-  { id: 8, deptCode: 'DEPT20240008', deptName: '研发中心', parentId: 1, parentName: '技术部', establishDate: '2021-01-08' },
-  { id: 9, deptCode: 'DEPT20240009', deptName: '测试中心', parentId: 1, parentName: '技术部', establishDate: '2021-02-15' },
-  { id: 10, deptCode: 'DEPT20240010', deptName: '生产一车间', parentId: 2, parentName: '生产部', establishDate: '2021-03-20' },
-  { id: 11, deptCode: 'DEPT20240011', deptName: '生产二车间', parentId: 2, parentName: '生产部', establishDate: '2021-04-10' },
-  { id: 12, deptCode: 'DEPT20240012', deptName: '仓储中心', parentId: 2, parentName: '生产部', establishDate: '2021-05-05' },
+  {
+    id: 1,
+    deptCode: 'DEPT20240001',
+    deptName: '技术部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-01-15',
+  },
+  {
+    id: 2,
+    deptCode: 'DEPT20240002',
+    deptName: '生产部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-02-20',
+  },
+  {
+    id: 3,
+    deptCode: 'DEPT20240003',
+    deptName: '质量部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-03-10',
+  },
+  {
+    id: 4,
+    deptCode: 'DEPT20240004',
+    deptName: '采购部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-04-05',
+  },
+  {
+    id: 5,
+    deptCode: 'DEPT20240005',
+    deptName: '销售部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-05-12',
+  },
+  {
+    id: 6,
+    deptCode: 'DEPT20240006',
+    deptName: '财务部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-06-18',
+  },
+  {
+    id: 7,
+    deptCode: 'DEPT20240007',
+    deptName: '人力资源部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-07-22',
+  },
+  {
+    id: 8,
+    deptCode: 'DEPT20240008',
+    deptName: '研发中心',
+    parentId: 1,
+    parentName: '技术部',
+    establishDate: '2021-01-08',
+  },
+  {
+    id: 9,
+    deptCode: 'DEPT20240009',
+    deptName: '测试中心',
+    parentId: 1,
+    parentName: '技术部',
+    establishDate: '2021-02-15',
+  },
+  {
+    id: 10,
+    deptCode: 'DEPT20240010',
+    deptName: '生产一车间',
+    parentId: 2,
+    parentName: '生产部',
+    establishDate: '2021-03-20',
+  },
+  {
+    id: 11,
+    deptCode: 'DEPT20240011',
+    deptName: '生产二车间',
+    parentId: 2,
+    parentName: '生产部',
+    establishDate: '2021-04-10',
+  },
+  {
+    id: 12,
+    deptCode: 'DEPT20240012',
+    deptName: '仓储中心',
+    parentId: 2,
+    parentName: '生产部',
+    establishDate: '2021-05-05',
+  },
 ])
 
 const deptOptions = ref([])
@@ -43,7 +127,7 @@ const columns = reactive([
   { prop: 'deptCode', label: '部门编号', search: { el: 'input', key: 'deptCode' } },
   { prop: 'deptName', label: '部门名称', search: { el: 'input', key: 'deptName' } },
   { prop: 'establishDate', label: '成立时间' },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -226,7 +310,9 @@ const getTableList = async (params) => {
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
-        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
+          >删除</el-button
+        >
       </template>
     </ProTable>
 

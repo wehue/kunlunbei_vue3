@@ -1,28 +1,30 @@
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import ECharts from '@/components/ECharts/index.vue'
 import {
   Box,
   Cpu,
   Guide,
+  Operation,
   DocumentChecked,
   RefreshRight,
   TrendCharts,
 } from '@element-plus/icons-vue'
-
-const router = useRouter()
 
 const loading = ref(false)
 const refreshInterval = ref(null)
 const timeGranularity = ref('day')
 
 const overviewData = ref({
-  materialTotal: { value: 1256, trend: 12.5, isUp: true },
-  equipmentTotal: { value: 89, trend: 5.2, isUp: true },
-  routeTotal: { value: 156, trend: 8.3, isUp: true },
-  pendingApproval: { value: 23, trend: -15.2, isUp: false },
-  rejectedNotResubmit: { value: 8, trend: -5.0, isUp: false },
+  equipmentTotal: 89,
+  materialTotal: 1256,
+  routeTotal: 156,
+  processTotal: 342,
+})
+
+const supervisorData = ref({
+  pendingApproval: 23,
+  rejectedNotResubmit: 8,
 })
 
 const generate30DaysData = () => {
@@ -332,7 +334,7 @@ const animateNumber = (target, key, end, duration = 1000) => {
     const elapsed = currentTime - startTime
     const progress = Math.min(elapsed / duration, 1)
     const easeOutQuart = 1 - Math.pow(1 - progress, 4)
-    target[key].value = Math.floor(start + (end - start) * easeOutQuart)
+    target[key] = Math.floor(start + (end - start) * easeOutQuart)
     if (progress < 1) requestAnimationFrame(animate)
   }
   requestAnimationFrame(animate)
@@ -341,11 +343,12 @@ const animateNumber = (target, key, end, duration = 1000) => {
 onMounted(() => {
   fetchData()
   setupAutoRefresh()
-  animateNumber(overviewData.value, 'materialTotal', 1256)
   animateNumber(overviewData.value, 'equipmentTotal', 89)
+  animateNumber(overviewData.value, 'materialTotal', 1256)
   animateNumber(overviewData.value, 'routeTotal', 156)
-  animateNumber(overviewData.value, 'pendingApproval', 23)
-  animateNumber(overviewData.value, 'rejectedNotResubmit', 8)
+  animateNumber(overviewData.value, 'processTotal', 342)
+  animateNumber(supervisorData.value, 'pendingApproval', 23)
+  animateNumber(supervisorData.value, 'rejectedNotResubmit', 8)
 })
 
 onUnmounted(() => {
@@ -373,24 +376,24 @@ onUnmounted(() => {
 
     <div class="overview-section">
       <div class="overview-cards">
-        <div class="overview-card material-card">
-          <div class="card-icon">
-            <el-icon><Box /></el-icon>
-          </div>
-          <div class="card-content">
-            <div class="card-value">{{ overviewData.materialTotal.value }}</div>
-            <div class="card-label">物料总数</div>
-          </div>
-          <div class="card-decoration"></div>
-        </div>
-
         <div class="overview-card equipment-card">
           <div class="card-icon">
             <el-icon><Cpu /></el-icon>
           </div>
           <div class="card-content">
-            <div class="card-value">{{ overviewData.equipmentTotal.value }}</div>
-            <div class="card-label">设备总数</div>
+            <div class="card-value">{{ overviewData.equipmentTotal }}</div>
+            <div class="card-label">设备数量</div>
+          </div>
+          <div class="card-decoration"></div>
+        </div>
+
+        <div class="overview-card material-card">
+          <div class="card-icon">
+            <el-icon><Box /></el-icon>
+          </div>
+          <div class="card-content">
+            <div class="card-value">{{ overviewData.materialTotal }}</div>
+            <div class="card-label">物料数量</div>
           </div>
           <div class="card-decoration"></div>
         </div>
@@ -400,8 +403,19 @@ onUnmounted(() => {
             <el-icon><Guide /></el-icon>
           </div>
           <div class="card-content">
-            <div class="card-value">{{ overviewData.routeTotal.value }}</div>
-            <div class="card-label">工艺路线总数</div>
+            <div class="card-value">{{ overviewData.routeTotal }}</div>
+            <div class="card-label">工艺路线数量</div>
+          </div>
+          <div class="card-decoration"></div>
+        </div>
+
+        <div class="overview-card process-card">
+          <div class="card-icon">
+            <el-icon><Operation /></el-icon>
+          </div>
+          <div class="card-content">
+            <div class="card-value">{{ overviewData.processTotal }}</div>
+            <div class="card-label">工序数量</div>
           </div>
           <div class="card-decoration"></div>
         </div>
@@ -411,7 +425,7 @@ onUnmounted(() => {
             <el-icon><DocumentChecked /></el-icon>
           </div>
           <div class="card-content">
-            <div class="card-value">{{ overviewData.pendingApproval.value }}</div>
+            <div class="card-value">{{ supervisorData.pendingApproval }}</div>
             <div class="card-label">待办审批数</div>
           </div>
           <div class="card-decoration"></div>
@@ -422,7 +436,7 @@ onUnmounted(() => {
             <el-icon><RefreshRight /></el-icon>
           </div>
           <div class="card-content">
-            <div class="card-value">{{ overviewData.rejectedNotResubmit.value }}</div>
+            <div class="card-value">{{ supervisorData.rejectedNotResubmit }}</div>
             <div class="card-label">驳回未重提数</div>
           </div>
           <div class="card-decoration"></div>
@@ -605,7 +619,7 @@ onUnmounted(() => {
     margin-bottom: 24px;
     .overview-cards {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 20px;
       .overview-card {
         position: relative;
@@ -681,12 +695,20 @@ onUnmounted(() => {
             background: #e6a23c;
           }
         }
-        &.pending-card {
+        &.process-card {
           .card-icon {
             background: linear-gradient(135deg, #909399 0%, #c0c4cc 100%);
           }
           .card-decoration {
             background: #909399;
+          }
+        }
+        &.pending-card {
+          .card-icon {
+            background: linear-gradient(135deg, #409eff 0%, #79bbff 100%);
+          }
+          .card-decoration {
+            background: #409eff;
           }
         }
         &.rejected-card {

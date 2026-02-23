@@ -1,6 +1,5 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import ECharts from '@/components/ECharts/index.vue'
 import {
   Box,
@@ -17,8 +16,6 @@ import {
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
-
-const router = useRouter()
 
 const loading = ref(false)
 const loginTimeRange = ref('7days')
@@ -213,7 +210,7 @@ const loginChartOption = computed(() => ({
           ],
         },
       },
-      data: loginTrendData.value.loginCounts.map(v => Math.floor(v * 0.6)),
+      data: loginTrendData.value.loginCounts.map((v) => Math.floor(v * 0.6)),
     },
   ],
 }))
@@ -343,17 +340,6 @@ const handleActiveTimeTypeChange = (type) => {
   activeTimeData.value = generateActiveTimeData(type)
 }
 
-const handleCardClick = (type) => {
-  const routeMap = {
-    material: '/material-manage/material-info',
-    equipment: '/device-manage/device-manage-info',
-    process: '/process-manage/process-info',
-    route: '/route-manage/route-info',
-    user: '/admin-manage/user-manage-info',
-  }
-  router.push(routeMap[type])
-}
-
 const exportToExcel = (data, fileName) => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -433,7 +419,7 @@ onMounted(() => {
 
     <div class="overview-section">
       <div class="overview-cards">
-        <div class="overview-card material-card" @click="handleCardClick('material')">
+        <div class="overview-card material-card">
           <div class="card-icon">
             <el-icon><Box /></el-icon>
           </div>
@@ -444,7 +430,7 @@ onMounted(() => {
           <div class="card-decoration"></div>
         </div>
 
-        <div class="overview-card equipment-card" @click="handleCardClick('equipment')">
+        <div class="overview-card equipment-card">
           <div class="card-icon">
             <el-icon><Cpu /></el-icon>
           </div>
@@ -455,7 +441,7 @@ onMounted(() => {
           <div class="card-decoration"></div>
         </div>
 
-        <div class="overview-card process-card" @click="handleCardClick('process')">
+        <div class="overview-card process-card">
           <div class="card-icon">
             <el-icon><Operation /></el-icon>
           </div>
@@ -466,7 +452,7 @@ onMounted(() => {
           <div class="card-decoration"></div>
         </div>
 
-        <div class="overview-card route-card" @click="handleCardClick('route')">
+        <div class="overview-card route-card">
           <div class="card-icon">
             <el-icon><Guide /></el-icon>
           </div>
@@ -477,7 +463,7 @@ onMounted(() => {
           <div class="card-decoration"></div>
         </div>
 
-        <div class="overview-card user-card" @click="handleCardClick('user')">
+        <div class="overview-card user-card">
           <div class="card-icon">
             <el-icon><User /></el-icon>
           </div>
@@ -685,13 +671,10 @@ onMounted(() => {
         gap: 20px;
         overflow: hidden;
         transition: all 0.3s ease;
-        cursor: pointer;
-
         &:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         }
-
         .card-icon {
           width: 64px;
           height: 64px;

@@ -241,6 +241,10 @@ const handleView = (row) => {
 }
 
 const handleEdit = (row) => {
+  if (row.role === 'admin') {
+    ElMessage.warning('不能编辑管理员用户')
+    return
+  }
   isEdit.value = true
   Object.assign(formData, {
     id: row.id,
@@ -256,6 +260,10 @@ const handleEdit = (row) => {
 }
 
 const handleToggleStatus = async (row) => {
+  if (row.role === 'admin') {
+    ElMessage.warning('不能冻结管理员用户')
+    return
+  }
   const newStatus = row.status === '启用' ? '禁用' : '启用'
   const actionText = newStatus === '禁用' ? '冻结' : '解冻'
 
@@ -277,6 +285,10 @@ const handleToggleStatus = async (row) => {
 }
 
 const handleResetPwd = (row) => {
+  if (row.role === 'admin') {
+    ElMessage.warning('不能重置管理员密码')
+    return
+  }
   resetPwdForm.userId = row.id
   resetPwdForm.userName = row.userName
   resetPwdForm.newPassword = ''
@@ -325,6 +337,10 @@ const handleResetPwdSubmit = async () => {
 }
 
 const handleDelete = async (row) => {
+  if (row.role === 'admin') {
+    ElMessage.warning('不能删除管理员用户')
+    return
+  }
   try {
     await ElMessageBox.confirm(
       `确定要删除用户"${row.userName}"吗？删除后用户状态将变为"已删除"。`,
@@ -349,6 +365,11 @@ const handleDelete = async (row) => {
 const handleBatchFreeze = async (selectedList) => {
   if (!selectedList || selectedList.length === 0) {
     ElMessage.warning('请先选择要冻结的用户')
+    return
+  }
+  const adminUsers = selectedList.filter((item) => item.role === 'admin')
+  if (adminUsers.length > 0) {
+    ElMessage.warning('不能冻结管理员用户')
     return
   }
   try {
@@ -397,6 +418,11 @@ const handleBatchUnfreeze = async (selectedList) => {
 const handleBatchDelete = async (selectedList) => {
   if (!selectedList || selectedList.length === 0) {
     ElMessage.warning('请先选择要删除的用户')
+    return
+  }
+  const adminUsers = selectedList.filter((item) => item.role === 'admin')
+  if (adminUsers.length > 0) {
+    ElMessage.warning('不能删除管理员用户')
     return
   }
   try {
@@ -626,21 +652,25 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
-        <el-button
-          :type="scope.row.status === '启用' ? 'warning' : 'success'"
-          link
-          :icon="Lock"
-          @click="handleToggleStatus(scope.row)"
-        >
-          {{ scope.row.status === '启用' ? '冻结' : '解冻' }}
-        </el-button>
-        <el-button type="primary" link :icon="Refresh" @click="handleResetPwd(scope.row)"
-          >重置密码</el-button
-        >
-        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
-          >删除</el-button
-        >
+        <template v-if="scope.row.role !== 'admin'">
+          <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)"
+            >编辑</el-button
+          >
+          <el-button
+            :type="scope.row.status === '启用' ? 'warning' : 'success'"
+            link
+            :icon="Lock"
+            @click="handleToggleStatus(scope.row)"
+          >
+            {{ scope.row.status === '启用' ? '冻结' : '解冻' }}
+          </el-button>
+          <el-button type="primary" link :icon="Refresh" @click="handleResetPwd(scope.row)"
+            >重置密码</el-button
+          >
+          <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
+            >删除</el-button
+          >
+        </template>
       </template>
     </ProTable>
 

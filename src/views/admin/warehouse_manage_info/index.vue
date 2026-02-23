@@ -32,18 +32,150 @@ const deptOptions = ref([
 ])
 
 const mockData = ref([
-  { id: 1, warehouseCode: 'WH20240001', warehouseName: '原料仓库A', warehouseType: '原料仓', manager: '张三', phone: '13800138001', deptName: '采购部', address: '厂区东侧A栋', remark: '存放原材料', establishDate: '2020-01-15' },
-  { id: 2, warehouseCode: 'WH20240002', warehouseName: '成品仓库B', warehouseType: '成品仓', manager: '李四', phone: '13800138002', deptName: '销售部', address: '厂区西侧B栋', remark: '存放成品', establishDate: '2020-02-20' },
-  { id: 3, warehouseCode: 'WH20240003', warehouseName: '半成品仓库', warehouseType: '半成品仓', manager: '王五', phone: '13800138003', deptName: '生产部', address: '车间内部C区', remark: '存放半成品', establishDate: '2020-03-10' },
-  { id: 4, warehouseCode: 'WH20240004', warehouseName: '备件仓库', warehouseType: '备件仓', manager: '赵六', phone: '13800138004', deptName: '技术部', address: '厂区北侧D栋', remark: '存放设备备件', establishDate: '2020-04-05' },
-  { id: 5, warehouseCode: 'WH20240005', warehouseName: '工具仓库', warehouseType: '工具仓', manager: '钱七', phone: '13800138005', deptName: '生产部', address: '车间内部E区', remark: '存放工具', establishDate: '2020-05-12' },
-  { id: 6, warehouseCode: 'WH20240006', warehouseName: '废料仓库', warehouseType: '废料仓', manager: '孙八', phone: '13800138006', deptName: '生产部', address: '厂区南侧F栋', remark: '存放废料', establishDate: '2020-06-18' },
-  { id: 7, warehouseCode: 'WH20240007', warehouseName: '原料仓库B', warehouseType: '原料仓', manager: '周九', phone: '13800138007', deptName: '采购部', address: '厂区东侧G栋', remark: '存放原材料', establishDate: '2020-07-22' },
-  { id: 8, warehouseCode: 'WH20240008', warehouseName: '成品仓库A', warehouseType: '成品仓', manager: '吴十', phone: '13800138008', deptName: '销售部', address: '厂区西侧H栋', remark: '存放成品', establishDate: '2021-01-08' },
-  { id: 9, warehouseCode: 'WH20240009', warehouseName: '冷藏仓库', warehouseType: '原料仓', manager: '郑十一', phone: '13800138009', deptName: '采购部', address: '厂区北侧I栋', remark: '存放需冷藏原料', establishDate: '2021-02-15' },
-  { id: 10, warehouseCode: 'WH20240010', warehouseName: '危险品仓库', warehouseType: '原料仓', manager: '王十二', phone: '13800138010', deptName: '技术部', address: '厂区隔离区J栋', remark: '存放危险品原料', establishDate: '2021-03-20' },
-  { id: 11, warehouseCode: 'WH20240011', warehouseName: '包装材料仓', warehouseType: '备件仓', manager: '刘明', phone: '13800138011', deptName: '生产部', address: '厂区东侧K栋', remark: '存放包装材料', establishDate: '2021-04-10' },
-  { id: 12, warehouseCode: 'WH20240012', warehouseName: '退货仓库', warehouseType: '成品仓', manager: '陈华', phone: '13800138012', deptName: '销售部', address: '厂区西侧L栋', remark: '存放退货产品', establishDate: '2021-05-05' },
+  {
+    id: 1,
+    warehouseCode: 'WH20240001',
+    warehouseName: '原料仓库A',
+    warehouseType: '原料仓',
+    manager: '张三',
+    phone: '13800138001',
+    deptName: '采购部',
+    address: '厂区东侧A栋',
+    remark: '存放原材料',
+    establishDate: '2020-01-15',
+  },
+  {
+    id: 2,
+    warehouseCode: 'WH20240002',
+    warehouseName: '成品仓库B',
+    warehouseType: '成品仓',
+    manager: '李四',
+    phone: '13800138002',
+    deptName: '销售部',
+    address: '厂区西侧B栋',
+    remark: '存放成品',
+    establishDate: '2020-02-20',
+  },
+  {
+    id: 3,
+    warehouseCode: 'WH20240003',
+    warehouseName: '半成品仓库',
+    warehouseType: '半成品仓',
+    manager: '王五',
+    phone: '13800138003',
+    deptName: '生产部',
+    address: '车间内部C区',
+    remark: '存放半成品',
+    establishDate: '2020-03-10',
+  },
+  {
+    id: 4,
+    warehouseCode: 'WH20240004',
+    warehouseName: '备件仓库',
+    warehouseType: '备件仓',
+    manager: '赵六',
+    phone: '13800138004',
+    deptName: '技术部',
+    address: '厂区北侧D栋',
+    remark: '存放设备备件',
+    establishDate: '2020-04-05',
+  },
+  {
+    id: 5,
+    warehouseCode: 'WH20240005',
+    warehouseName: '工具仓库',
+    warehouseType: '工具仓',
+    manager: '钱七',
+    phone: '13800138005',
+    deptName: '生产部',
+    address: '车间内部E区',
+    remark: '存放工具',
+    establishDate: '2020-05-12',
+  },
+  {
+    id: 6,
+    warehouseCode: 'WH20240006',
+    warehouseName: '废料仓库',
+    warehouseType: '废料仓',
+    manager: '孙八',
+    phone: '13800138006',
+    deptName: '生产部',
+    address: '厂区南侧F栋',
+    remark: '存放废料',
+    establishDate: '2020-06-18',
+  },
+  {
+    id: 7,
+    warehouseCode: 'WH20240007',
+    warehouseName: '原料仓库B',
+    warehouseType: '原料仓',
+    manager: '周九',
+    phone: '13800138007',
+    deptName: '采购部',
+    address: '厂区东侧G栋',
+    remark: '存放原材料',
+    establishDate: '2020-07-22',
+  },
+  {
+    id: 8,
+    warehouseCode: 'WH20240008',
+    warehouseName: '成品仓库A',
+    warehouseType: '成品仓',
+    manager: '吴十',
+    phone: '13800138008',
+    deptName: '销售部',
+    address: '厂区西侧H栋',
+    remark: '存放成品',
+    establishDate: '2021-01-08',
+  },
+  {
+    id: 9,
+    warehouseCode: 'WH20240009',
+    warehouseName: '冷藏仓库',
+    warehouseType: '原料仓',
+    manager: '郑十一',
+    phone: '13800138009',
+    deptName: '采购部',
+    address: '厂区北侧I栋',
+    remark: '存放需冷藏原料',
+    establishDate: '2021-02-15',
+  },
+  {
+    id: 10,
+    warehouseCode: 'WH20240010',
+    warehouseName: '危险品仓库',
+    warehouseType: '原料仓',
+    manager: '王十二',
+    phone: '13800138010',
+    deptName: '技术部',
+    address: '厂区隔离区J栋',
+    remark: '存放危险品原料',
+    establishDate: '2021-03-20',
+  },
+  {
+    id: 11,
+    warehouseCode: 'WH20240011',
+    warehouseName: '包装材料仓',
+    warehouseType: '备件仓',
+    manager: '刘明',
+    phone: '13800138011',
+    deptName: '生产部',
+    address: '厂区东侧K栋',
+    remark: '存放包装材料',
+    establishDate: '2021-04-10',
+  },
+  {
+    id: 12,
+    warehouseCode: 'WH20240012',
+    warehouseName: '退货仓库',
+    warehouseType: '成品仓',
+    manager: '陈华',
+    phone: '13800138012',
+    deptName: '销售部',
+    address: '厂区西侧L栋',
+    remark: '存放退货产品',
+    establishDate: '2021-05-05',
+  },
 ])
 
 const columns = reactive([
@@ -51,11 +183,16 @@ const columns = reactive([
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'warehouseCode', label: '仓库编码', search: { el: 'input', key: 'warehouseCode' } },
   { prop: 'warehouseName', label: '仓库名称', search: { el: 'input', key: 'warehouseName' } },
-  { prop: 'warehouseType', label: '仓库类型', search: { el: 'select', key: 'warehouseType' }, enum: warehouseTypeOptions },
+  {
+    prop: 'warehouseType',
+    label: '仓库类型',
+    search: { el: 'select', key: 'warehouseType' },
+    enum: warehouseTypeOptions,
+  },
   { prop: 'manager', label: '仓库负责人' },
   { prop: 'deptName', label: '所属部门' },
   { prop: 'establishDate', label: '成立时间' },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -188,11 +325,15 @@ const getTableList = async (params) => {
       let filteredData = [...mockData.value]
 
       if (params?.warehouseCode) {
-        filteredData = filteredData.filter((item) => item.warehouseCode.includes(params.warehouseCode))
+        filteredData = filteredData.filter((item) =>
+          item.warehouseCode.includes(params.warehouseCode),
+        )
       }
 
       if (params?.warehouseName) {
-        filteredData = filteredData.filter((item) => item.warehouseName.includes(params.warehouseName))
+        filteredData = filteredData.filter((item) =>
+          item.warehouseName.includes(params.warehouseName),
+        )
       }
 
       if (params?.warehouseType) {
@@ -244,7 +385,9 @@ const getTableList = async (params) => {
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
-        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+        <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
+          >删除</el-button
+        >
       </template>
     </ProTable>
 
@@ -269,7 +412,11 @@ const getTableList = async (params) => {
               <el-input v-model="formData.warehouseName" placeholder="请输入仓库名称" />
             </el-form-item>
             <el-form-item label="仓库类型" prop="warehouseType">
-              <el-select v-model="formData.warehouseType" placeholder="请选择仓库类型" style="width: 100%">
+              <el-select
+                v-model="formData.warehouseType"
+                placeholder="请选择仓库类型"
+                style="width: 100%"
+              >
                 <el-option
                   v-for="item in warehouseTypeOptions"
                   :key="item.value"
@@ -285,7 +432,11 @@ const getTableList = async (params) => {
               <el-input v-model="formData.phone" placeholder="请输入联系电话" />
             </el-form-item>
             <el-form-item label="所属部门" prop="deptName">
-              <el-select v-model="formData.deptName" placeholder="请选择所属部门" style="width: 100%">
+              <el-select
+                v-model="formData.deptName"
+                placeholder="请选择所属部门"
+                style="width: 100%"
+              >
                 <el-option
                   v-for="item in deptOptions"
                   :key="item.value"
@@ -314,7 +465,12 @@ const getTableList = async (params) => {
             <span class="title-text">其他信息</span>
           </div>
           <el-form-item label="备注">
-            <el-input v-model="formData.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+            <el-input
+              v-model="formData.remark"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入备注"
+            />
           </el-form-item>
         </div>
       </el-form>

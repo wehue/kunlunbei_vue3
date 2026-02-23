@@ -57,7 +57,7 @@ const columns = reactive([
   { prop: 'employeeName', label: '姓名', search: { el: 'input', key: 'employeeName' } },
   { prop: 'deptName', label: '所属部门', search: { el: 'select', key: 'deptName' }, enum: deptOptions },
   { prop: 'position', label: '岗位' },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
