@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { ArrowRight, Plus, Minus, Edit } from '@element-plus/icons-vue'
+import { ArrowRight, Plus, Minus, Edit, InfoFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   beforeData: {
@@ -243,4 +243,363 @@ const getOperationColor = computed(() => {
           <div v-for="field in allFields" :key="field" class="arrow-item">
             <el-icon
               v-if="isValueChanged(field)"
-              :color="get
+              :color="getChangeColor(getChangeType(field))"
+              class="arrow-icon"
+            >
+              <ArrowRight />
+            </el-icon>
+            <span v-else class="arrow-placeholder">-</span>
+          </div>
+        </div>
+
+        <div class="column after-column">
+          <div class="column-header after">
+            <span>变更后</span>
+          </div>
+          <div class="data-list">
+            <div
+              v-for="field in allFields"
+              :key="field"
+              class="data-item"
+              :class="getChangeType(field)"
+            >
+              <div class="field-label">
+                <el-icon
+                  v-if="isValueChanged(field)"
+                  :color="getChangeColor(getChangeType(field))"
+                >
+                  <component :is="getChangeIcon(getChangeType(field))" />
+                </el-icon>
+                {{ getFieldLabel(field) }}
+              </div>
+              <div class="field-value">
+                {{ formatValue(afterData?.[field]) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="table-view">
+      <el-table :data="allFields.map((field) => ({ field, changeType: getChangeType(field) }))" border>
+        <el-table-column label="字段名称" width="180">
+          <template #default="{ row }">
+            <div class="field-name-cell" :class="row.changeType">
+              <el-icon
+                v-if="row.changeType !== 'unchanged'"
+                :color="getChangeColor(row.changeType)"
+              >
+                <component :is="getChangeIcon(row.changeType)" />
+              </el-icon>
+              <span>{{ getFieldLabel(row.field) }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="变更前" min-width="200">
+          <template #default="{ row }">
+            <div
+              class="value-cell"
+              :class="{
+                removed: row.changeType === 'removed',
+                modified: row.changeType === 'modified',
+              }"
+            >
+              {{ formatValue(beforeData?.[row.field]) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="变更后" min-width="200">
+          <template #default="{ row }">
+            <div
+              class="value-cell"
+              :class="{
+                added: row.changeType === 'added',
+                modified: row.changeType === 'modified',
+              }"
+            >
+              {{ formatValue(afterData?.[row.field]) }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="变更类型" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.changeType !== 'unchanged'"
+              :type="
+                row.changeType === 'added'
+                  ? 'success'
+                  : row.changeType === 'removed'
+                    ? 'danger'
+                    : 'warning'
+              "
+              size="small"
+            >
+              {{ row.changeType === 'added' ? '新增' : row.changeType === 'removed' ? '删除' : '修改' }}
+            </el-tag>
+            <span v-else class="unchanged-text">未变更</span>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <div v-if="changedFieldsCount === 0 && allFields.length > 0" class="no-changes">
+      <el-icon><InfoFilled /></el-icon>
+      <span>数据无实质性变更</span>
+    </div>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.data-compare-container {
+  .compare-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #f5f7fa;
+    border-radius: 8px;
+
+    .operation-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      color: #fff;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .change-summary {
+      display: flex;
+      gap: 16px;
+
+      .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: #606266;
+      }
+    }
+  }
+
+  .compare-view {
+    .single-column-view {
+      .column-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        font-weight: 600;
+        border-radius: 4px 4px 0 0;
+
+        &.added {
+          background: #f0f9ff;
+          color: #67c23a;
+        }
+
+        &.removed {
+          background: #fef0f0;
+          color: #f56c6c;
+        }
+      }
+
+      .data-list {
+        border: 1px solid #ebeef5;
+        border-radius: 0 0 4px 4px;
+
+        .data-item {
+          display: flex;
+          padding: 12px 16px;
+          border-bottom: 1px solid #ebeef5;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &.added {
+            background: #f0f9ff;
+          }
+
+          &.removed {
+            background: #fef0f0;
+          }
+
+          .field-label {
+            width: 140px;
+            font-weight: 500;
+            color: #606266;
+          }
+
+          .field-value {
+            flex: 1;
+            color: #303133;
+          }
+        }
+      }
+    }
+
+    .dual-column-view {
+      display: flex;
+      gap: 0;
+
+      .column {
+        flex: 1;
+
+        .column-header {
+          padding: 10px 16px;
+          font-weight: 600;
+          text-align: center;
+          border-radius: 4px 0 0 0;
+
+          &.before {
+            background: #fef0f0;
+            color: #f56c6c;
+          }
+
+          &.after {
+            background: #f0f9ff;
+            color: #67c23a;
+            border-radius: 0 4px 0 0;
+          }
+        }
+
+        .data-list {
+          border: 1px solid #ebeef5;
+          min-height: 200px;
+
+          .data-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #ebeef5;
+            min-height: 48px;
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            &.added {
+              background: #f0f9ff;
+            }
+
+            &.removed {
+              background: #fef0f0;
+            }
+
+            &.modified {
+              background: #fdf6ec;
+            }
+
+            .field-label {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 13px;
+              font-weight: 500;
+              color: #606266;
+              margin-bottom: 4px;
+            }
+
+            .field-value {
+              font-size: 14px;
+              color: #303133;
+              padding-left: 22px;
+            }
+          }
+        }
+      }
+
+      .arrow-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 90px;
+        min-width: 40px;
+        background: #fafafa;
+        border-top: 1px solid #ebeef5;
+        border-bottom: 1px solid #ebeef5;
+
+        .arrow-item {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 48px;
+          border-bottom: 1px solid #ebeef5;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .arrow-icon {
+            font-size: 18px;
+          }
+
+          .arrow-placeholder {
+            color: #dcdfe6;
+          }
+        }
+      }
+    }
+  }
+
+  .table-view {
+    .field-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+
+      &.added {
+        color: #67c23a;
+      }
+
+      &.removed {
+        color: #f56c6c;
+      }
+
+      &.modified {
+        color: #e6a23c;
+      }
+    }
+
+    .value-cell {
+      padding: 4px 8px;
+      border-radius: 4px;
+
+      &.added {
+        background: #f0f9ff;
+        color: #67c23a;
+      }
+
+      &.removed {
+        background: #fef0f0;
+        color: #f56c6c;
+        text-decoration: line-through;
+      }
+
+      &.modified {
+        background: #fdf6ec;
+        color: #e6a23c;
+      }
+    }
+
+    .unchanged-text {
+      color: #909399;
+      font-size: 12px;
+    }
+  }
+
+  .no-changes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: #909399;
+    background: #f5f7fa;
+    border-radius: 4px;
+  }
+}
+</style>
