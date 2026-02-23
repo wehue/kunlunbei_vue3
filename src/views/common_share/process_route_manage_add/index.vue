@@ -268,7 +268,7 @@ const handleCancel = () => {
 
         <div class="section-card process-config-card">
           <div class="section-header">
-            <span class="section-title">工序配置</span>
+            <span class="section-title">工艺路线配置</span>
             <el-button type="primary" :icon="Plus" @click="handleAddStep">添加工序</el-button>
           </div>
           <div class="process-layout">
