@@ -32,16 +32,7 @@ const materialOptions = [
   { id: 6, materialCode: 'MAT20240006', materialName: '不锈钢管', specModel: '304-Φ60' },
 ]
 
-const processOptions = [
-  { value: '车削加工', label: '车削加工' },
-  { value: '铣削加工', label: '铣削加工' },
-  { value: '钻孔工序', label: '钻孔工序' },
-  { value: '磨削精加工', label: '磨削精加工' },
-  { value: '质量检测', label: '质量检测' },
-  { value: '热处理', label: '热处理' },
-  { value: '表面处理', label: '表面处理' },
-  { value: '组装工序', label: '组装工序' },
-]
+const processOptions = []
 
 const allBomData = ref([
   {
@@ -55,6 +46,8 @@ const allBomData = ref([
       materialCode: 'MAT20240001',
       materialName: '碳钢板材',
       specModel: 'Q235B-10mm',
+      category: '金属材料',
+      unit: '件',
     },
     childMaterials: [
       {
@@ -62,16 +55,18 @@ const allBomData = ref([
         materialId: 2,
         materialCode: 'MAT20240002',
         materialName: '铝合金板',
+        specModel: '6061-T6-5mm',
         quantity: 5,
-        process: '车削加工',
+        unit: '件',
       },
       {
         id: 2,
         materialId: 3,
         materialCode: 'MAT20240003',
         materialName: '黄铜棒材',
+        specModel: 'H62-Φ30',
         quantity: 10,
-        process: '铣削加工',
+        unit: '根',
       },
     ],
     baseId: 'BOM001',
@@ -87,6 +82,8 @@ const allBomData = ref([
       materialCode: 'MAT20240001',
       materialName: '碳钢板材',
       specModel: 'Q235B-12mm',
+      category: '金属材料',
+      unit: '件',
     },
     childMaterials: [
       {
@@ -94,24 +91,27 @@ const allBomData = ref([
         materialId: 2,
         materialCode: 'MAT20240002',
         materialName: '铝合金板',
+        specModel: '6061-T6-5mm',
         quantity: 6,
-        process: '车削加工',
+        unit: '件',
       },
       {
         id: 2,
         materialId: 3,
         materialCode: 'MAT20240003',
         materialName: '黄铜棒材',
+        specModel: 'H62-Φ30',
         quantity: 12,
-        process: '铣削加工',
+        unit: '根',
       },
       {
         id: 3,
         materialId: 4,
         materialCode: 'MAT20240004',
         materialName: 'ABS塑料件',
+        specModel: 'ABS-标准件',
         quantity: 20,
-        process: '组装工序',
+        unit: '个',
       },
     ],
     baseId: 'BOM001',
@@ -127,6 +127,8 @@ const allBomData = ref([
       materialCode: 'MAT20240005',
       materialName: '电阻电容',
       specModel: '0402封装',
+      category: '电子元器件',
+      unit: '片',
     },
     childMaterials: [
       {
@@ -134,16 +136,18 @@ const allBomData = ref([
         materialId: 4,
         materialCode: 'MAT20240004',
         materialName: 'ABS塑料件',
+        specModel: 'ABS-标准件',
         quantity: 2,
-        process: '组装工序',
+        unit: '个',
       },
       {
         id: 2,
         materialId: 5,
         materialCode: 'MAT20240005',
         materialName: '电阻电容',
+        specModel: '0402封装',
         quantity: 100,
-        process: '质量检测',
+        unit: '片',
       },
     ],
     baseId: 'BOM002',
@@ -159,6 +163,8 @@ const allBomData = ref([
       materialCode: 'MAT20240006',
       materialName: '不锈钢管',
       specModel: '304-Φ50',
+      category: '金属材料',
+      unit: '根',
     },
     childMaterials: [
       {
@@ -166,8 +172,9 @@ const allBomData = ref([
         materialId: 1,
         materialCode: 'MAT20240001',
         materialName: '碳钢板材',
+        specModel: 'Q235B-12mm',
         quantity: 3,
-        process: '焊接',
+        unit: '件',
       },
     ],
     baseId: 'BOM003',
@@ -183,6 +190,8 @@ const allBomData = ref([
       materialCode: 'MAT20240006',
       materialName: '不锈钢管',
       specModel: '304-Φ60',
+      category: '金属材料',
+      unit: '根',
     },
     childMaterials: [
       {
@@ -190,16 +199,18 @@ const allBomData = ref([
         materialId: 1,
         materialCode: 'MAT20240001',
         materialName: '碳钢板材',
+        specModel: 'Q235B-12mm',
         quantity: 4,
-        process: '焊接',
+        unit: '件',
       },
       {
         id: 2,
         materialId: 3,
         materialCode: 'MAT20240003',
         materialName: '黄铜棒材',
+        specModel: 'H62-Φ30',
         quantity: 8,
-        process: '车削加工',
+        unit: '根',
       },
     ],
     baseId: 'BOM003',
@@ -215,6 +226,8 @@ const allBomData = ref([
       materialCode: 'MAT20240002',
       materialName: '铝合金板',
       specModel: '6061-T6-5mm',
+      category: '金属材料',
+      unit: '件',
     },
     childMaterials: [
       {
@@ -222,16 +235,18 @@ const allBomData = ref([
         materialId: 3,
         materialCode: 'MAT20240003',
         materialName: '黄铜棒材',
+        specModel: 'H62-Φ30',
         quantity: 15,
-        process: '车削加工',
+        unit: '根',
       },
       {
         id: 2,
         materialId: 6,
         materialCode: 'MAT20240006',
         materialName: '不锈钢管',
+        specModel: '304-Φ60',
         quantity: 5,
-        process: '磨削精加工',
+        unit: '根',
       },
     ],
     baseId: 'BOM004',
@@ -315,8 +330,11 @@ const handleAddChildMaterial = () => {
   formData.childMaterials.push({
     id: Date.now(),
     materialId: null,
+    materialCode: '',
+    materialName: '',
+    specModel: '',
     quantity: 1,
-    process: '',
+    unit: '件',
   })
 }
 
@@ -542,6 +560,18 @@ watch(
               <div class="info-label">规格型号</div>
               <div class="info-value">{{ bomData.parentMaterial?.specModel || '无' }}</div>
             </div>
+            <div class="info-item">
+              <div class="info-label">物料分类</div>
+              <div class="info-value">
+                <el-tag type="info" size="default">{{
+                  bomData.parentMaterial?.category || '无'
+                }}</el-tag>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">计量单位</div>
+              <div class="info-value">{{ bomData.parentMaterial?.unit || '无' }}</div>
+            </div>
           </div>
         </template>
 
@@ -576,10 +606,11 @@ watch(
         <template v-if="!isEdit">
           <div class="table-container">
             <el-table :data="bomData.childMaterials" border style="width: 100%" class="bom-table">
-              <el-table-column prop="materialCode" label="物料编号" />
-              <el-table-column prop="materialName" label="物料名称" />
-              <el-table-column prop="quantity" label="数量" />
-              <el-table-column prop="process" label="工序" />
+              <el-table-column prop="materialCode" label="物料编号" width="150" />
+              <el-table-column prop="materialName" label="物料名称" width="150" />
+              <el-table-column prop="specModel" label="规格型号" width="150" />
+              <el-table-column prop="quantity" label="数量" width="100" />
+              <el-table-column prop="unit" label="单位" width="80" />
             </el-table>
             <div
               v-if="!bomData.childMaterials || bomData.childMaterials.length === 0"
@@ -617,20 +648,14 @@ watch(
                     :value="item.id"
                   />
                 </el-select>
+                <el-input v-model="child.specModel" placeholder="规格型号" style="width: 150px" />
                 <el-input-number
                   v-model="child.quantity"
                   :min="1"
                   placeholder="数量"
                   style="width: 120px"
                 />
-                <el-select v-model="child.process" placeholder="选择工序" style="width: 150px">
-                  <el-option
-                    v-for="item in processOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
+                <el-input v-model="child.unit" placeholder="单位" style="width: 100px" />
               </div>
             </div>
             <div v-if="formData.childMaterials.length === 0" class="empty-tip">
