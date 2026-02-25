@@ -14,12 +14,8 @@ const formData = reactive({})
 const formRef = ref()
 
 const warehouseTypeOptions = ref([
-  { label: '原料仓', value: '原料仓' },
-  { label: '成品仓', value: '成品仓' },
-  { label: '半成品仓', value: '半成品仓' },
-  { label: '备件仓', value: '备件仓' },
-  { label: '工具仓', value: '工具仓' },
-  { label: '废料仓', value: '废料仓' },
+  { label: '物料仓库', value: '物料仓库' },
+  { label: '设备仓库', value: '设备仓库' },
 ])
 
 const deptOptions = ref([
@@ -33,18 +29,18 @@ const deptOptions = ref([
 ])
 
 const mockWarehouseData = {
-  1: { id: 1, warehouseCode: 'WH20240001', warehouseName: '原料仓库A', warehouseType: '原料仓', manager: '张三', phone: '13800138001', deptName: '采购部', address: '厂区东侧A栋', remark: '存放原材料', establishDate: '2020-01-15' },
-  2: { id: 2, warehouseCode: 'WH20240002', warehouseName: '成品仓库B', warehouseType: '成品仓', manager: '李四', phone: '13800138002', deptName: '销售部', address: '厂区西侧B栋', remark: '存放成品', establishDate: '2020-02-20' },
-  3: { id: 3, warehouseCode: 'WH20240003', warehouseName: '半成品仓库', warehouseType: '半成品仓', manager: '王五', phone: '13800138003', deptName: '生产部', address: '车间内部C区', remark: '存放半成品', establishDate: '2020-03-10' },
-  4: { id: 4, warehouseCode: 'WH20240004', warehouseName: '备件仓库', warehouseType: '备件仓', manager: '赵六', phone: '13800138004', deptName: '技术部', address: '厂区北侧D栋', remark: '存放设备备件', establishDate: '2020-04-05' },
-  5: { id: 5, warehouseCode: 'WH20240005', warehouseName: '工具仓库', warehouseType: '工具仓', manager: '钱七', phone: '13800138005', deptName: '生产部', address: '车间内部E区', remark: '存放工具', establishDate: '2020-05-12' },
-  6: { id: 6, warehouseCode: 'WH20240006', warehouseName: '废料仓库', warehouseType: '废料仓', manager: '孙八', phone: '13800138006', deptName: '生产部', address: '厂区南侧F栋', remark: '存放废料', establishDate: '2020-06-18' },
-  7: { id: 7, warehouseCode: 'WH20240007', warehouseName: '原料仓库B', warehouseType: '原料仓', manager: '周九', phone: '13800138007', deptName: '采购部', address: '厂区东侧G栋', remark: '存放原材料', establishDate: '2020-07-22' },
-  8: { id: 8, warehouseCode: 'WH20240008', warehouseName: '成品仓库A', warehouseType: '成品仓', manager: '吴十', phone: '13800138008', deptName: '销售部', address: '厂区西侧H栋', remark: '存放成品', establishDate: '2021-01-08' },
-  9: { id: 9, warehouseCode: 'WH20240009', warehouseName: '冷藏仓库', warehouseType: '原料仓', manager: '郑十一', phone: '13800138009', deptName: '采购部', address: '厂区北侧I栋', remark: '存放需冷藏原料', establishDate: '2021-02-15' },
-  10: { id: 10, warehouseCode: 'WH20240010', warehouseName: '危险品仓库', warehouseType: '原料仓', manager: '王十二', phone: '13800138010', deptName: '技术部', address: '厂区隔离区J栋', remark: '存放危险品原料', establishDate: '2021-03-20' },
-  11: { id: 11, warehouseCode: 'WH20240011', warehouseName: '包装材料仓', warehouseType: '备件仓', manager: '刘明', phone: '13800138011', deptName: '生产部', address: '厂区东侧K栋', remark: '存放包装材料', establishDate: '2021-04-10' },
-  12: { id: 12, warehouseCode: 'WH20240012', warehouseName: '退货仓库', warehouseType: '成品仓', manager: '陈华', phone: '13800138012', deptName: '销售部', address: '厂区西侧L栋', remark: '存放退货产品', establishDate: '2021-05-05' },
+  1: { id: 1, warehouseCode: 'WH20240001', warehouseName: '物料仓库A', warehouseType: '物料仓库', manager: '张三', phone: '13800138001', deptName: '采购部', address: '厂区东侧A栋', remark: '存放原材料', establishDate: '2020-01-15' },
+  2: { id: 2, warehouseCode: 'WH20240002', warehouseName: '设备仓库A', warehouseType: '设备仓库', manager: '李四', phone: '13800138002', deptName: '生产部', address: '厂区西侧B栋', remark: '存放设备', establishDate: '2020-02-20' },
+  3: { id: 3, warehouseCode: 'WH20240003', warehouseName: '物料仓库B', warehouseType: '物料仓库', manager: '王五', phone: '13800138003', deptName: '生产部', address: '车间内部C区', remark: '存放半成品物料', establishDate: '2020-03-10' },
+  4: { id: 4, warehouseCode: 'WH20240004', warehouseName: '设备仓库B', warehouseType: '设备仓库', manager: '赵六', phone: '13800138004', deptName: '技术部', address: '厂区北侧D栋', remark: '存放设备备件', establishDate: '2020-04-05' },
+  5: { id: 5, warehouseCode: 'WH20240005', warehouseName: '物料仓库C', warehouseType: '物料仓库', manager: '钱七', phone: '13800138005', deptName: '生产部', address: '车间内部E区', remark: '存放工具物料', establishDate: '2020-05-12' },
+  6: { id: 6, warehouseCode: 'WH20240006', warehouseName: '设备仓库C', warehouseType: '设备仓库', manager: '孙八', phone: '13800138006', deptName: '生产部', address: '厂区南侧F栋', remark: '存放大型设备', establishDate: '2020-06-18' },
+  7: { id: 7, warehouseCode: 'WH20240007', warehouseName: '物料仓库D', warehouseType: '物料仓库', manager: '周九', phone: '13800138007', deptName: '采购部', address: '厂区东侧G栋', remark: '存放原材料', establishDate: '2020-07-22' },
+  8: { id: 8, warehouseCode: 'WH20240008', warehouseName: '设备仓库D', warehouseType: '设备仓库', manager: '吴十', phone: '13800138008', deptName: '技术部', address: '厂区西侧H栋', remark: '存放精密设备', establishDate: '2021-01-08' },
+  9: { id: 9, warehouseCode: 'WH20240009', warehouseName: '物料仓库E', warehouseType: '物料仓库', manager: '郑十一', phone: '13800138009', deptName: '采购部', address: '厂区北侧I栋', remark: '存放需冷藏物料', establishDate: '2021-02-15' },
+  10: { id: 10, warehouseCode: 'WH20240010', warehouseName: '设备仓库E', warehouseType: '设备仓库', manager: '王十二', phone: '13800138010', deptName: '技术部', address: '厂区隔离区J栋', remark: '存放危险设备', establishDate: '2021-03-20' },
+  11: { id: 11, warehouseCode: 'WH20240011', warehouseName: '物料仓库F', warehouseType: '物料仓库', manager: '刘明', phone: '13800138011', deptName: '生产部', address: '厂区东侧K栋', remark: '存放包装材料', establishDate: '2021-04-10' },
+  12: { id: 12, warehouseCode: 'WH20240012', warehouseName: '设备仓库F', warehouseType: '设备仓库', manager: '陈华', phone: '13800138012', deptName: '技术部', address: '厂区西侧L栋', remark: '存放检测设备', establishDate: '2021-05-05' },
 }
 
 const loadWarehouseData = () => {

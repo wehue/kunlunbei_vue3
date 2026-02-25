@@ -26,25 +26,89 @@ const existingProcesses = [
     processName: '车削加工',
     description: '对工件进行车削加工处理',
     devices: [
-      { id: 1, deviceCode: 'DEV001', deviceName: '数控车床A', status: '运行中', dept: '一车间' },
-      { id: 2, deviceCode: 'DEV002', deviceName: '数控车床B', status: '空闲', dept: '一车间' },
+      {
+        id: 1,
+        deviceCode: 'DEV001',
+        deviceName: '数控车床A',
+        manufacturer: '西门子工业自动化有限公司',
+        brand: '西门子',
+        specModel: 'CNC-800',
+        supplier: '北京华工设备贸易有限公司',
+        productionDate: '2022-03-15',
+        serviceLife: 15,
+        depreciationMethod: '直线法',
+        location: '一车间',
+        stockQuantity: 5,
+        unit: '台',
+      },
+      {
+        id: 2,
+        deviceCode: 'DEV002',
+        deviceName: '数控车床B',
+        manufacturer: '三菱电机自动化有限公司',
+        brand: '三菱',
+        specModel: 'MC-500',
+        supplier: '上海精密机械有限公司',
+        productionDate: '2021-06-20',
+        serviceLife: 12,
+        depreciationMethod: '年数总和法',
+        location: '一车间',
+        stockQuantity: 3,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 1, userCode: 'U001', userName: '张三', skill: '高级车工', phone: '13800138001' },
-      { id: 2, userCode: 'U002', userName: '李四', skill: '中级车工', phone: '13800138002' },
+      {
+        id: 1,
+        employeeCode: 'EMP20240001',
+        employeeName: '张三',
+        deptName: '技术部',
+        position: '工程师',
+      },
+      {
+        id: 2,
+        employeeCode: 'EMP20240002',
+        employeeName: '李四',
+        deptName: '生产部',
+        position: '操作工',
+      },
     ],
     bom: {
       parentMaterial: {
         materialCode: 'MAT001',
         materialName: '碳钢圆棒',
         specModel: 'Q235B-Φ50',
+        stockQuantity: 100,
+        supplier: '宝钢集团',
+        version: 'V1.0',
         category: '金属材料',
-        unit: '根',
-        stock: 100,
+        location: '原料仓A区',
       },
       childMaterials: [
-        { materialCode: 'MAT002', materialName: '切削液', specModel: '标准型', quantity: 5, unit: '升' },
-        { materialCode: 'MAT003', materialName: '刀具', specModel: 'CNMG120408', quantity: 2, unit: '把' },
+        {
+          materialCode: 'MAT002',
+          materialName: '切削液',
+          specModel: '标准型',
+          quantity: 5,
+          unit: '升',
+          stockQuantity: 500,
+          supplier: '中石化润滑油公司',
+          version: 'V2.0',
+          category: '辅料',
+          location: '辅料仓',
+        },
+        {
+          materialCode: 'MAT003',
+          materialName: '刀具',
+          specModel: 'CNMG120408',
+          quantity: 2,
+          unit: '把',
+          stockQuantity: 200,
+          supplier: '株洲钻石切削刀具股份有限公司',
+          version: 'V1.0',
+          category: '工具',
+          location: '工具仓',
+        },
       ],
     },
   },
@@ -54,23 +118,67 @@ const existingProcesses = [
     processName: '铣削加工',
     description: '对工件进行铣削加工处理',
     devices: [
-      { id: 3, deviceCode: 'DEV003', deviceName: '数控铣床A', status: '运行中', dept: '二车间' },
+      {
+        id: 3,
+        deviceCode: 'DEV003',
+        deviceName: '数控铣床A',
+        manufacturer: '欧姆龙自动化中心',
+        brand: '欧姆龙',
+        specModel: 'MX-300',
+        supplier: '广州机电设备有限公司',
+        productionDate: '2023-01-10',
+        serviceLife: 10,
+        depreciationMethod: '直线法',
+        location: '二车间',
+        stockQuantity: 8,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 3, userCode: 'U003', userName: '王五', skill: '高级铣工', phone: '13800138003' },
+      {
+        id: 3,
+        employeeCode: 'EMP20240003',
+        employeeName: '王五',
+        deptName: '质量部',
+        position: '质检员',
+      },
     ],
     bom: {
       parentMaterial: {
         materialCode: 'MAT004',
         materialName: '铝合金板',
         specModel: '6061-T6-10mm',
+        stockQuantity: 50,
+        supplier: '南山铝业',
+        version: 'V1.0',
         category: '金属材料',
-        unit: '件',
-        stock: 50,
+        location: '原料仓B区',
       },
       childMaterials: [
-        { materialCode: 'MAT002', materialName: '切削液', specModel: '标准型', quantity: 3, unit: '升' },
-        { materialCode: 'MAT005', materialName: '铣刀', specModel: 'Φ20端铣刀', quantity: 1, unit: '把' },
+        {
+          materialCode: 'MAT002',
+          materialName: '切削液',
+          specModel: '标准型',
+          quantity: 3,
+          unit: '升',
+          stockQuantity: 500,
+          supplier: '中石化润滑油公司',
+          version: 'V2.0',
+          category: '辅料',
+          location: '辅料仓',
+        },
+        {
+          materialCode: 'MAT005',
+          materialName: '铣刀',
+          specModel: 'Φ20端铣刀',
+          quantity: 1,
+          unit: '把',
+          stockQuantity: 150,
+          supplier: '株洲钻石切削刀具股份有限公司',
+          version: 'V1.0',
+          category: '工具',
+          location: '工具仓',
+        },
       ],
     },
   },
@@ -80,23 +188,70 @@ const existingProcesses = [
     processName: '钻孔工序',
     description: '对工件进行钻孔加工',
     devices: [
-      { id: 4, deviceCode: 'DEV004', deviceName: '钻床A', status: '空闲', dept: '一车间' },
-      { id: 5, deviceCode: 'DEV005', deviceName: '钻床B', status: '维修中', dept: '一车间' },
+      {
+        id: 4,
+        deviceCode: 'DEV004',
+        deviceName: '钻床A',
+        manufacturer: '西门子工业自动化有限公司',
+        brand: '西门子',
+        specModel: 'DRILL-200',
+        supplier: '北京华工设备贸易有限公司',
+        productionDate: '2022-05-10',
+        serviceLife: 12,
+        depreciationMethod: '直线法',
+        location: '一车间',
+        stockQuantity: 10,
+        unit: '台',
+      },
+      {
+        id: 5,
+        deviceCode: 'DEV005',
+        deviceName: '钻床B',
+        manufacturer: '三菱电机自动化有限公司',
+        brand: '三菱',
+        specModel: 'DRILL-300',
+        supplier: '上海精密机械有限公司',
+        productionDate: '2020-08-15',
+        serviceLife: 15,
+        depreciationMethod: '年数总和法',
+        location: '一车间',
+        stockQuantity: 6,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 4, userCode: 'U004', userName: '赵六', skill: '中级钻工', phone: '13800138004' },
+      {
+        id: 4,
+        employeeCode: 'EMP20240004',
+        employeeName: '赵六',
+        deptName: '采购部',
+        position: '采购员',
+      },
     ],
     bom: {
       parentMaterial: {
         materialCode: 'MAT006',
         materialName: '钢板',
         specModel: 'Q345B-20mm',
+        stockQuantity: 80,
+        supplier: '武钢集团',
+        version: 'V1.0',
         category: '金属材料',
-        unit: '件',
-        stock: 80,
+        location: '原料仓A区',
       },
       childMaterials: [
-        { materialCode: 'MAT007', materialName: '钻头', specModel: 'Φ10标准钻头', quantity: 3, unit: '支' },
+        {
+          materialCode: 'MAT007',
+          materialName: '钻头',
+          specModel: 'Φ10标准钻头',
+          quantity: 3,
+          unit: '支',
+          stockQuantity: 300,
+          supplier: '株洲钻石切削刀具股份有限公司',
+          version: 'V1.0',
+          category: '工具',
+          location: '工具仓',
+        },
       ],
     },
   },
@@ -106,23 +261,67 @@ const existingProcesses = [
     processName: '磨削精加工',
     description: '对工件表面进行精密磨削',
     devices: [
-      { id: 6, deviceCode: 'DEV006', deviceName: '精密磨床', status: '运行中', dept: '三车间' },
+      {
+        id: 6,
+        deviceCode: 'DEV006',
+        deviceName: '精密磨床',
+        manufacturer: '西门子工业自动化有限公司',
+        brand: '西门子',
+        specModel: 'GRIND-600',
+        supplier: '北京华工设备贸易有限公司',
+        productionDate: '2021-12-01',
+        serviceLife: 18,
+        depreciationMethod: '直线法',
+        location: '三车间',
+        stockQuantity: 2,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 5, userCode: 'U005', userName: '孙七', skill: '高级磨工', phone: '13800138005' },
+      {
+        id: 5,
+        employeeCode: 'EMP20240005',
+        employeeName: '孙七',
+        deptName: '销售部',
+        position: '销售员',
+      },
     ],
     bom: {
       parentMaterial: {
         materialCode: 'MAT008',
         materialName: '精密轴',
         specModel: 'GCr15-Φ30',
+        stockQuantity: 30,
+        supplier: '东北特钢',
+        version: 'V1.0',
         category: '金属材料',
-        unit: '根',
-        stock: 30,
+        location: '原料仓C区',
       },
       childMaterials: [
-        { materialCode: 'MAT009', materialName: '砂轮', specModel: 'WA60K', quantity: 1, unit: '个' },
-        { materialCode: 'MAT010', materialName: '冷却液', specModel: '磨削专用', quantity: 2, unit: '升' },
+        {
+          materialCode: 'MAT009',
+          materialName: '砂轮',
+          specModel: 'WA60K',
+          quantity: 1,
+          unit: '个',
+          stockQuantity: 50,
+          supplier: '白鸽磨料磨具有限公司',
+          version: 'V1.0',
+          category: '耗材',
+          location: '耗材仓',
+        },
+        {
+          materialCode: 'MAT010',
+          materialName: '冷却液',
+          specModel: '磨削专用',
+          quantity: 2,
+          unit: '升',
+          stockQuantity: 200,
+          supplier: '中石化润滑油公司',
+          version: 'V1.0',
+          category: '辅料',
+          location: '辅料仓',
+        },
       ],
     },
   },
@@ -132,12 +331,52 @@ const existingProcesses = [
     processName: '质量检测',
     description: '对产品进行质量检验',
     devices: [
-      { id: 7, deviceCode: 'DEV007', deviceName: '三坐标测量仪', status: '空闲', dept: '质检中心' },
-      { id: 8, deviceCode: 'DEV008', deviceName: '硬度计', status: '运行中', dept: '质检中心' },
+      {
+        id: 7,
+        deviceCode: 'DEV007',
+        deviceName: '三坐标测量仪',
+        manufacturer: 'ABB自动化有限公司',
+        brand: 'ABB',
+        specModel: 'CMM-1000',
+        supplier: '深圳精密仪器有限公司',
+        productionDate: '2020-03-20',
+        serviceLife: 20,
+        depreciationMethod: '直线法',
+        location: '质检中心',
+        stockQuantity: 1,
+        unit: '台',
+      },
+      {
+        id: 8,
+        deviceCode: 'DEV008',
+        deviceName: '硬度计',
+        manufacturer: '施耐德电气有限公司',
+        brand: '施耐德',
+        specModel: 'HARD-500',
+        supplier: '广州机电设备有限公司',
+        productionDate: '2022-09-15',
+        serviceLife: 15,
+        depreciationMethod: '年数总和法',
+        location: '质检中心',
+        stockQuantity: 3,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 6, userCode: 'U006', userName: '周八', skill: '质检员', phone: '13800138006' },
-      { id: 7, userCode: 'U007', userName: '吴九', skill: '质检员', phone: '13800138007' },
+      {
+        id: 6,
+        employeeCode: 'EMP20240006',
+        employeeName: '周八',
+        deptName: '财务部',
+        position: '会计',
+      },
+      {
+        id: 7,
+        employeeCode: 'EMP20240007',
+        employeeName: '吴九',
+        deptName: '人力资源部',
+        position: '人事专员',
+      },
     ],
     bom: {
       parentMaterial: null,
@@ -150,10 +389,30 @@ const existingProcesses = [
     processName: '热处理',
     description: '对工件进行热处理工艺',
     devices: [
-      { id: 9, deviceCode: 'DEV009', deviceName: '热处理炉A', status: '运行中', dept: '热处理车间' },
+      {
+        id: 9,
+        deviceCode: 'DEV009',
+        deviceName: '热处理炉A',
+        manufacturer: '西门子工业自动化有限公司',
+        brand: '西门子',
+        specModel: 'HEAT-1200',
+        supplier: '北京华工设备贸易有限公司',
+        productionDate: '2019-11-05',
+        serviceLife: 25,
+        depreciationMethod: '直线法',
+        location: '热处理车间',
+        stockQuantity: 2,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 8, userCode: 'U008', userName: '郑十', skill: '热处理工', phone: '13800138008' },
+      {
+        id: 8,
+        employeeCode: 'EMP20240008',
+        employeeName: '郑十',
+        deptName: '技术部',
+        position: '技术员',
+      },
     ],
     bom: {
       parentMaterial: {
@@ -173,10 +432,30 @@ const existingProcesses = [
     processName: '表面处理',
     description: '对工件表面进行处理',
     devices: [
-      { id: 10, deviceCode: 'DEV010', deviceName: '电镀设备', status: '空闲', dept: '表面处理车间' },
+      {
+        id: 10,
+        deviceCode: 'DEV010',
+        deviceName: '电镀设备',
+        manufacturer: '三菱电机自动化有限公司',
+        brand: '三菱',
+        specModel: 'ELECTRO-800',
+        supplier: '上海精密机械有限公司',
+        productionDate: '2021-04-20',
+        serviceLife: 15,
+        depreciationMethod: '年数总和法',
+        location: '表面处理车间',
+        stockQuantity: 1,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 9, userCode: 'U009', userName: '钱十一', skill: '表面处理工', phone: '13800138009' },
+      {
+        id: 9,
+        employeeCode: 'EMP20240009',
+        employeeName: '钱十一',
+        deptName: '生产部',
+        position: '主管',
+      },
     ],
     bom: {
       parentMaterial: {
@@ -188,7 +467,13 @@ const existingProcesses = [
         stock: 150,
       },
       childMaterials: [
-        { materialCode: 'MAT013', materialName: '电镀液', specModel: '镀锌液', quantity: 10, unit: '升' },
+        {
+          materialCode: 'MAT013',
+          materialName: '电镀液',
+          specModel: '镀锌液',
+          quantity: 10,
+          unit: '升',
+        },
       ],
     },
   },
@@ -198,12 +483,52 @@ const existingProcesses = [
     processName: '组装工序',
     description: '产品组装装配',
     devices: [
-      { id: 11, deviceCode: 'DEV011', deviceName: '组装台A', status: '运行中', dept: '组装车间' },
-      { id: 12, deviceCode: 'DEV012', deviceName: '组装台B', status: '空闲', dept: '组装车间' },
+      {
+        id: 11,
+        deviceCode: 'DEV011',
+        deviceName: '组装台A',
+        manufacturer: '欧姆龙自动化中心',
+        brand: '欧姆龙',
+        specModel: 'ASSEMBLE-500',
+        supplier: '广州机电设备有限公司',
+        productionDate: '2023-02-10',
+        serviceLife: 10,
+        depreciationMethod: '直线法',
+        location: '组装车间',
+        stockQuantity: 5,
+        unit: '台',
+      },
+      {
+        id: 12,
+        deviceCode: 'DEV012',
+        deviceName: '组装台B',
+        manufacturer: '西门子工业自动化有限公司',
+        brand: '西门子',
+        specModel: 'ASSEMBLE-600',
+        supplier: '北京华工设备贸易有限公司',
+        productionDate: '2022-08-20',
+        serviceLife: 12,
+        depreciationMethod: '年数总和法',
+        location: '组装车间',
+        stockQuantity: 4,
+        unit: '台',
+      },
     ],
     operators: [
-      { id: 10, userCode: 'U010', userName: '孙十二', skill: '装配工', phone: '13800138010' },
-      { id: 11, userCode: 'U011', userName: '李十三', skill: '装配工', phone: '13800138011' },
+      {
+        id: 10,
+        employeeCode: 'EMP20240010',
+        employeeName: '孙十二',
+        deptName: '技术部',
+        position: '经理',
+      },
+      {
+        id: 11,
+        employeeCode: 'EMP20240011',
+        employeeName: '李十三',
+        deptName: '质量部',
+        position: '质检员',
+      },
     ],
     bom: {
       parentMaterial: {
@@ -215,8 +540,20 @@ const existingProcesses = [
         stock: 60,
       },
       childMaterials: [
-        { materialCode: 'MAT015', materialName: '螺丝', specModel: 'M8×20', quantity: 20, unit: '个' },
-        { materialCode: 'MAT016', materialName: '密封圈', specModel: 'Φ25', quantity: 4, unit: '个' },
+        {
+          materialCode: 'MAT015',
+          materialName: '螺丝',
+          specModel: 'M8×20',
+          quantity: 20,
+          unit: '个',
+        },
+        {
+          materialCode: 'MAT016',
+          materialName: '密封圈',
+          specModel: 'Φ25',
+          quantity: 4,
+          unit: '个',
+        },
       ],
     },
   },
@@ -494,7 +831,11 @@ const handleCancel = () => {
                       <el-tag size="small" type="success" v-if="element.operators?.length">
                         <el-icon><User /></el-icon> {{ element.operators.length }}
                       </el-tag>
-                      <el-tag size="small" type="warning" v-if="element.bom?.childMaterials?.length">
+                      <el-tag
+                        size="small"
+                        type="warning"
+                        v-if="element.bom?.childMaterials?.length"
+                      >
                         <el-icon><Box /></el-icon> {{ element.bom.childMaterials.length }}
                       </el-tag>
                     </div>
@@ -555,41 +896,18 @@ const handleCancel = () => {
                   <div v-show="activeDetailTab === 'devices'" class="tab-content">
                     <div v-if="selectedStep.devices?.length" class="data-table-container">
                       <el-table :data="selectedStep.devices" border size="small">
-                        <el-table-column prop="deviceCode" label="设备编号" width="120" />
-                        <el-table-column prop="deviceName" label="设备名称" width="150">
-                          <template #default="{ row, $index }">
-                            <el-input
-                              v-model="row.deviceName"
-                              size="small"
-                              @change="handleUpdateDevice($index, 'deviceName', row.deviceName)"
-                            />
-                          </template>
-                        </el-table-column>
-                        <el-table-column prop="status" label="状态" width="100">
-                          <template #default="{ row }">
-                            <el-tag
-                              :type="
-                                row.status === '运行中'
-                                  ? 'success'
-                                  : row.status === '空闲'
-                                    ? 'info'
-                                    : 'warning'
-                              "
-                              size="small"
-                            >
-                              {{ row.status }}
-                            </el-tag>
-                          </template>
-                        </el-table-column>
-                        <el-table-column prop="dept" label="所属部门" width="120">
-                          <template #default="{ row, $index }">
-                            <el-input
-                              v-model="row.dept"
-                              size="small"
-                              @change="handleUpdateDevice($index, 'dept', row.dept)"
-                            />
-                          </template>
-                        </el-table-column>
+                        <el-table-column prop="deviceCode" label="设备编码" width="120" />
+                        <el-table-column prop="deviceName" label="设备名称" width="150" />
+                        <el-table-column prop="manufacturer" label="生产厂家" width="180" />
+                        <el-table-column prop="brand" label="品牌" width="100" />
+                        <el-table-column prop="specModel" label="规格型号" width="120" />
+                        <el-table-column prop="supplier" label="供应商" width="180" />
+                        <el-table-column prop="productionDate" label="生产日期" width="120" />
+                        <el-table-column prop="serviceLife" label="使用年限" width="100" />
+                        <el-table-column prop="depreciationMethod" label="折旧方式" width="100" />
+                        <el-table-column prop="location" label="位置" width="100" />
+                        <el-table-column prop="stockQuantity" label="库存数量" width="100" />
+                        <el-table-column prop="unit" label="单位" width="80" />
                       </el-table>
                     </div>
                     <el-empty v-else description="该工序暂无关联设备" />
@@ -598,34 +916,10 @@ const handleCancel = () => {
                   <div v-show="activeDetailTab === 'operators'" class="tab-content">
                     <div v-if="selectedStep.operators?.length" class="data-table-container">
                       <el-table :data="selectedStep.operators" border size="small">
-                        <el-table-column prop="userCode" label="工号" width="100" />
-                        <el-table-column prop="userName" label="姓名" width="100">
-                          <template #default="{ row, $index }">
-                            <el-input
-                              v-model="row.userName"
-                              size="small"
-                              @change="handleUpdateOperator($index, 'userName', row.userName)"
-                            />
-                          </template>
-                        </el-table-column>
-                        <el-table-column prop="skill" label="技能等级" width="120">
-                          <template #default="{ row, $index }">
-                            <el-input
-                              v-model="row.skill"
-                              size="small"
-                              @change="handleUpdateOperator($index, 'skill', row.skill)"
-                            />
-                          </template>
-                        </el-table-column>
-                        <el-table-column prop="phone" label="联系电话" width="140">
-                          <template #default="{ row, $index }">
-                            <el-input
-                              v-model="row.phone"
-                              size="small"
-                              @change="handleUpdateOperator($index, 'phone', row.phone)"
-                            />
-                          </template>
-                        </el-table-column>
+                        <el-table-column prop="employeeCode" label="工号" width="150" />
+                        <el-table-column prop="employeeName" label="姓名" width="120" />
+                        <el-table-column prop="deptName" label="所属部门" width="150" />
+                        <el-table-column prop="position" label="岗位" width="120" />
                       </el-table>
                     </div>
                     <el-empty v-else description="该工序暂无关联操作人员" />
@@ -638,29 +932,53 @@ const handleCancel = () => {
                         <div class="info-row">
                           <div class="info-col">
                             <span class="label">物料编号：</span>
-                            <el-tag size="small">{{ selectedStep.bom.parentMaterial.materialCode }}</el-tag>
+                            <el-tag size="small">{{
+                              selectedStep.bom.parentMaterial.materialCode
+                            }}</el-tag>
                           </div>
                           <div class="info-col">
                             <span class="label">物料名称：</span>
-                            <span class="value">{{ selectedStep.bom.parentMaterial.materialName }}</span>
+                            <span class="value">{{
+                              selectedStep.bom.parentMaterial.materialName
+                            }}</span>
                           </div>
                           <div class="info-col">
                             <span class="label">规格型号：</span>
-                            <span class="value">{{ selectedStep.bom.parentMaterial.specModel }}</span>
+                            <span class="value">{{
+                              selectedStep.bom.parentMaterial.specModel
+                            }}</span>
+                          </div>
+                          <div class="info-col">
+                            <span class="label">库存数量：</span>
+                            <span class="value">{{
+                              selectedStep.bom.parentMaterial.stockQuantity
+                            }}</span>
                           </div>
                         </div>
                         <div class="info-row">
                           <div class="info-col">
-                            <span class="label">物料分类：</span>
-                            <el-tag size="small" type="info">{{ selectedStep.bom.parentMaterial.category }}</el-tag>
+                            <span class="label">供应商：</span>
+                            <span class="value">{{
+                              selectedStep.bom.parentMaterial.supplier
+                            }}</span>
                           </div>
                           <div class="info-col">
-                            <span class="label">计量单位：</span>
-                            <span class="value">{{ selectedStep.bom.parentMaterial.unit }}</span>
+                            <span class="label">版本号：</span>
+                            <el-tag size="small" type="success">{{
+                              selectedStep.bom.parentMaterial.version
+                            }}</el-tag>
                           </div>
                           <div class="info-col">
-                            <span class="label">库存数量：</span>
-                            <span class="value">{{ selectedStep.bom.parentMaterial.stock }}</span>
+                            <span class="label">分类：</span>
+                            <el-tag size="small" type="info">{{
+                              selectedStep.bom.parentMaterial.category
+                            }}</el-tag>
+                          </div>
+                          <div class="info-col">
+                            <span class="label">位置：</span>
+                            <el-tag size="small" type="warning">{{
+                              selectedStep.bom.parentMaterial.location
+                            }}</el-tag>
                           </div>
                         </div>
                       </div>
@@ -668,17 +986,27 @@ const handleCancel = () => {
 
                     <div v-if="selectedStep.bom?.childMaterials?.length" class="bom-section">
                       <div class="bom-section-title">子物料清单</div>
-                      <el-table :data="selectedStep.bom.childMaterials" border size="small">
-                        <el-table-column prop="materialCode" label="物料编号" width="120" />
-                        <el-table-column prop="materialName" label="物料名称" width="150" />
-                        <el-table-column prop="specModel" label="规格型号" width="150" />
-                        <el-table-column prop="quantity" label="数量" width="80" />
-                        <el-table-column prop="unit" label="单位" width="80" />
-                      </el-table>
+                      <div class="data-table-container">
+                        <el-table :data="selectedStep.bom.childMaterials" border size="small">
+                          <el-table-column prop="materialCode" label="物料编号" width="120" />
+                          <el-table-column prop="materialName" label="物料名称" width="150" />
+                          <el-table-column prop="specModel" label="规格型号" width="120" />
+                          <el-table-column prop="quantity" label="支出数量" width="100" />
+                          <el-table-column prop="unit" label="单位" width="80" />
+                          <el-table-column prop="stockQuantity" label="库存数量" width="100" />
+                          <el-table-column prop="supplier" label="供应商" width="150" />
+                          <el-table-column prop="version" label="版本号" width="80" />
+                          <el-table-column prop="category" label="分类" width="120" />
+                          <el-table-column prop="location" label="位置" width="100" />
+                        </el-table>
+                      </div>
                     </div>
 
                     <el-empty
-                      v-if="!selectedStep.bom?.parentMaterial && !selectedStep.bom?.childMaterials?.length"
+                      v-if="
+                        !selectedStep.bom?.parentMaterial &&
+                        !selectedStep.bom?.childMaterials?.length
+                      "
                       description="该工序暂无关联物料BOM"
                     />
                   </div>
@@ -831,7 +1159,9 @@ const handleCancel = () => {
         border-top: 1px solid #ebeef5;
 
         .steps-panel {
-          width: 320px;
+          width: 360px;
+          min-width: 360px;
+          max-width: 360px;
           border-right: 1px solid #ebeef5;
           display: flex;
           flex-direction: column;
@@ -851,6 +1181,9 @@ const handleCancel = () => {
             padding: 12px;
 
             .step-card {
+              width: 100%;
+              min-width: 0;
+              box-sizing: border-box;
               border: 1px solid #ebeef5;
               border-radius: 6px;
               margin-bottom: 12px;
@@ -939,9 +1272,11 @@ const handleCancel = () => {
 
         .detail-panel {
           flex: 1;
+          min-width: 0;
           display: flex;
           flex-direction: column;
           background: #fff;
+          overflow: hidden;
 
           .panel-header {
             padding: 16px 24px;
@@ -954,6 +1289,8 @@ const handleCancel = () => {
 
           .step-detail-content {
             flex: 1;
+            min-width: 0;
+            overflow-x: auto;
             overflow-y: auto;
             padding: 20px;
 
@@ -1017,8 +1354,39 @@ const handleCancel = () => {
             }
 
             .detail-content {
+              width: 100%;
+              min-width: 0;
+
               .tab-content {
+                width: 100%;
+                min-width: 0;
+
                 .data-table-container {
+                  width: 100%;
+                  border: 1px solid #ebeef5;
+                  border-radius: 4px;
+
+                  :deep(.el-table) {
+                    width: 100%;
+                  }
+
+                  :deep(.el-table__body-wrapper) {
+                    overflow-x: auto;
+
+                    &::-webkit-scrollbar {
+                      height: 8px;
+                    }
+
+                    &::-webkit-scrollbar-thumb {
+                      background: #c0c4cc;
+                      border-radius: 4px;
+                    }
+
+                    &::-webkit-scrollbar-track {
+                      background: #f5f7fa;
+                    }
+                  }
+
                   :deep(.el-input__inner) {
                     padding: 0 8px;
                   }
