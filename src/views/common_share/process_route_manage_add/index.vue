@@ -565,6 +565,7 @@ const formData = reactive({
   product: '',
   description: '',
   version: 'V1.0',
+  estimatedDuration: '',
   processSteps: [],
 })
 
@@ -769,16 +770,25 @@ const handleCancel = () => {
                 />
               </el-select>
             </el-form-item>
-            <el-form-item label="工艺描述" style="grid-column: span 2">
+
+            <el-form-item label="版本">
+              <el-input v-model="formData.version" disabled placeholder="默认V1.0" />
+            </el-form-item>
+            <el-form-item label="预计工艺总时长">
+              <el-input
+                v-model="formData.estimatedDuration"
+                placeholder="请输入预计工艺总时长"
+              >
+                <template #append>分钟</template>
+              </el-input>
+            </el-form-item>
+                        <el-form-item label="工艺描述" style="grid-column: span 2">
               <el-input
                 v-model="formData.description"
                 type="textarea"
                 :rows="2"
                 placeholder="请输入工艺描述"
               />
-            </el-form-item>
-            <el-form-item label="版本">
-              <el-input v-model="formData.version" disabled placeholder="默认V1.0" />
             </el-form-item>
           </div>
         </div>

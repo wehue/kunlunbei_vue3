@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, Plus, ArrowLeft, Download } from '@element-plus/icons-vue'
@@ -8,7 +8,9 @@ import { usePermission } from '@/hooks/usePermission'
 
 const route = useRoute()
 const router = useRouter()
-const { isDesignerRole } = usePermission()
+const { isDesignerRole, isAdminRole } = usePermission()
+
+const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const isEdit = ref(false)
 const loading = ref(false)
@@ -276,7 +278,7 @@ onMounted(() => {
       </div>
       <div class="header-right">
         <template v-if="!isEdit">
-          <el-button v-if="isDesignerRole" type="primary" :icon="Edit" @click="handleEdit"
+          <el-button v-if="canManage" type="primary" :icon="Edit" @click="handleEdit"
             >编辑</el-button
           >
           <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>

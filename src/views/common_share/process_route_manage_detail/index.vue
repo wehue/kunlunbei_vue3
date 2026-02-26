@@ -598,6 +598,7 @@ const allRouteData = ref([
     product: '汽车零部件A',
     description: '用于汽车零部件的加工工艺路线',
     version: 'V1.0',
+    estimatedDuration: 120,
     isCurrent: false,
     status: 'approved',
     rejectReason: '',
@@ -690,6 +691,7 @@ const allRouteData = ref([
     product: '汽车零部件A',
     description: '用于汽车零部件的加工工艺路线（优化版）',
     version: 'V2.0',
+    estimatedDuration: 180,
     isCurrent: true,
     status: 'approved',
     rejectReason: '',
@@ -821,6 +823,7 @@ const allRouteData = ref([
     product: '电子设备B',
     description: '电子设备的组装工艺路线',
     version: 'V1.0',
+    estimatedDuration: 90,
     isCurrent: true,
     status: 'pending',
     rejectReason: '',
@@ -898,6 +901,7 @@ const allRouteData = ref([
     product: '管道组件C',
     description: '管道组件的焊接工艺路线',
     version: 'V1.0',
+    estimatedDuration: 60,
     isCurrent: true,
     status: 'rejected',
     rejectReason: '工艺流程不完整，缺少质量检测环节',
@@ -946,6 +950,7 @@ const allRouteData = ref([
     product: '机械零件D',
     description: '机械零件的精加工工艺路线',
     version: 'V1.0',
+    estimatedDuration: 150,
     isCurrent: true,
     status: 'approved',
     rejectReason: '',
@@ -1048,6 +1053,7 @@ const formData = reactive({
   product: '',
   description: '',
   version: '',
+  estimatedDuration: '',
   processSteps: [],
 })
 
@@ -1111,6 +1117,7 @@ const loadRouteData = () => {
       product: data.product,
       description: data.description,
       version: data.version,
+      estimatedDuration: data.estimatedDuration || '',
       processSteps: JSON.parse(JSON.stringify(data.processSteps || [])),
     })
     loading.value = false
@@ -1127,6 +1134,7 @@ const handleVersionChange = (versionId) => {
       product: data.product,
       description: data.description,
       version: data.version,
+      estimatedDuration: data.estimatedDuration || '',
       processSteps: JSON.parse(JSON.stringify(data.processSteps || [])),
     })
   }
@@ -1154,6 +1162,7 @@ const handleCancel = () => {
         product: routeData.value.product,
         description: routeData.value.description,
         version: routeData.value.version,
+        estimatedDuration: routeData.value.estimatedDuration || '',
         processSteps: JSON.parse(JSON.stringify(routeData.value.processSteps || [])),
       })
     })
@@ -1169,6 +1178,7 @@ const handleSave = () => {
         formData.routeName !== routeData.value.routeName ||
         formData.product !== routeData.value.product ||
         formData.description !== routeData.value.description ||
+        formData.estimatedDuration !== routeData.value.estimatedDuration ||
         JSON.stringify(formData.processSteps) !== JSON.stringify(routeData.value.processSteps)
 
       if (hasChanges) {
@@ -1195,6 +1205,7 @@ const handleSave = () => {
           product: formData.product,
           description: formData.description,
           version: newVersion,
+          estimatedDuration: formData.estimatedDuration,
           isCurrent: true,
           status: 'pending',
           rejectReason: '',
@@ -1252,6 +1263,9 @@ const handleExport = () => {
       所属产品: routeData.value.product,
       工艺描述: routeData.value.description,
       版本: routeData.value.version,
+      预计工艺总时长: routeData.value.estimatedDuration
+        ? routeData.value.estimatedDuration + ' 分钟'
+        : '暂无',
       审核状态: getStatusLabel(routeData.value.status),
       驳回原因: routeData.value.rejectReason || '无',
       工艺流程: stepsStr,
@@ -1420,6 +1434,12 @@ watch(
               </div>
             </div>
             <div class="info-item">
+              <div class="info-label">工艺总时长</div>
+              <div class="info-value">
+                {{ routeData.estimatedDuration ? routeData.estimatedDuration + ' 分钟' : '暂无' }}
+              </div>
+            </div>
+            <div class="info-item">
               <div class="info-label">创建时间</div>
               <div class="info-value">{{ routeData.createTime }}</div>
             </div>
@@ -1467,6 +1487,14 @@ watch(
               </el-form-item>
               <el-form-item label="版本">
                 <el-input v-model="formData.version" disabled placeholder="修改后自动生成新版本" />
+              </el-form-item>
+              <el-form-item label="预计工艺总时长">
+                <el-input
+                  v-model="formData.estimatedDuration"
+                  placeholder="请输入预计工艺总时长（分钟）"
+                >
+                  <template #append>分钟</template>
+                </el-input>
               </el-form-item>
             </div>
           </el-form>

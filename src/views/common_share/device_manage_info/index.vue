@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
@@ -9,6 +9,8 @@ import { usePermission } from '@/hooks/usePermission'
 
 const router = useRouter()
 const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
+
+const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
@@ -171,6 +173,7 @@ const formData = reactive({
   location: '',
   stockQuantity: 1,
   unit: '台',
+  remark: '',
 })
 
 const validateDeviceName = (rule, value, callback) => {
@@ -242,7 +245,6 @@ const initExtendFields = () => {
   extendFields.value = [
     { key: 'technicalParams', label: '技术参数信息', value: '', type: 'textarea' },
     { key: 'spareParts', label: '备品备件信息', value: '', type: 'textarea' },
-    { key: 'remark', label: '备注', value: '', type: 'textarea' },
   ]
 }
 
@@ -275,6 +277,7 @@ const handleAdd = () => {
     location: '',
     stockQuantity: 1,
     unit: '台',
+    remark: '',
   })
   initExtendFields()
   dialogVisible.value = true
@@ -417,7 +420,7 @@ const getTableList = async (params) => {
       :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
-        <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd">
+        <el-button v-if="canManage" type="primary" :icon="Plus" @click="handleAdd">
           新增设备
         </el-button>
         <el-button
@@ -548,6 +551,14 @@ const getTableList = async (params) => {
                   :value="item.value"
                 />
               </el-select>
+            </el-form-item>
+            <el-form-item label="备注" class="full-width">
+              <el-input
+                v-model="formData.remark"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入备注"
+              />
             </el-form-item>
           </div>
         </div>
@@ -707,6 +718,10 @@ const getTableList = async (params) => {
 
       :deep(.el-form-item) {
         margin-bottom: 0;
+
+        &.full-width {
+          grid-column: span 3;
+        }
 
         .el-form-item__label {
           font-size: 16px;

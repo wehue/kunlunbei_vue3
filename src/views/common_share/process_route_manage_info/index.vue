@@ -213,6 +213,7 @@ const canAdd = computed(() => isDesignerRole.value)
 const canApprove = computed(() => isSupervisorRole.value)
 const canEdit = computed(() => isDesignerRole.value)
 const canSubmitAudit = computed(() => isDesignerRole.value)
+const canManageRoute = computed(() => isDesignerRole.value)
 
 const getStatusType = (status) => {
   const map = {
@@ -400,7 +401,7 @@ const getTableList = async (params) => {
       <template #tableHeader="scope">
         <div class="header-controls">
           <div class="header-left">
-            <el-button v-if="canAdd" type="primary" :icon="Plus" @click="handleAdd"
+            <el-button v-if="canManageRoute" type="primary" :icon="Plus" @click="handleAdd"
               >新增工艺路线</el-button
             >
             <el-button

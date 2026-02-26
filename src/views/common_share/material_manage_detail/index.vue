@@ -8,7 +8,9 @@ import { usePermission } from '@/hooks/usePermission'
 
 const route = useRoute()
 const router = useRouter()
-const { isDesignerRole } = usePermission()
+const { isDesignerRole, isAdminRole } = usePermission()
+
+const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const isEdit = ref(false)
 const loading = ref(false)
@@ -534,7 +536,7 @@ watch(
           </el-select>
         </div>
         <template v-if="!isEdit">
-          <el-button v-if="isDesignerRole" type="primary" :icon="Edit" @click="handleEdit"
+          <el-button v-if="canManage" type="primary" :icon="Edit" @click="handleEdit"
             >编辑</el-button
           >
           <el-button type="success" :icon="Download" @click="handleExport">导出</el-button>

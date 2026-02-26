@@ -7,7 +7,9 @@ import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
 
-const { hasPermission, isDesignerRole } = usePermission()
+const { hasPermission, isDesignerRole, isAdminRole } = usePermission()
+
+const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 const router = useRouter()
 
 const proTableRef = ref()
@@ -305,7 +307,7 @@ const getTableList = async (params) => {
       :init-param="{ searchType: 'fuzzy' }"
     >
       <template #tableHeader="scope">
-        <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd">
+        <el-button v-if="canManage" type="primary" :icon="Plus" @click="handleAdd">
           新增工序
         </el-button>
         <el-button

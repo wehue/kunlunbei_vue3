@@ -7,7 +7,9 @@ import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
 
-const { hasPermission, isDesignerRole } = usePermission()
+const { hasPermission, isDesignerRole, isAdminRole } = usePermission()
+
+const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const router = useRouter()
 
@@ -593,7 +595,7 @@ const getTableList = async (params) => {
       <template #tableHeader="scope">
         <div class="header-controls">
           <div class="header-left">
-            <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd">
+            <el-button v-if="canManage" type="primary" :icon="Plus" @click="handleAdd">
               新增物料
             </el-button>
             <el-button
