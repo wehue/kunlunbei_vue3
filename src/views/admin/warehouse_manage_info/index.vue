@@ -27,6 +27,21 @@ const deptOptions = ref([
   { label: '人力资源部', value: '人力资源部' },
 ])
 
+const userOptions = ref([
+  { label: '张三', value: '张三' },
+  { label: '李四', value: '李四' },
+  { label: '王五', value: '王五' },
+  { label: '赵六', value: '赵六' },
+  { label: '钱七', value: '钱七' },
+  { label: '孙八', value: '孙八' },
+  { label: '周九', value: '周九' },
+  { label: '吴十', value: '吴十' },
+  { label: '郑十一', value: '郑十一' },
+  { label: '王十二', value: '王十二' },
+  { label: '刘明', value: '刘明' },
+  { label: '陈华', value: '陈华' },
+])
+
 const mockData = ref([
   {
     id: 1,
@@ -422,7 +437,19 @@ const getTableList = async (params) => {
               </el-select>
             </el-form-item>
             <el-form-item label="仓库负责人" prop="manager">
-              <el-input v-model="formData.manager" placeholder="请输入仓库负责人" />
+              <el-select
+                v-model="formData.manager"
+                placeholder="请选择仓库负责人"
+                style="width: 100%"
+                filterable
+              >
+                <el-option
+                  v-for="item in userOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
             </el-form-item>
             <el-form-item label="联系电话" prop="phone">
               <el-input v-model="formData.phone" placeholder="请输入联系电话" />

@@ -578,11 +578,11 @@ const selectedStep = computed(() => {
 
 const validateRouteName = (rule, value, callback) => {
   if (!value) {
-    callback(new Error('请输入工艺路线名称'))
+    callback(new Error('请输入工艺名称'))
     return
   }
   if (value.length < 2 || value.length > 50) {
-    callback(new Error('工艺路线名称长度应在2-50个字符之间'))
+    callback(new Error('工艺名称长度应在2-50个字符之间'))
   } else {
     callback()
   }
@@ -752,8 +752,8 @@ const handleCancel = () => {
             <el-form-item label="工艺编号">
               <el-input v-model="formData.routeCode" disabled placeholder="系统自动生成" />
             </el-form-item>
-            <el-form-item label="工艺路线名称" prop="routeName">
-              <el-input v-model="formData.routeName" placeholder="请输入工艺路线名称" />
+            <el-form-item label="工艺名称" prop="routeName">
+              <el-input v-model="formData.routeName" placeholder="请输入工艺名称" />
             </el-form-item>
             <el-form-item label="所属产品" prop="product">
               <el-select

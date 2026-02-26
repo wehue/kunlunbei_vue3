@@ -155,7 +155,7 @@ onMounted(() => {
   <div class="password-find-container">
     <div class="find-box">
       <div class="find-header">
-        <img src="@/assets/images/logo.svg" alt="Logo" class="logo" />
+        <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
         <h1>找回密码</h1>
         <p>通过手机验证码重置密码</p>
       </div>

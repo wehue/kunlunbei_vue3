@@ -127,7 +127,7 @@ const columns = reactive([
   { prop: 'deptCode', label: '部门编号', search: { el: 'input', key: 'deptCode' } },
   { prop: 'deptName', label: '部门名称', search: { el: 'input', key: 'deptName' } },
   { prop: 'establishDate', label: '成立时间' },
-  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -308,7 +308,6 @@ const getTableList = async (params) => {
       </template>
 
       <template #operation="scope">
-        <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
           >删除</el-button
@@ -382,15 +381,12 @@ const getTableList = async (params) => {
         .el-table__row {
           .el-table__cell:last-child {
             .cell {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 4px 8px;
-              justify-items: stretch;
-              align-items: stretch;
+              display: flex;
+              gap: 8px;
+              justify-content: center;
+              align-items: center;
 
               .el-button {
-                width: 100%;
-                min-width: 60px;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;

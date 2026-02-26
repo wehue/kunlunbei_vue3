@@ -121,7 +121,7 @@ onMounted(() => {
   <div class="register-container">
     <div class="register-box">
       <div class="register-header">
-        <img src="@/assets/images/logo.svg" alt="Logo" class="logo" />
+        <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
         <h1>注册账号</h1>
         <p>创建您的昆仑贝账号</p>
       </div>

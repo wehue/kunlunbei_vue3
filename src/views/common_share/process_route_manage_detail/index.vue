@@ -1248,7 +1248,7 @@ const handleExport = () => {
   const exportData = [
     {
       工艺编号: routeData.value.routeCode,
-      工艺路线名称: routeData.value.routeName,
+      工艺名称: routeData.value.routeName,
       所属产品: routeData.value.product,
       工艺描述: routeData.value.description,
       版本: routeData.value.version,
@@ -1319,7 +1319,7 @@ const handleUpdateOperator = (operatorIndex, field, value) => {
 }
 
 const rules = {
-  routeName: [{ required: true, message: '请输入工艺路线名称', trigger: 'blur' }],
+  routeName: [{ required: true, message: '请输入工艺名称', trigger: 'blur' }],
   product: [{ required: true, message: '请选择所属产品', trigger: 'change' }],
 }
 
@@ -1391,7 +1391,7 @@ watch(
               </div>
             </div>
             <div class="info-item">
-              <div class="info-label">工艺路线名称</div>
+              <div class="info-label">工艺名称</div>
               <div class="info-value">{{ routeData.routeName }}</div>
             </div>
             <div class="info-item">
@@ -1440,8 +1440,8 @@ watch(
               <el-form-item label="工艺编号">
                 <el-input v-model="formData.routeCode" disabled placeholder="系统自动生成" />
               </el-form-item>
-              <el-form-item label="工艺路线名称" prop="routeName">
-                <el-input v-model="formData.routeName" placeholder="请输入工艺路线名称" />
+              <el-form-item label="工艺名称" prop="routeName">
+                <el-input v-model="formData.routeName" placeholder="请输入工艺名称" />
               </el-form-item>
               <el-form-item label="所属产品" prop="product">
                 <el-select

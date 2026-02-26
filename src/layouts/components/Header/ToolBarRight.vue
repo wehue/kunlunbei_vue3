@@ -21,7 +21,7 @@ const username = computed(() => userStore.userInfo?.name || '用户')
 const currentRole = computed(() => userStore.userInfo?.role)
 
 const showMessage = computed(() => currentRole.value === 'designer')
-const showFlowchartAnalyze = computed(() => ['admin', 'supervisor', 'designer'].includes(currentRole.value))
+const showFlowchartAnalyze = computed(() => currentRole.value === 'designer')
 </script>
 
 <style scoped lang="scss">

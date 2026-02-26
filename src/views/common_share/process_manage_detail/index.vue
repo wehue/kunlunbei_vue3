@@ -42,13 +42,14 @@ const operatorOptions = [
   { label: '钱七', value: '钱七' },
 ]
 
-const materialOptions = [
-  { label: '钢材', value: '钢材', id: 1 },
-  { label: '铝材', value: '铝材', id: 2 },
-  { label: '铜材', value: '铜材', id: 3 },
-  { label: '塑料件', value: '塑料件', id: 4 },
-  { label: '电子元件', value: '电子元件', id: 5 },
-]
+const materialOptions = ref([
+  { label: '碳钢板材', value: '碳钢板材', id: 1, specModel: 'Q235B-10mm', unit: '件' },
+  { label: '铝合金板', value: '铝合金板', id: 2, specModel: '6061-T6-5mm', unit: '件' },
+  { label: '黄铜棒材', value: '黄铜棒材', id: 3, specModel: 'H62-Φ30', unit: '件' },
+  { label: 'ABS塑料件', value: 'ABS塑料件', id: 4, specModel: 'ABS-标准件', unit: '件' },
+  { label: '电阻电容', value: '电阻电容', id: 5, specModel: '0402封装', unit: '件' },
+  { label: '不锈钢管', value: '不锈钢管', id: 6, specModel: '304-Φ60', unit: '件' },
+])
 
 const mockProcessData = {
   1: {
@@ -65,8 +66,8 @@ const mockProcessData = {
     startTime: '2024-01-15 08:00:00',
     endTime: '2024-01-15 17:00:00',
     materials: [
-      { id: 1, materialName: '钢材', quantity: 50 },
-      { id: 2, materialName: '铝材', quantity: 20 },
+      { id: 1, materialName: '碳钢板材', specModel: 'Q235B-10mm', unit: '件', quantity: 50 },
+      { id: 2, materialName: '铝合金板', specModel: '6061-T6-5mm', unit: '件', quantity: 20 },
     ],
   },
   2: {
@@ -78,7 +79,9 @@ const mockProcessData = {
     operators: ['王五'],
     startTime: '2024-01-16 09:00:00',
     endTime: '2024-01-16 18:00:00',
-    materials: [{ id: 1, materialName: '铝材', quantity: 30 }],
+    materials: [
+      { id: 1, materialName: '铝合金板', specModel: '6061-T6-5mm', unit: '件', quantity: 30 },
+    ],
   },
   3: {
     id: 3,
@@ -100,7 +103,9 @@ const mockProcessData = {
     operators: ['钱七', '张三'],
     startTime: '2024-01-17 08:30:00',
     endTime: '',
-    materials: [{ id: 1, materialName: '铜材', quantity: 15 }],
+    materials: [
+      { id: 1, materialName: '黄铜棒材', specModel: 'H62-Φ30', unit: '件', quantity: 15 },
+    ],
   },
   5: {
     id: 5,
@@ -204,6 +209,8 @@ const handleAddMaterial = () => {
   formData.materials.push({
     id: Date.now(),
     materialName: '',
+    specModel: '',
+    unit: '件',
     quantity: 1,
   })
 }
@@ -212,11 +219,19 @@ const handleRemoveMaterial = (index) => {
   formData.materials.splice(index, 1)
 }
 
+const handleMaterialChange = (val, index) => {
+  const material = materialOptions.value.find((m) => m.value === val)
+  if (material) {
+    formData.materials[index].specModel = material.specModel
+    formData.materials[index].unit = material.unit
+  }
+}
+
 const handleExport = () => {
   const deviceStr =
     processData.value.devices?.map((d) => `${d.deviceName}(${d.quantity})`).join('、') || '无'
   const materialStr =
-    processData.value.materials?.map((m) => `${m.materialName}(${m.quantity})`).join('、') || '无'
+    processData.value.materials?.map((m) => `${m.materialName}(${m.specModel})`).join('、') || '无'
   const operatorStr = processData.value.operators?.join('、') || '无'
 
   const exportData = [
@@ -228,7 +243,7 @@ const handleExport = () => {
       操作人员: operatorStr,
       开始时间: processData.value.startTime || '未设置',
       结束时间: processData.value.endTime || '未设置',
-      物料BOM: materialStr,
+      物料: materialStr,
     },
   ]
 
@@ -443,7 +458,7 @@ onMounted(() => {
 
       <div class="section-card">
         <div class="section-header">
-          <span class="section-title">物料BOM</span>
+          <span class="section-title">物料</span>
           <el-button v-if="isEdit" type="primary" link :icon="Plus" @click="handleAddMaterial">
             添加物料
           </el-button>
@@ -458,7 +473,9 @@ onMounted(() => {
               class="process-table"
             >
               <el-table-column prop="materialName" label="物料名称" />
-              <el-table-column prop="quantity" label="支出数量" style="width: 50%">
+              <el-table-column prop="specModel" label="规格型号" />
+              <el-table-column prop="unit" label="单位" width="80" />
+              <el-table-column prop="quantity" label="支出数量" width="120">
                 <template #default="scope"> {{ scope.row.quantity }} 件 </template>
               </el-table-column>
             </el-table>
@@ -482,6 +499,7 @@ onMounted(() => {
                 v-model="material.materialName"
                 placeholder="请选择物料"
                 style="width: 200px"
+                @change="(val) => handleMaterialChange(val, index)"
               >
                 <el-option
                   v-for="item in materialOptions"
@@ -490,6 +508,13 @@ onMounted(() => {
                   :value="item.value"
                 />
               </el-select>
+              <el-input
+                v-model="material.specModel"
+                disabled
+                placeholder="规格型号"
+                style="width: 150px"
+              />
+              <el-input v-model="material.unit" disabled placeholder="单位" style="width: 80px" />
               <el-input-number
                 v-model="material.quantity"
                 :min="1"

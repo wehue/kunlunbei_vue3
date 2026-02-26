@@ -184,6 +184,11 @@ const locationOptions = [
   { label: '生产线', value: '生产线' },
 ]
 
+const versionOptions = computed(() => {
+  const versions = [...new Set(allMaterials.value.map((m) => m.version))]
+  return versions.sort().map((v) => ({ label: v, value: v }))
+})
+
 const allMaterials = ref([
   {
     id: 1,
@@ -348,7 +353,8 @@ const columns = reactive([
     label: '版本号',
     minWidth: 100,
     align: 'center',
-    search: { el: 'input', key: 'version' },
+    search: { el: 'select', key: 'version' },
+    enum: versionOptions,
   },
   {
     prop: 'category',

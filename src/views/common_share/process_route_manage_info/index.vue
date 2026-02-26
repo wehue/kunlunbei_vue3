@@ -243,7 +243,7 @@ const columns = reactive([
   },
   {
     prop: 'routeName',
-    label: '工艺路线名称',
+    label: '工艺名称',
     minWidth: 160,
     search: { el: 'input', key: 'routeName' },
   },
@@ -313,7 +313,7 @@ const handleExportSingle = (row) => {
   const exportData = [
     {
       工艺编号: row.routeCode,
-      工艺路线名称: row.routeName,
+      工艺名称: row.routeName,
       所属产品: row.product,
       版本: row.version,
       审核状态: getStatusLabel(row.status),
@@ -331,7 +331,7 @@ const handleExportBatch = (selectedList) => {
   }
   const exportData = selectedList.map((row) => ({
     工艺编号: row.routeCode,
-    工艺路线名称: row.routeName,
+    工艺名称: row.routeName,
     所属产品: row.product,
     版本: row.version,
     审核状态: getStatusLabel(row.status),

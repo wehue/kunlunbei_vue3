@@ -28,6 +28,21 @@ const deptOptions = ref([
   { label: '人力资源部', value: '人力资源部' },
 ])
 
+const userOptions = ref([
+  { label: '张三', value: '张三' },
+  { label: '李四', value: '李四' },
+  { label: '王五', value: '王五' },
+  { label: '赵六', value: '赵六' },
+  { label: '钱七', value: '钱七' },
+  { label: '孙八', value: '孙八' },
+  { label: '周九', value: '周九' },
+  { label: '吴十', value: '吴十' },
+  { label: '郑十一', value: '郑十一' },
+  { label: '王十二', value: '王十二' },
+  { label: '刘明', value: '刘明' },
+  { label: '陈华', value: '陈华' },
+])
+
 const mockWarehouseData = {
   1: { id: 1, warehouseCode: 'WH20240001', warehouseName: '物料仓库A', warehouseType: '物料仓库', manager: '张三', phone: '13800138001', deptName: '采购部', address: '厂区东侧A栋', remark: '存放原材料', establishDate: '2020-01-15' },
   2: { id: 2, warehouseCode: 'WH20240002', warehouseName: '设备仓库A', warehouseType: '设备仓库', manager: '李四', phone: '13800138002', deptName: '生产部', address: '厂区西侧B栋', remark: '存放设备', establishDate: '2020-02-20' },
@@ -197,7 +212,19 @@ onMounted(() => {
                 </el-select>
               </el-form-item>
               <el-form-item label="仓库负责人" prop="manager">
-                <el-input v-model="formData.manager" placeholder="请输入仓库负责人" />
+                <el-select
+                  v-model="formData.manager"
+                  placeholder="请选择仓库负责人"
+                  style="width: 100%"
+                  filterable
+                >
+                  <el-option
+                    v-for="item in userOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
               </el-form-item>
               <el-form-item label="联系电话" prop="phone">
                 <el-input v-model="formData.phone" placeholder="请输入联系电话" />

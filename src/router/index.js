@@ -208,7 +208,7 @@ const routes = [
         meta: {
           title: '工艺流程分析',
           icon: 'DataAnalysis',
-          roles: ['admin', 'supervisor', 'designer'],
+          roles: ['designer'],
         },
       },
       // 管理员专属路由
@@ -235,7 +235,7 @@ const routes = [
       {
         path: 'dept-manage',
         name: 'DeptManage',
-        redirect: 'dept-manage-info',
+        redirect: '/dept-manage/dept-manage-info',
         meta: { title: '部门管理', icon: 'OfficeBuilding', roles: ['admin'] },
         children: [
           {
@@ -244,18 +244,12 @@ const routes = [
             component: () => import('@/views/admin/dept_manage_info/index.vue'),
             meta: { title: '部门台账', icon: 'OfficeBuilding', roles: ['admin'] },
           },
-          {
-            path: 'dept-manage-detail/:id',
-            name: 'DeptManageDetail',
-            component: () => import('@/views/admin/dept_manage_detail/index.vue'),
-            meta: { title: '部门详情', icon: 'OfficeBuilding', roles: ['admin'], isHide: true },
-          },
         ],
       },
       {
         path: 'operator-manage',
         name: 'OperatorManage',
-        redirect: 'operator-manage-info',
+        redirect: '/operator-manage/operator-manage-info',
         meta: { title: '操作人员管理', icon: 'UserFilled', roles: ['admin'] },
         children: [
           {
@@ -263,12 +257,6 @@ const routes = [
             name: 'OperatorManageInfo',
             component: () => import('@/views/admin/operator_manage_info/index.vue'),
             meta: { title: '人员台账', icon: 'UserFilled', roles: ['admin'] },
-          },
-          {
-            path: 'operator-manage-detail/:id',
-            name: 'OperatorManageDetail',
-            component: () => import('@/views/admin/operator_manage_detail/index.vue'),
-            meta: { title: '人员详情', icon: 'UserFilled', roles: ['admin'], isHide: true },
           },
         ],
       },
@@ -295,7 +283,7 @@ const routes = [
       {
         path: 'product-manage',
         name: 'ProductManage',
-        redirect: 'product-manage-info',
+        redirect: '/product-manage/product-manage-info',
         meta: { title: '产品管理', icon: 'Goods', roles: ['admin'] },
         children: [
           {
@@ -303,12 +291,6 @@ const routes = [
             name: 'ProductManageInfo',
             component: () => import('@/views/admin/product_manage_info/index.vue'),
             meta: { title: '产品台账', icon: 'Goods', roles: ['admin'] },
-          },
-          {
-            path: 'product-manage-detail/:id',
-            name: 'ProductManageDetail',
-            component: () => import('@/views/admin/product_manage_detail/index.vue'),
-            meta: { title: '产品详情', icon: 'Goods', roles: ['admin'], isHide: true },
           },
         ],
       },

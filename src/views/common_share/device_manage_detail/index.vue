@@ -128,7 +128,6 @@ const initExtendFields = () => {
       value: formData.spareParts || '',
       type: 'textarea',
     },
-    { key: 'remark', label: '备注', value: formData.remark || '', type: 'textarea' },
   ]
 }
 
@@ -318,6 +317,12 @@ onMounted(() => {
               <div class="info-label">库存数量</div>
               <div class="info-value">{{ deviceData.stockQuantity }} {{ deviceData.unit }}</div>
             </div>
+            <div class="info-item full-width">
+              <div class="info-label">备注</div>
+              <div class="info-value">
+                <pre class="content-pre">{{ deviceData.remark || '暂无' }}</pre>
+              </div>
+            </div>
           </div>
         </template>
 
@@ -409,6 +414,14 @@ onMounted(() => {
                   />
                 </el-select>
               </el-form-item>
+              <el-form-item label="备注" class="full-width">
+                <el-input
+                  v-model="formData.remark"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="请输入备注"
+                />
+              </el-form-item>
             </div>
           </el-form>
         </template>
@@ -434,12 +447,6 @@ onMounted(() => {
               <div class="extend-label">备品备件信息</div>
               <div class="extend-content">
                 <pre class="content-pre">{{ deviceData.spareParts || '暂无' }}</pre>
-              </div>
-            </div>
-            <div class="extend-item">
-              <div class="extend-label">备注</div>
-              <div class="extend-content">
-                <pre class="content-pre">{{ deviceData.remark || '暂无' }}</pre>
               </div>
             </div>
           </div>
@@ -569,6 +576,10 @@ onMounted(() => {
           background: #fff;
           min-height: 60px;
 
+          &.full-width {
+            grid-column: span 3;
+          }
+
           .info-label {
             width: 110px;
             padding: 18px 20px;
@@ -588,6 +599,16 @@ onMounted(() => {
             color: #303133;
             display: flex;
             align-items: center;
+
+            .content-pre {
+              margin: 0;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              font-family: inherit;
+              line-height: 1.8;
+              font-size: 16px;
+              color: #303133;
+            }
           }
         }
       }
@@ -600,6 +621,10 @@ onMounted(() => {
 
         :deep(.el-form-item) {
           margin-bottom: 0;
+
+          &.full-width {
+            grid-column: span 3;
+          }
 
           .el-form-item__label {
             font-size: 18px;

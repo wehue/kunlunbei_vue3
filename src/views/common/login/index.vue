@@ -196,7 +196,7 @@ onMounted(() => {
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <img src="@/assets/images/logo.svg" alt="Logo" class="logo" />
+        <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
         <h1>昆仑贝</h1>
         <p>制造工艺管理系统</p>
       </div>
