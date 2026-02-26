@@ -34,6 +34,7 @@
         </Main>
       </el-container>
     </el-container>
+    <AiAssistant />
   </el-container>
 </template>
 
@@ -46,6 +47,7 @@ import Main from '@/layouts/components/Main/index.vue'
 import SubMenu from '@/layouts/components/Menu/SubMenu.vue'
 import ToolBarLeft from '@/layouts/components/Header/ToolBarLeft.vue'
 import ToolBarRight from '@/layouts/components/Header/ToolBarRight.vue'
+import AiAssistant from '@/components/AiAssistant/index.vue'
 
 const title = import.meta.env.VITE_GLOB_APP_TITLE || '智造精艺'
 

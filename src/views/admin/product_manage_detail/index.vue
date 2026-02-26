@@ -14,14 +14,34 @@ const formData = reactive({})
 const formRef = ref()
 
 const mockProductData = {
-  1: { id: 1, productCode: 'PRD20240001', productName: '智能手表A1', description: '智能穿戴设备，支持心率监测、运动追踪' },
-  2: { id: 2, productCode: 'PRD20240002', productName: '数控机床X5', description: '高精度数控加工设备' },
+  1: {
+    id: 1,
+    productCode: 'PRD20240001',
+    productName: '智能手表A1',
+    description: '智能穿戴设备，支持心率监测、运动追踪',
+  },
+  2: {
+    id: 2,
+    productCode: 'PRD20240002',
+    productName: '数控机床X5',
+    description: '高精度数控加工设备',
+  },
   3: { id: 3, productCode: 'PRD20240003', productName: '工业润滑油', description: '高温润滑专用' },
   4: { id: 4, productCode: 'PRD20240004', productName: '矿泉水', description: '天然矿泉水' },
   5: { id: 5, productCode: 'PRD20240005', productName: '运动T恤', description: '透气速干面料' },
   6: { id: 6, productCode: 'PRD20240006', productName: '瓷砖', description: '高档抛光砖' },
-  7: { id: 7, productCode: 'PRD20240007', productName: '智能音箱S1', description: 'AI语音助手，智能家居控制' },
-  8: { id: 8, productCode: 'PRD20240008', productName: '激光切割机', description: '高功率激光切割设备' },
+  7: {
+    id: 7,
+    productCode: 'PRD20240007',
+    productName: '智能音箱S1',
+    description: 'AI语音助手，智能家居控制',
+  },
+  8: {
+    id: 8,
+    productCode: 'PRD20240008',
+    productName: '激光切割机',
+    description: '高功率激光切割设备',
+  },
   9: { id: 9, productCode: 'PRD20240009', productName: '清洗剂', description: '工业清洗专用' },
   10: { id: 10, productCode: 'PRD20240010', productName: '果汁饮料', description: '100%纯果汁' },
   11: { id: 11, productCode: 'PRD20240011', productName: '牛仔裤', description: '经典直筒版型' },
@@ -157,7 +177,12 @@ onMounted(() => {
         <template v-else>
           <div class="extend-edit">
             <el-form-item label="产品描述">
-              <el-input v-model="formData.description" type="textarea" :rows="4" placeholder="请输入产品描述" />
+              <el-input
+                v-model="formData.description"
+                type="textarea"
+                :rows="4"
+                placeholder="请输入产品描述"
+              />
             </el-form-item>
           </div>
         </template>

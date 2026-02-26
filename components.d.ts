@@ -14,6 +14,9 @@ declare module 'vue' {
     403: typeof import('./src/components/ErrorMessage/403.vue')['default']
     404: typeof import('./src/components/ErrorMessage/404.vue')['default']
     500: typeof import('./src/components/ErrorMessage/500.vue')['default']
+    AiAssistant: typeof import('./src/components/AiAssistant/index.vue')['default']
+    AIChat: typeof import('./src/components/AIChat/index.vue')['default']
+    AiMarkdownViewer: typeof import('./src/components/AiMarkdownViewer/index.vue')['default']
     ColSetting: typeof import('./src/components/ProTable/components/ColSetting.vue')['default']
     DataCompare: typeof import('./src/components/DataCompare/index.vue')['default']
     ECharts: typeof import('./src/components/ECharts/index.vue')['default']
@@ -79,6 +82,7 @@ declare module 'vue' {
     SelectFilter: typeof import('./src/components/SelectFilter/index.vue')['default']
     TableColumn: typeof import('./src/components/ProTable/components/TableColumn.vue')['default']
     TreeFilter: typeof import('./src/components/TreeFilter/index.vue')['default']
+    VoiceInputButton: typeof import('./src/components/VoiceInputButton/index.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

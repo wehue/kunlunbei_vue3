@@ -1,7 +1,8 @@
 <template>
   <div class="tool-bar-ri">
-    <div class="header-icon" v-if="showMessage">
-      <Message id="message" />
+    <div class="header-icon">
+      <FlowchartAnalyze v-if="showFlowchartAnalyze" />
+      <Message v-if="showMessage" />
     </div>
     <span class="username">{{ username }}</span>
     <Avatar />
@@ -12,6 +13,7 @@
 import { computed } from 'vue'
 import { useUserStore } from '@/stores/modules/user'
 import Message from './components/Message.vue'
+import FlowchartAnalyze from './components/FlowchartAnalyze.vue'
 import Avatar from './components/Avatar.vue'
 
 const userStore = useUserStore()
@@ -19,6 +21,7 @@ const username = computed(() => userStore.userInfo?.name || '用户')
 const currentRole = computed(() => userStore.userInfo?.role)
 
 const showMessage = computed(() => currentRole.value === 'designer')
+const showFlowchartAnalyze = computed(() => ['admin', 'supervisor', 'designer'].includes(currentRole.value))
 </script>
 
 <style scoped lang="scss">

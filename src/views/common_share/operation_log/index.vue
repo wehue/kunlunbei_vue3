@@ -1,10 +1,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Download,
-  View,
-} from '@element-plus/icons-vue'
+import { Download, View } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import DataCompare from '@/components/DataCompare/index.vue'
 import * as XLSX from 'xlsx'

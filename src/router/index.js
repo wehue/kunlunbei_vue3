@@ -201,6 +201,16 @@ const routes = [
           },
         ],
       },
+      {
+        path: 'flowchart-analyze',
+        name: 'FlowchartAnalyze',
+        component: () => import('@/views/common_share/flowchart_analyze/index.vue'),
+        meta: {
+          title: '工艺流程分析',
+          icon: 'DataAnalysis',
+          roles: ['admin', 'supervisor', 'designer'],
+        },
+      },
       // 管理员专属路由
       {
         path: 'user-manage',
