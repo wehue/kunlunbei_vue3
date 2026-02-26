@@ -1613,7 +1613,7 @@ watch(
                   @click="activeDetailTab = 'bom'"
                 >
                   <el-icon><Box /></el-icon>
-                  <span>物料BOM</span>
+                  <span>物料</span>
                 </div>
               </div>
 
