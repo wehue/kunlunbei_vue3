@@ -127,7 +127,7 @@ const handleLogin = async () => {
             if (!result.valid) return '密码强度不足'
             return true
           },
-        }
+        },
       ).catch(() => {
         loading.value = false
         return { value: null }
@@ -197,7 +197,7 @@ onMounted(() => {
     <div class="login-box">
       <div class="login-header">
         <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
-        <h1>昆仑贝</h1>
+        <h1>昆仑杯</h1>
         <p>制造工艺管理系统</p>
       </div>
 
@@ -277,7 +277,9 @@ onMounted(() => {
         </el-button>
 
         <div class="form-footer">
-          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister">立即注册</el-link>
+          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister"
+            >立即注册</el-link
+          >
         </div>
       </el-form>
 
