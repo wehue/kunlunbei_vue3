@@ -1,13 +1,18 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { User, Lock, Key, View, Hide } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { User, Lock, Key, View, Hide, CircleClose, UserFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/modules/user'
+import { useTabsStore } from '@/stores/modules/tabs'
+import { useKeepAliveStore } from '@/stores/modules/keepAlive'
 
 const router = useRouter()
 const userStore = useUserStore()
+const tabsStore = useTabsStore()
+const keepAliveStore = useKeepAliveStore()
 
+const loginFormRef = ref()
 const loading = ref(false)
 const showPassword = ref(false)
 const captchaText = ref('')
@@ -18,6 +23,11 @@ const loginForm = reactive({
   password: '',
   role: 'designer',
   remember: false,
+})
+
+const loginRules = reactive({
+  account: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 })
 
 const roleOptions = [
@@ -58,116 +68,122 @@ const validatePassword = (password) => {
   }
 }
 
-const handleLogin = async () => {
-  if (!loginForm.account) {
-    ElMessage.warning('请输入账号')
-    return
-  }
-  if (!loginForm.password) {
-    ElMessage.warning('请输入密码')
-    return
-  }
-  if (!captchaInput.value) {
-    ElMessage.warning('请输入验证码')
-    return
-  }
-  if (captchaInput.value.toLowerCase() !== captchaText.value.toLowerCase()) {
-    ElMessage.error('验证码错误')
-    generateCaptcha()
-    captchaInput.value = ''
-    return
-  }
+const login = (formEl) => {
+  if (!formEl) return
+  formEl.validate(async (valid) => {
+    if (!valid) return
 
-  loading.value = true
-
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    const presetUser = presetAccounts[loginForm.account]
-    const mockUser = mockUsers[loginForm.account]
-
-    let user = null
-    let isFirstLogin = false
-
-    if (presetUser && presetUser.password === loginForm.password) {
-      user = { account: loginForm.account, name: presetUser.name }
-      isFirstLogin = presetUser.isFirstLogin
-    } else if (mockUser && mockUser.password === loginForm.password) {
-      user = { account: loginForm.account, name: mockUser.name }
-      isFirstLogin = mockUser.isFirstLogin
+    if (!captchaInput.value) {
+      ElMessage.warning('请输入验证码')
+      return
     }
-
-    if (!user) {
-      ElMessage.error('账号或密码错误')
+    if (captchaInput.value.toLowerCase() !== captchaText.value.toLowerCase()) {
+      ElMessage.error('验证码错误')
       generateCaptcha()
       captchaInput.value = ''
       return
     }
 
-    if (loginForm.remember) {
-      localStorage.setItem('rememberedAccount', loginForm.account)
-      localStorage.setItem('rememberedRole', loginForm.role)
-    } else {
-      localStorage.removeItem('rememberedAccount')
-      localStorage.removeItem('rememberedRole')
-    }
+    loading.value = true
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
-    if (isFirstLogin) {
-      const { value: newPassword } = await ElMessageBox.prompt(
-        '这是您首次登录，请设置新密码。密码要求：8-20位，包含大小写字母、数字和特殊字符',
-        '修改密码',
-        {
-          confirmButtonText: '确认',
-          cancelButtonText: '取消',
-          inputType: 'password',
-          inputPlaceholder: '请输入新密码',
-          inputValidator: (value) => {
-            if (!value) return '请输入新密码'
-            const result = validatePassword(value)
-            if (!result.valid) return '密码强度不足'
-            return true
+      const presetUser = presetAccounts[loginForm.account]
+      const mockUser = mockUsers[loginForm.account]
+
+      let user = null
+      let isFirstLogin = false
+
+      if (presetUser && presetUser.password === loginForm.password) {
+        user = { account: loginForm.account, name: presetUser.name }
+        isFirstLogin = presetUser.isFirstLogin
+      } else if (mockUser && mockUser.password === loginForm.password) {
+        user = { account: loginForm.account, name: mockUser.name }
+        isFirstLogin = mockUser.isFirstLogin
+      }
+
+      if (!user) {
+        ElMessage.error('账号或密码错误')
+        generateCaptcha()
+        captchaInput.value = ''
+        return
+      }
+
+      if (loginForm.remember) {
+        localStorage.setItem('rememberedAccount', loginForm.account)
+        localStorage.setItem('rememberedRole', loginForm.role)
+      } else {
+        localStorage.removeItem('rememberedAccount')
+        localStorage.removeItem('rememberedRole')
+      }
+
+      if (isFirstLogin) {
+        const { value: newPassword } = await ElMessageBox.prompt(
+          '这是您首次登录，请设置新密码。密码要求：8-20位，包含大小写字母、数字和特殊字符',
+          '修改密码',
+          {
+            confirmButtonText: '确认',
+            cancelButtonText: '取消',
+            inputType: 'password',
+            inputPlaceholder: '请输入新密码',
+            inputValidator: (value) => {
+              if (!value) return '请输入新密码'
+              const result = validatePassword(value)
+              if (!result.valid) return '密码强度不足'
+              return true
+            },
           },
-        },
-      ).catch(() => {
-        loading.value = false
-        return { value: null }
-      })
+        ).catch(() => {
+          loading.value = false
+          return { value: null }
+        })
 
-      if (!newPassword) {
+        if (!newPassword) {
+          loading.value = false
+          return
+        }
+
+        mockUsers[loginForm.account].password = newPassword
+        mockUsers[loginForm.account].isFirstLogin = false
+        ElMessage.success('密码修改成功，请重新登录')
         loading.value = false
         return
       }
 
-      mockUsers[loginForm.account].password = newPassword
-      mockUsers[loginForm.account].isFirstLogin = false
-      ElMessage.success('密码修改成功，请重新登录')
+      const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      userStore.setToken(token)
+      userStore.setUserInfo({
+        id: loginForm.account,
+        name: user.name,
+        role: loginForm.role,
+      })
+
+      tabsStore.setTabs([])
+      keepAliveStore.setKeepAliveName([])
+
+      const roleHomeMap = {
+        admin: '/admin-index',
+        supervisor: '/supervisor-index',
+        designer: '/designer-index',
+      }
+
+      router.push(roleHomeMap[loginForm.role] || '/admin-index')
+      ElNotification({
+        title: '欢迎登录',
+        message: `欢迎回来，${user.name}`,
+        type: 'success',
+        duration: 3000,
+      })
+    } finally {
       loading.value = false
-      return
     }
+  })
+}
 
-    const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    userStore.setToken(token)
-    userStore.setUserInfo({
-      id: loginForm.account,
-      name: user.name,
-      role: loginForm.role,
-    })
-
-    ElMessage.success('登录成功')
-
-    const roleHomeMap = {
-      admin: '/admin-index',
-      supervisor: '/supervisor-index',
-      designer: '/designer-index',
-    }
-
-    router.push(roleHomeMap[loginForm.role] || '/admin-index')
-  } catch (error) {
-    console.error('登录失败:', error)
-    ElMessage.error('登录失败，请稍后重试')
-  } finally {
-    loading.value = false
-  }
+const resetForm = (formEl) => {
+  if (!formEl) return
+  formEl.resetFields()
+  captchaInput.value = ''
 }
 
 const goToRegister = () => {
@@ -189,183 +205,173 @@ onMounted(() => {
   if (rememberedRole) {
     loginForm.role = rememberedRole
   }
+
+  document.onkeydown = (e) => {
+    if (e.code === 'Enter' || e.code === 'enter' || e.code === 'NumpadEnter') {
+      if (loading.value) return
+      login(loginFormRef.value)
+    }
+  }
+})
+
+onBeforeUnmount(() => {
+  document.onkeydown = null
 })
 </script>
 
 <template>
-  <div class="login-container">
+  <div class="login-container flx-center">
     <div class="login-box">
-      <div class="login-header">
-        <img src="@/assets/images/logo.png" alt="Logo" class="logo" />
-        <h1>昆仑杯</h1>
-        <p>制造工艺管理系统</p>
+      <div class="login-left">
+        <img class="login-left-img" src="@/assets/images/login_left.png" alt="login" />
       </div>
-
-      <el-form :model="loginForm" class="login-form" @submit.prevent="handleLogin">
-        <div class="form-item">
-          <label>账号</label>
-          <el-input
-            v-model="loginForm.account"
-            placeholder="请输入账号"
-            size="large"
-            :prefix-icon="User"
-            clearable
-          />
+      <div class="login-form">
+        <div class="login-logo">
+          <img class="login-icon" src="@/assets/images/logo.png" alt="昆仑杯" />
+          <h2 class="logo-text">智造精艺</h2>
         </div>
-
-        <div class="form-item">
-          <label>密码</label>
-          <el-input
-            v-model="loginForm.password"
-            :type="showPassword ? 'text' : 'password'"
-            placeholder="请输入密码"
-            size="large"
-            :prefix-icon="Lock"
-            clearable
-            @keyup.enter="handleLogin"
-          >
-            <template #suffix>
-              <el-icon class="toggle-password" @click="showPassword = !showPassword">
-                <component :is="showPassword ? View : Hide" />
-              </el-icon>
-            </template>
-          </el-input>
-        </div>
-
-        <div class="form-item">
-          <label>角色</label>
-          <el-select v-model="loginForm.role" size="large" style="width: 100%">
-            <el-option
-              v-for="item in roleOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
-
-        <div class="form-item">
-          <label>验证码</label>
-          <div class="captcha-row">
+        <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" size="large">
+                    <el-form-item>
+            <el-select v-model="loginForm.role" placeholder="请选择角色" style="width: 100%">
+              <el-option
+                v-for="item in roleOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item prop="account">
+            <el-input v-model="loginForm.account" placeholder="请输入账号">
+              <template #prefix>
+                <el-icon class="el-input__icon">
+                  <User />
+                </el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item prop="password">
             <el-input
-              v-model="captchaInput"
-              placeholder="请输入验证码"
-              size="large"
-              :prefix-icon="Key"
-              clearable
-              @keyup.enter="handleLogin"
-            />
-            <div class="captcha-box" @click="generateCaptcha">
-              {{ captchaText }}
+              v-model="loginForm.password"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="请输入密码"
+              show-password
+              autocomplete="new-password"
+            >
+              <template #prefix>
+                <el-icon class="el-input__icon">
+                  <Lock />
+                </el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+          <el-form-item>
+            <div class="captcha-row">
+              <el-input v-model="captchaInput" placeholder="请输入验证码">
+                <template #prefix>
+                  <el-icon class="el-input__icon">
+                    <Key />
+                  </el-icon>
+                </template>
+              </el-input>
+              <div class="captcha-box" @click="generateCaptcha">
+                {{ captchaText }}
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div class="form-options">
-          <el-checkbox v-model="loginForm.remember">记住账号</el-checkbox>
-          <el-link type="primary" :underline="false" @click="goToPasswordFind">忘记密码？</el-link>
-        </div>
-
-        <el-button
-          type="primary"
-          size="large"
-          class="login-btn"
-          :loading="loading"
-          @click="handleLogin"
-        >
-          登 录
-        </el-button>
-
-        <div class="form-footer">
-          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister"
-            >立即注册</el-link
+          </el-form-item>
+          <el-form-item>
+            <div class="form-options">
+              <el-checkbox v-model="loginForm.remember">记住账号</el-checkbox>
+              <el-link type="primary" :underline="false" @click="goToPasswordFind">忘记密码？</el-link>
+            </div>
+          </el-form-item>
+        </el-form>
+        <div class="login-btn">
+          <el-button :icon="CircleClose" round size="large" @click="resetForm(loginFormRef)">
+            重置
+          </el-button>
+          <el-button
+            :icon="UserFilled"
+            round
+            size="large"
+            type="primary"
+            :loading="loading"
+            @click="login(loginFormRef)"
           >
+            登录
+          </el-button>
         </div>
-      </el-form>
-
-      <div class="demo-accounts">
-        <div class="demo-title">测试账号</div>
-        <div class="demo-list">
-          <div class="demo-item">
-            <span class="label">管理员：</span>
-            <span class="value">admin / admin@2026</span>
-          </div>
-          <div class="demo-item">
-            <span class="label">主管：</span>
-            <span class="value">supervisor1 / User@2025</span>
-          </div>
-          <div class="demo-item">
-            <span class="label">设计师：</span>
-            <span class="value">designer1 / User@2025</span>
-          </div>
+        <div class="login-footer">
+          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister">立即注册</el-link>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .login-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #f0f2f5;
-  padding: 20px;
-
+  height: 100%;
+  min-height: 550px;
+  background-color: #eeeeee;
+  background-image: url('@/assets/images/login_bg.svg');
+  background-size: 100% 100%;
+  background-size: cover;
   .login-box {
-    width: 100%;
-    max-width: 420px;
-    background: #fff;
-    border-radius: 8px;
-    padding: 40px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-    .login-header {
-      text-align: center;
-      margin-bottom: 32px;
-
-      .logo {
-        width: 48px;
-        height: 48px;
-        margin-bottom: 12px;
-      }
-
-      h1 {
-        font-size: 24px;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin: 0 0 8px 0;
-      }
-
-      p {
-        font-size: 14px;
-        color: #666;
-        margin: 0;
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 96.5%;
+    height: 94%;
+    padding: 0 50px;
+    background-color: rgb(255 255 255 / 80%);
+    border-radius: 10px;
+    .login-left {
+      width: 800px;
+      margin-right: 10px;
+      .login-left-img {
+        width: 100%;
+        height: 100%;
       }
     }
-
     .login-form {
-      .form-item {
-        margin-bottom: 20px;
-
-        label {
-          display: block;
-          font-size: 14px;
-          color: #333;
-          margin-bottom: 8px;
-          font-weight: 500;
+      width: 420px;
+      padding: 50px 40px 45px;
+      background-color: var(--el-bg-color);
+      border-radius: 10px;
+      box-shadow: rgb(0 0 0 / 10%) 0 2px 10px 2px;
+      .login-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 45px;
+        .login-icon {
+          width: 100px;
+          height: 100px;
+        }
+        .logo-text {
+          padding: 0 0 0 25px;
+          margin: 0;
+          font-size: 42px;
+          font-weight: bold;
+          color: #34495e;
+          white-space: nowrap;
+          text-align: center;
+          font-family: 'Courier New', monospace;
         }
       }
-
+      .el-form-item {
+        margin-bottom: 20px;
+      }
       .captcha-row {
         display: flex;
         gap: 12px;
-
+        width: 100%;
         .el-input {
           flex: 1;
         }
-
         .captcha-box {
           width: 100px;
           height: 40px;
@@ -382,70 +388,46 @@ onMounted(() => {
           letter-spacing: 2px;
           color: #409eff;
           user-select: none;
-
           &:hover {
             background: #eee;
           }
         }
       }
-
-      .toggle-password {
-        cursor: pointer;
-        color: #999;
-
-        &:hover {
-          color: #409eff;
-        }
-      }
-
       .form-options {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
-      }
-
-      .login-btn {
         width: 100%;
-        height: 44px;
-        font-size: 16px;
       }
-
-      .form-footer {
+      .login-btn {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 20px;
+        white-space: nowrap;
+        .el-button {
+          width: 185px;
+        }
+      }
+      .login-footer {
         text-align: center;
-        margin-top: 16px;
+        margin-top: 20px;
         font-size: 14px;
         color: #666;
       }
     }
+  }
+}
 
-    .demo-accounts {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid #eee;
+@media screen and (width <= 1250px) {
+  .login-left {
+    display: none;
+  }
+}
 
-      .demo-title {
-        font-size: 13px;
-        color: #999;
-        margin-bottom: 12px;
-      }
-
-      .demo-list {
-        .demo-item {
-          font-size: 12px;
-          color: #666;
-          margin-bottom: 6px;
-
-          .label {
-            color: #999;
-          }
-
-          .value {
-            font-family: 'Courier New', monospace;
-          }
-        }
-      }
-    }
+@media screen and (width <= 600px) {
+  .login-form {
+    width: 97% !important;
   }
 }
 </style>

@@ -2,7 +2,7 @@
   <el-container class="layout">
     <el-header>
       <div class="header-lf mask-image">
-        <div class="logo flx-center" :style="{ width: isCollapse ? '65px' : '210px' }">
+        <div class="logo flx-center" :style="{ width: isCollapse ? '65px' : '180px' }">
           <img class="logo-img" src="@/assets/images/logo.png" alt="logo" />
           <span v-show="!isCollapse" class="logo-text">{{ title }}</span>
         </div>

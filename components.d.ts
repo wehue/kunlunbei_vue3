@@ -80,6 +80,7 @@ declare module 'vue' {
     SearchForm: typeof import('./src/components/SearchForm/index.vue')['default']
     SearchFormItem: typeof import('./src/components/SearchForm/components/SearchFormItem.vue')['default']
     SelectFilter: typeof import('./src/components/SelectFilter/index.vue')['default']
+    SwitchDark: typeof import('./src/components/SwitchDark/index.vue')['default']
     TableColumn: typeof import('./src/components/ProTable/components/TableColumn.vue')['default']
     TreeFilter: typeof import('./src/components/TreeFilter/index.vue')['default']
     VoiceInputButton: typeof import('./src/components/VoiceInputButton/index.vue')['default']
