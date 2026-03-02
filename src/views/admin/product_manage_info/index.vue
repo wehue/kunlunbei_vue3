@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
+import { getProductFind, createProduct, updateProduct, deleteProduct } from '@/api/product'
 
 const router = useRouter()
 
@@ -12,55 +13,20 @@ const dialogVisible = ref(false)
 const formRef = ref()
 const isEdit = ref(false)
 
-const mockData = ref([
-  {
-    id: 1,
-    productCode: 'PRD20240001',
-    productName: '智能手表A1',
-    description: '智能穿戴设备，支持心率监测、运动追踪',
-  },
-  {
-    id: 2,
-    productCode: 'PRD20240002',
-    productName: '数控机床X5',
-    description: '高精度数控加工设备',
-  },
-  { id: 3, productCode: 'PRD20240003', productName: '工业润滑油', description: '高温润滑专用' },
-  { id: 4, productCode: 'PRD20240004', productName: '矿泉水', description: '天然矿泉水' },
-  { id: 5, productCode: 'PRD20240005', productName: '运动T恤', description: '透气速干面料' },
-  { id: 6, productCode: 'PRD20240006', productName: '瓷砖', description: '高档抛光砖' },
-  {
-    id: 7,
-    productCode: 'PRD20240007',
-    productName: '智能音箱S1',
-    description: 'AI语音助手，智能家居控制',
-  },
-  {
-    id: 8,
-    productCode: 'PRD20240008',
-    productName: '激光切割机',
-    description: '高功率激光切割设备',
-  },
-  { id: 9, productCode: 'PRD20240009', productName: '清洗剂', description: '工业清洗专用' },
-  { id: 10, productCode: 'PRD20240010', productName: '果汁饮料', description: '100%纯果汁' },
-  { id: 11, productCode: 'PRD20240011', productName: '牛仔裤', description: '经典直筒版型' },
-  { id: 12, productCode: 'PRD20240012', productName: '水泥', description: '普通硅酸盐水泥' },
-])
-
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
-  { prop: 'productCode', label: '产品编号', search: { el: 'input', key: 'productCode' } },
+  { prop: 'productId', label: '产品编码', search: { el: 'input', key: 'productId' } },
   { prop: 'productName', label: '产品名称', search: { el: 'input', key: 'productName' } },
-  { prop: 'description', label: '产品描述', minWidth: 200 },
+  { prop: 'productDescription', label: '产品描述', minWidth: 200 },
   { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
 ])
 
 const formData = reactive({
-  id: null,
-  productCode: '',
+  id: '',
+  productId: '',
   productName: '',
-  description: '',
+  productDescription: '',
 })
 
 const validateProductName = (rule, value, callback) => {
@@ -72,52 +38,35 @@ const validateProductName = (rule, value, callback) => {
     callback(new Error('产品名称长度应在2-50个字符之间'))
     return
   }
-  const exists = mockData.value.some(
-    (item) => item.productName === value && item.id !== formData.id,
-  )
-  if (exists) {
-    callback(new Error('产品名称已存在'))
-  } else {
-    callback()
-  }
+  callback()
 }
 
 const rules = {
   productName: [{ required: true, validator: validateProductName, trigger: 'blur' }],
 }
 
-const generateProductCode = () => {
-  const year = new Date().getFullYear()
-  const maxId = mockData.value.reduce((max, item) => {
-    const id = parseInt(item.id)
-    return id > max ? id : max
-  }, 0)
-  const newId = String(maxId + 1).padStart(4, '0')
-  return `PRD${year}${newId}`
-}
-
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
-    id: null,
-    productCode: generateProductCode(),
+    id: '',
+    productId: '',
     productName: '',
-    description: '',
+    productDescription: '',
   })
   dialogVisible.value = true
 }
 
 const handleView = (row) => {
-  router.push(`/product-manage/product-manage-detail/${row.id}`)
+  router.push(`/product-manage/product-manage-detail/${row.productId}`)
 }
 
 const handleEdit = (row) => {
   isEdit.value = true
   Object.assign(formData, {
     id: row.id,
-    productCode: row.productCode,
+    productId: row.productId,
     productName: row.productName,
-    description: row.description,
+    productDescription: row.productDescription,
   })
   dialogVisible.value = true
 }
@@ -129,41 +78,33 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const index = mockData.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      mockData.value.splice(index, 1)
-      ElMessage.success('删除成功')
-      proTableRef.value?.getTableList()
-    }
-  } catch {
-    // 用户取消
+    await deleteProduct(row.productId)
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    console.error('删除失败:', error)
+    // 用户取消或删除失败
   }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (isEdit.value) {
-        const index = mockData.value.findIndex((item) => item.id === formData.id)
-        if (index > -1) {
-          mockData.value[index] = { ...mockData.value[index], ...formData }
+      try {
+        if (isEdit.value) {
+          await updateProduct(formData)
+          ElMessage.success('修改成功')
+        } else {
+          await createProduct(formData)
+          ElMessage.success('新增成功')
         }
-        ElMessage.success('修改成功')
-      } else {
-        const maxId = mockData.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
-        mockData.value.push({
-          id: maxId + 1,
-          ...formData,
-        })
-        ElMessage.success('新增成功')
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        console.error('提交失败:', error)
       }
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
     }
   })
 }
@@ -173,41 +114,50 @@ const handleCancel = () => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...mockData.value]
+  try {
+    const res = await getProductFind()
+    console.log('产品列表', res)
 
-      if (params?.productCode) {
-        filteredData = filteredData.filter((item) => item.productCode.includes(params.productCode))
-      }
+    let dataList = res.data?.data?.data || []
+    if (!Array.isArray(dataList)) {
+      dataList = []
+    }
 
-      if (params?.productName) {
-        filteredData = filteredData.filter((item) => item.productName.includes(params.productName))
-      }
+    if (params?.productId) {
+      dataList = dataList.filter((item) => item.productId?.includes(params.productId))
+    }
 
-      if (params?.productType) {
-        filteredData = filteredData.filter((item) => item.productType === params.productType)
-      }
+    if (params?.productName) {
+      dataList = dataList.filter((item) => item.productName?.includes(params.productName))
+    }
 
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
+    const pageNum = params?.pageNum || 1
+    const pageSize = params?.pageSize || 10
+    const startIndex = (pageNum - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedData = dataList.slice(startIndex, endIndex)
 
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
+    const dataWithIndex = paginatedData.map((item, index) => ({
+      ...item,
+      index: startIndex + index + 1,
+    }))
 
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+    return {
+      data: {
+        list: dataWithIndex,
+        total: dataList.length,
+      },
+    }
+  } catch (error) {
+    console.error('获取产品列表失败:', error)
+    ElMessage.error('获取产品列表失败')
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 </script>
 
@@ -221,24 +171,6 @@ const getTableList = async (params) => {
     >
       <template #tableHeader>
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增产品</el-button>
-      </template>
-
-      <template #productType="scope">
-        <el-tag>{{ scope.row.productType }}</el-tag>
-      </template>
-
-      <template #status="scope">
-        <el-tag
-          :type="
-            scope.row.status === '在产'
-              ? 'success'
-              : scope.row.status === '停产'
-                ? 'danger'
-                : 'warning'
-          "
-        >
-          {{ scope.row.status }}
-        </el-tag>
       </template>
 
       <template #operation="scope">
@@ -258,13 +190,16 @@ const getTableList = async (params) => {
       class="product-dialog"
     >
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
+        <div style="display: none">
+          <el-input v-model="formData.id" />
+        </div>
         <div class="form-section">
           <div class="section-title">
             <span class="title-text">基本信息</span>
           </div>
           <div class="form-grid">
-            <el-form-item label="产品编号">
-              <el-input v-model="formData.productCode" disabled placeholder="系统自动生成" />
+            <el-form-item label="产品编码">
+              <el-input v-model="formData.productId" :disabled="isEdit" />
             </el-form-item>
             <el-form-item label="产品名称" prop="productName">
               <el-input v-model="formData.productName" placeholder="请输入产品名称" />
@@ -278,7 +213,7 @@ const getTableList = async (params) => {
           </div>
           <el-form-item label="产品描述">
             <el-input
-              v-model="formData.description"
+              v-model="formData.productDescription"
               type="textarea"
               :rows="3"
               placeholder="请输入产品描述"

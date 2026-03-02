@@ -1,9 +1,17 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
+import {
+  getWarehouseList,
+  createWarehouse,
+  updateWarehouse,
+  deleteWarehouse,
+} from '@/api/warehouse'
+import { getDeptList } from '@/api/dept'
+import { getProductionStaffList } from '@/api/productionStaff'
 
 const router = useRouter()
 
@@ -13,181 +21,13 @@ const formRef = ref()
 const isEdit = ref(false)
 
 const warehouseTypeOptions = ref([
-  { label: '物料仓库', value: '物料仓库' },
-  { label: '设备仓库', value: '设备仓库' },
+  { label: '物料仓库', value: 'MaterialWarehouse' },
+  { label: '设备仓库', value: 'EquipmentWarehouse' },
 ])
 
-const deptOptions = ref([
-  { label: '技术部', value: '技术部' },
-  { label: '生产部', value: '生产部' },
-  { label: '质量部', value: '质量部' },
-  { label: '采购部', value: '采购部' },
-  { label: '销售部', value: '销售部' },
-  { label: '财务部', value: '财务部' },
-  { label: '人力资源部', value: '人力资源部' },
-])
+const deptOptions = ref([])
 
-const userOptions = ref([
-  { label: '张三', value: '张三' },
-  { label: '李四', value: '李四' },
-  { label: '王五', value: '王五' },
-  { label: '赵六', value: '赵六' },
-  { label: '钱七', value: '钱七' },
-  { label: '孙八', value: '孙八' },
-  { label: '周九', value: '周九' },
-  { label: '吴十', value: '吴十' },
-  { label: '郑十一', value: '郑十一' },
-  { label: '王十二', value: '王十二' },
-  { label: '刘明', value: '刘明' },
-  { label: '陈华', value: '陈华' },
-])
-
-const mockData = ref([
-  {
-    id: 1,
-    warehouseCode: 'WH20240001',
-    warehouseName: '物料仓库A',
-    warehouseType: '物料仓库',
-    manager: '张三',
-    phone: '13800138001',
-    deptName: '采购部',
-    address: '厂区东侧A栋',
-    remark: '存放原材料',
-    establishDate: '2020-01-15',
-  },
-  {
-    id: 2,
-    warehouseCode: 'WH20240002',
-    warehouseName: '设备仓库A',
-    warehouseType: '设备仓库',
-    manager: '李四',
-    phone: '13800138002',
-    deptName: '生产部',
-    address: '厂区西侧B栋',
-    remark: '存放设备',
-    establishDate: '2020-02-20',
-  },
-  {
-    id: 3,
-    warehouseCode: 'WH20240003',
-    warehouseName: '物料仓库B',
-    warehouseType: '物料仓库',
-    manager: '王五',
-    phone: '13800138003',
-    deptName: '生产部',
-    address: '车间内部C区',
-    remark: '存放半成品物料',
-    establishDate: '2020-03-10',
-  },
-  {
-    id: 4,
-    warehouseCode: 'WH20240004',
-    warehouseName: '设备仓库B',
-    warehouseType: '设备仓库',
-    manager: '赵六',
-    phone: '13800138004',
-    deptName: '技术部',
-    address: '厂区北侧D栋',
-    remark: '存放设备备件',
-    establishDate: '2020-04-05',
-  },
-  {
-    id: 5,
-    warehouseCode: 'WH20240005',
-    warehouseName: '物料仓库C',
-    warehouseType: '物料仓库',
-    manager: '钱七',
-    phone: '13800138005',
-    deptName: '生产部',
-    address: '车间内部E区',
-    remark: '存放工具物料',
-    establishDate: '2020-05-12',
-  },
-  {
-    id: 6,
-    warehouseCode: 'WH20240006',
-    warehouseName: '设备仓库C',
-    warehouseType: '设备仓库',
-    manager: '孙八',
-    phone: '13800138006',
-    deptName: '生产部',
-    address: '厂区南侧F栋',
-    remark: '存放大型设备',
-    establishDate: '2020-06-18',
-  },
-  {
-    id: 7,
-    warehouseCode: 'WH20240007',
-    warehouseName: '物料仓库D',
-    warehouseType: '物料仓库',
-    manager: '周九',
-    phone: '13800138007',
-    deptName: '采购部',
-    address: '厂区东侧G栋',
-    remark: '存放原材料',
-    establishDate: '2020-07-22',
-  },
-  {
-    id: 8,
-    warehouseCode: 'WH20240008',
-    warehouseName: '设备仓库D',
-    warehouseType: '设备仓库',
-    manager: '吴十',
-    phone: '13800138008',
-    deptName: '技术部',
-    address: '厂区西侧H栋',
-    remark: '存放精密设备',
-    establishDate: '2021-01-08',
-  },
-  {
-    id: 9,
-    warehouseCode: 'WH20240009',
-    warehouseName: '物料仓库E',
-    warehouseType: '物料仓库',
-    manager: '郑十一',
-    phone: '13800138009',
-    deptName: '采购部',
-    address: '厂区北侧I栋',
-    remark: '存放需冷藏物料',
-    establishDate: '2021-02-15',
-  },
-  {
-    id: 10,
-    warehouseCode: 'WH20240010',
-    warehouseName: '设备仓库E',
-    warehouseType: '设备仓库',
-    manager: '王十二',
-    phone: '13800138010',
-    deptName: '技术部',
-    address: '厂区隔离区J栋',
-    remark: '存放危险设备',
-    establishDate: '2021-03-20',
-  },
-  {
-    id: 11,
-    warehouseCode: 'WH20240011',
-    warehouseName: '物料仓库F',
-    warehouseType: '物料仓库',
-    manager: '刘明',
-    phone: '13800138011',
-    deptName: '生产部',
-    address: '厂区东侧K栋',
-    remark: '存放包装材料',
-    establishDate: '2021-04-10',
-  },
-  {
-    id: 12,
-    warehouseCode: 'WH20240012',
-    warehouseName: '设备仓库F',
-    warehouseType: '设备仓库',
-    manager: '陈华',
-    phone: '13800138012',
-    deptName: '技术部',
-    address: '厂区西侧L栋',
-    remark: '存放检测设备',
-    establishDate: '2021-05-05',
-  },
-])
+const userOptions = ref([])
 
 const columns = reactive([
   { type: 'selection', width: 50 },
@@ -208,21 +48,25 @@ const columns = reactive([
 
 const formData = reactive({
   id: null,
-  warehouseCode: '',
-  warehouseName: '',
-  warehouseType: '',
-  manager: '',
+  warhouseId: '',
+  warhouseName: '',
+  warhouseType: '',
+  warhouseManager: { id: '' },
   phone: '',
+  department: { id: '', departmentName: '' },
+  warhouseLocation: '',
+  remark: '',
+  createTime: '',
+  manager: '',
   deptName: '',
   address: '',
-  remark: '',
   establishDate: '',
 })
 
 const rules = {
   warehouseName: [{ required: true, message: '请输入仓库名称', trigger: 'blur' }],
   warehouseType: [{ required: true, message: '请选择仓库类型', trigger: 'change' }],
-  manager: [{ required: true, message: '请输入仓库负责人', trigger: 'blur' }],
+  manager: [{ required: true, message: '请选择仓库负责人', trigger: 'change' }],
   phone: [
     { required: true, message: '请输入联系电话', trigger: 'blur' },
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' },
@@ -232,49 +76,74 @@ const rules = {
   establishDate: [{ required: true, message: '请选择成立时间', trigger: 'change' }],
 }
 
-const generateWarehouseCode = () => {
-  const year = new Date().getFullYear()
-  const maxId = mockData.value.reduce((max, item) => {
-    const id = parseInt(item.id)
-    return id > max ? id : max
-  }, 0)
-  const newId = String(maxId + 1).padStart(4, '0')
-  return `WH${year}${newId}`
+const loadOptions = async () => {
+  try {
+    const [deptRes, staffRes] = await Promise.all([getDeptList(), getProductionStaffList()])
+
+    deptOptions.value = (deptRes.data?.data?.data || []).map((item) => ({
+      label: item.departmentName,
+      value: item.id,
+    }))
+
+    userOptions.value = (staffRes.data?.data?.data || []).map((item) => ({
+      label: item.productionStaffName,
+      value: item.id,
+    }))
+  } catch (error) {
+    console.error('加载选项数据失败:', error)
+  }
 }
 
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    warehouseCode: generateWarehouseCode(),
+    warhouseId: '',
+    warhouseName: '',
+    warhouseType: '',
+    warhouseManager: { id: '' },
+    phone: '',
+    department: { id: '', departmentName: '' },
+    warhouseLocation: '',
+    remark: '',
+    createTime: '',
+    warehouseCode: '',
     warehouseName: '',
     warehouseType: '',
     manager: '',
-    phone: '',
     deptName: '',
     address: '',
-    remark: '',
     establishDate: '',
   })
   dialogVisible.value = true
 }
 
 const handleView = (row) => {
-  router.push(`/warehouse-manage/warehouse-manage-detail/${row.id}`)
+  router.push(`/warehouse-manage/warehouse-manage-detail/${row.warehouseCode}`)
 }
 
 const handleEdit = (row) => {
   isEdit.value = true
   Object.assign(formData, {
     id: row.id,
-    warehouseCode: row.warehouseCode,
-    warehouseName: row.warehouseName,
-    warehouseType: row.warehouseType,
-    manager: row.manager,
+    warhouseId: row.warehouseCode,
+    warhouseName: row.warhouseName,
+    warhouseType: row.warehouseTypeRaw,
+    warhouseManager: { id: row.managerId || '' },
     phone: row.phone,
-    deptName: row.deptName,
-    address: row.address,
+    department: {
+      id: row.deptId || '',
+      departmentName: row.deptName || '',
+    },
+    warhouseLocation: row.address,
     remark: row.remark,
+    createTime: row.establishDate,
+    warehouseCode: row.warehouseCode,
+    warehouseName: row.warhouseName,
+    warehouseType: row.warehouseTypeRaw,
+    manager: row.managerId || '',
+    deptName: row.deptId || '',
+    address: row.address,
     establishDate: row.establishDate,
   })
   dialogVisible.value = true
@@ -287,41 +156,55 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const index = mockData.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      mockData.value.splice(index, 1)
-      ElMessage.success('删除成功')
-      proTableRef.value?.getTableList()
+    await deleteWarehouse(row.warhouseId || row.warehouseCode)
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除仓库失败:', error)
+      ElMessage.error('删除失败，请重试')
     }
-  } catch {
-    // 用户取消
   }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (isEdit.value) {
-        const index = mockData.value.findIndex((item) => item.id === formData.id)
-        if (index > -1) {
-          mockData.value[index] = { ...mockData.value[index], ...formData }
+      try {
+        const submitData = {
+          id: formData.id,
+          warhouseId: formData.warhouseId || formData.warehouseCode,
+          warhouseName: formData.warehouseName,
+          warhouseType: formData.warehouseType,
+          warhouseManager: {
+            id: formData.manager,
+          },
+          phone: formData.phone,
+          department: {
+            id: formData.deptName,
+          },
+          warhouseLocation: formData.address,
+          remark: formData.remark,
+          createTime: formData.establishDate,
         }
-        ElMessage.success('修改成功')
-      } else {
-        const maxId = mockData.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
-        mockData.value.push({
-          id: maxId + 1,
-          ...formData,
-        })
-        ElMessage.success('新增成功')
+
+        console.log('提交数据:', submitData)
+
+        if (isEdit.value) {
+          await updateWarehouse(submitData)
+          ElMessage.success('修改成功')
+        } else {
+          await createWarehouse(submitData)
+          ElMessage.success('新增成功')
+        }
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        console.error('提交失败:', error)
+        ElMessage.error('操作失败，请重试')
       }
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
     }
   })
 }
@@ -331,46 +214,77 @@ const handleCancel = () => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...mockData.value]
+  try {
+    const res = await getWarehouseList()
+    console.log('获取仓库列表成功:', res)
 
-      if (params?.warehouseCode) {
-        filteredData = filteredData.filter((item) =>
-          item.warehouseCode.includes(params.warehouseCode),
-        )
-      }
+    let dataList = res.data?.data?.data || []
 
-      if (params?.warehouseName) {
-        filteredData = filteredData.filter((item) =>
-          item.warehouseName.includes(params.warehouseName),
-        )
-      }
+    dataList = dataList.map((item, index) => ({
+      ...item,
+      index: index + 1,
+      warehouseCode: item.warhouseId,
+      warehouseName: item.warhouseName,
+      warehouseTypeRaw: item.warhouseType,
+      warehouseType:
+        item.warhouseType === 'MaterialWarehouse'
+          ? '物料仓库'
+          : item.warhouseType === 'EquipmentWarehouse'
+            ? '设备仓库'
+            : item.warhouseType,
+      manager: item.warhouseManager?.productionStaffName || '',
+      managerId: item.warhouseManager?.id || '',
+      deptName: item.department?.departmentName || '',
+      deptId: item.department?.id || '',
+      establishDate: item.createTime ? item.createTime.split('T')[0] : '',
+      phone: item.phone || '',
+      address: item.warhouseLocation || '',
+      remark: item.remark || '',
+    }))
 
-      if (params?.warehouseType) {
-        filteredData = filteredData.filter((item) => item.warehouseType === params.warehouseType)
-      }
+    if (params?.warehouseCode) {
+      dataList = dataList.filter((item) => item.warehouseCode.includes(params.warehouseCode))
+    }
 
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
+    if (params?.warehouseName) {
+      dataList = dataList.filter((item) => item.warehouseName.includes(params.warehouseName))
+    }
 
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
+    if (params?.warehouseType) {
+      dataList = dataList.filter((item) => item.warehouseTypeRaw === params.warehouseType)
+    }
 
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+    const pageNum = params?.pageNum || 1
+    const pageSize = params?.pageSize || 10
+    const startIndex = (pageNum - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedData = dataList.slice(startIndex, endIndex)
+
+    const dataWithIndex = paginatedData.map((item, index) => ({
+      ...item,
+      index: startIndex + index + 1,
+    }))
+
+    return {
+      data: {
+        list: dataWithIndex,
+        total: dataList.length,
+      },
+    }
+  } catch (error) {
+    console.error('获取仓库列表失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
+
+onMounted(() => {
+  loadOptions()
+})
 </script>
 
 <template>
@@ -417,7 +331,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="仓库编码">
-              <el-input v-model="formData.warehouseCode" disabled placeholder="系统自动生成" />
+              <el-input v-model="formData.warehouseCode" />
             </el-form-item>
             <el-form-item label="仓库名称" prop="warehouseName">
               <el-input v-model="formData.warehouseName" placeholder="请输入仓库名称" />

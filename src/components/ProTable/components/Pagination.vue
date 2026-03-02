@@ -31,15 +31,15 @@ defineProps({
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
-  
+
   .el-pagination__total {
     margin-right: 12px;
   }
-  
+
   .el-pagination__sizes {
     margin-right: 12px;
   }
-  
+
   .el-pagination__jump {
     margin-left: 12px;
   }

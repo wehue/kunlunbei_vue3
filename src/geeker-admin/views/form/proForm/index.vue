@@ -8,7 +8,11 @@
     <component :is="'el-form'" v-bind="options.form" ref="proFormRef" :model="model">
       <template v-for="item in options.columns" :key="item.prop">
         <component :is="'el-form-item'" v-bind="item.formItem">
-          <component :is="`el-${item.attrs.typeName}`" v-bind="item.attrs" v-model="model[item.formItem.prop]" />
+          <component
+            :is="`el-${item.attrs.typeName}`"
+            v-bind="item.attrs"
+            v-model="model[item.formItem.prop]"
+          />
         </component>
       </template>
       <el-form-item>
@@ -19,66 +23,66 @@
 </template>
 
 <script setup name="proForm">
-import { ref } from "vue";
+import { ref } from 'vue'
 
-let model = ref({});
+let model = ref({})
 
 const options = ref({
   // 表单整体配置项
   form: {
     inline: false,
-    labelPosition: "right",
-    labelWidth: "80px",
-    size: "default",
+    labelPosition: 'right',
+    labelWidth: '80px',
+    size: 'default',
     disabled: false,
-    labelSuffix: " :"
+    labelSuffix: ' :',
   },
   // 表单列配置项 (formItem 代表 item 配置项，attrs 代表 输入、选择框 配置项)
   columns: [
     {
       formItem: {
-        label: "用户名",
-        prop: "username",
-        labelWidth: "80px",
-        required: true
+        label: '用户名',
+        prop: 'username',
+        labelWidth: '80px',
+        required: true,
       },
       attrs: {
-        typeName: "input",
+        typeName: 'input',
         clearable: true,
-        placeholder: "请输入用户名",
-        disabled: true
-      }
+        placeholder: '请输入用户名',
+        disabled: true,
+      },
     },
     {
       formItem: {
-        label: "密码",
-        prop: "password",
-        class: "data"
+        label: '密码',
+        prop: 'password',
+        class: 'data',
       },
       attrs: {
-        typeName: "input",
+        typeName: 'input',
         clearable: true,
         autofocus: true,
-        placeholder: "请输入密码",
-        type: "password"
-      }
+        placeholder: '请输入密码',
+        type: 'password',
+      },
     },
     {
       formItem: {
-        label: "邮箱",
-        prop: "email"
+        label: '邮箱',
+        prop: 'email',
       },
       attrs: {
-        typeName: "input",
-        placeholder: "请输入邮箱",
+        typeName: 'input',
+        placeholder: '请输入邮箱',
         clearable: true,
-        style: "width:500px"
-      }
-    }
-  ]
-});
+        style: 'width:500px',
+      },
+    },
+  ],
+})
 </script>
 
 <style scoped lang="scss">
-@import "./index.scss";
+@import './index.scss';
 </style>

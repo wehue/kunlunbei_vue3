@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete, Download, Lock, Refresh } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { getUserList, createUser, updateUserInfo, deleteUser } from '@/api/user'
 
 const router = useRouter()
 
@@ -22,150 +23,15 @@ const resetPwdForm = reactive({
 })
 
 const roleOptions = ref([
-  { label: '管理员', value: 'admin' },
-  { label: '主管', value: 'supervisor' },
-  { label: '设计师', value: 'designer' },
+  { label: '管理员', value: 'Admin' },
+  { label: '主管', value: 'Supervisor' },
+  { label: '设计师', value: 'Designer' },
 ])
 
 const statusOptions = ref([
-  { label: '启用', value: '启用' },
-  { label: '禁用', value: '禁用' },
-  { label: '已删除', value: '已删除' },
-])
-
-const mockData = ref([
-  {
-    id: 1,
-    userId: 'U001',
-    userName: '张三',
-    phone: '13800138001',
-    email: 'zhangsan@example.com',
-    role: 'admin',
-    status: '启用',
-    registerTime: '2023-01-15 10:30:00',
-    lastLoginTime: '2024-01-15 08:30:25',
-  },
-  {
-    id: 2,
-    userId: 'U002',
-    userName: '李四',
-    phone: '13800138002',
-    email: 'lisi@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-02-20 14:20:00',
-    lastLoginTime: '2024-01-15 08:32:10',
-  },
-  {
-    id: 3,
-    userId: 'U003',
-    userName: '王五',
-    phone: '13800138003',
-    email: 'wangwu@example.com',
-    role: 'designer',
-    status: '启用',
-    registerTime: '2023-03-10 09:15:00',
-    lastLoginTime: '2024-01-15 08:35:42',
-  },
-  {
-    id: 4,
-    userId: 'U004',
-    userName: '赵六',
-    phone: '13800138004',
-    email: 'zhaoliu@example.com',
-    role: 'designer',
-    status: '禁用',
-    registerTime: '2023-04-05 16:45:00',
-    lastLoginTime: '2024-01-10 10:20:15',
-  },
-  {
-    id: 5,
-    userId: 'U005',
-    userName: '钱七',
-    phone: '13800138005',
-    email: 'qianqi@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-05-12 11:30:00',
-    lastLoginTime: '2024-01-15 09:25:50',
-  },
-  {
-    id: 6,
-    userId: 'U006',
-    userName: '孙八',
-    phone: '13800138006',
-    email: 'sunba@example.com',
-    role: 'designer',
-    status: '启用',
-    registerTime: '2023-06-18 13:55:00',
-    lastLoginTime: '2024-01-15 10:10:45',
-  },
-  {
-    id: 7,
-    userId: 'U007',
-    userName: '周九',
-    phone: '13800138007',
-    email: 'zhoujiu@example.com',
-    role: 'admin',
-    status: '启用',
-    registerTime: '2023-07-22 15:10:00',
-    lastLoginTime: '2024-01-15 10:20:18',
-  },
-  {
-    id: 8,
-    userId: 'U008',
-    userName: '吴十',
-    phone: '13800138008',
-    email: 'wushi@example.com',
-    role: 'designer',
-    status: '禁用',
-    registerTime: '2023-08-08 08:40:00',
-    lastLoginTime: '2024-01-12 14:05:30',
-  },
-  {
-    id: 9,
-    userId: 'U009',
-    userName: '郑十一',
-    phone: '13800138009',
-    email: 'zheng11@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-09-15 10:25:00',
-    lastLoginTime: '2024-01-15 11:10:55',
-  },
-  {
-    id: 10,
-    userId: 'U010',
-    userName: '王十二',
-    phone: '13800138010',
-    email: 'wang12@example.com',
-    role: 'designer',
-    status: '已删除',
-    registerTime: '2023-10-20 12:35:00',
-    lastLoginTime: '2024-01-05 09:15:20',
-  },
-  {
-    id: 11,
-    userId: 'U011',
-    userName: '刘明',
-    phone: '13800138011',
-    email: 'liuming@example.com',
-    role: 'designer',
-    status: '启用',
-    registerTime: '2023-11-05 14:50:00',
-    lastLoginTime: '2024-01-15 14:05:12',
-  },
-  {
-    id: 12,
-    userId: 'U012',
-    userName: '陈华',
-    phone: '13800138012',
-    email: 'chenhua@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-12-01 09:20:00',
-    lastLoginTime: '2024-01-15 14:15:45',
-  },
+  { label: '启用', value: 'Active' },
+  { label: '禁用', value: 'Inactive' },
+  { label: '已删除', value: 'Deleted' },
 ])
 
 const columns = reactive([
@@ -176,9 +42,9 @@ const columns = reactive([
   { prop: 'phone', label: '手机号', search: { el: 'input', key: 'phone' } },
   { prop: 'role', label: '角色', search: { el: 'select', key: 'role' }, enum: roleOptions },
   {
-    prop: 'status',
+    prop: 'userStatus',
     label: '用户状态',
-    search: { el: 'select', key: 'status' },
+    search: { el: 'select', key: 'userStatus' },
     enum: statusOptions,
   },
   { prop: 'operation', label: '操作', width: 280, fixed: 'right' },
@@ -191,7 +57,7 @@ const formData = reactive({
   phone: '',
   email: '',
   role: '',
-  status: '启用',
+  userStatus: 'Active',
   password: '',
 })
 
@@ -204,12 +70,7 @@ const validateUserName = (rule, value, callback) => {
     callback(new Error('用户名长度应在2-20个字符之间'))
     return
   }
-  const exists = mockData.value.some((item) => item.userName === value && item.id !== formData.id)
-  if (exists) {
-    callback(new Error('用户名已存在'))
-  } else {
-    callback()
-  }
+  callback()
 }
 
 const validatePhone = (rule, value, callback) => {
@@ -221,12 +82,7 @@ const validatePhone = (rule, value, callback) => {
     callback(new Error('请输入正确的手机号'))
     return
   }
-  const exists = mockData.value.some((item) => item.phone === value && item.id !== formData.id)
-  if (exists) {
-    callback(new Error('该手机号已被注册'))
-  } else {
-    callback()
-  }
+  callback()
 }
 
 const validateEmail = (rule, value, callback) => {
@@ -239,12 +95,7 @@ const validateEmail = (rule, value, callback) => {
     callback(new Error('请输入正确的邮箱格式'))
     return
   }
-  const exists = mockData.value.some((item) => item.email === value && item.id !== formData.id)
-  if (exists) {
-    callback(new Error('该邮箱已被注册'))
-  } else {
-    callback()
-  }
+  callback()
 }
 
 const validatePassword = (rule, value, callback) => {
@@ -272,39 +123,31 @@ const rules = {
   phone: [{ required: true, validator: validatePhone, trigger: 'blur' }],
   email: [{ required: true, validator: validateEmail, trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-  status: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
+  userStatus: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
   password: [{ required: true, validator: validatePassword, trigger: 'blur' }],
-}
-
-const generateUserId = () => {
-  const maxId = mockData.value.reduce((max, item) => {
-    const id = parseInt(item.userId.replace('U', ''))
-    return id > max ? id : max
-  }, 0)
-  return `U${String(maxId + 1).padStart(3, '0')}`
 }
 
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    userId: generateUserId(),
+    userId: '',
     userName: '',
     phone: '',
     email: '',
     role: '',
-    status: '启用',
+    userStatus: 'Active',
     password: '',
   })
   dialogVisible.value = true
 }
 
 const handleView = (row) => {
-  router.push(`/user-manage/user-manage-detail/${row.id}`)
+  router.push(`/user-manage/user-manage-detail/${row.userId || row.id}`)
 }
 
 const handleEdit = (row) => {
-  if (row.role === 'admin') {
+  if (row.role === 'Admin') {
     ElMessage.warning('不能编辑管理员用户')
     return
   }
@@ -314,21 +157,21 @@ const handleEdit = (row) => {
     userId: row.userId,
     userName: row.userName,
     phone: row.phone,
-    email: row.email,
+    email: row.email || row.address,
     role: row.role,
-    status: row.status,
+    userStatus: row.userStatus,
     password: '',
   })
   dialogVisible.value = true
 }
 
 const handleToggleStatus = async (row) => {
-  if (row.role === 'admin') {
+  if (row.role === 'Admin') {
     ElMessage.warning('不能冻结管理员用户')
     return
   }
-  const newStatus = row.status === '启用' ? '禁用' : '启用'
-  const actionText = newStatus === '禁用' ? '冻结' : '解冻'
+  const newStatus = row.userStatus === 'Active' ? 'Inactive' : 'Active'
+  const actionText = newStatus === 'Inactive' ? '冻结' : '解冻'
 
   try {
     await ElMessageBox.confirm(`确定要${actionText}用户"${row.userName}"吗？`, '提示', {
@@ -336,19 +179,15 @@ const handleToggleStatus = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const index = mockData.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      mockData.value[index].status = newStatus
-      ElMessage.success(`${actionText}成功`)
-      proTableRef.value?.getTableList()
-    }
+    ElMessage.success(`${actionText}成功`)
+    proTableRef.value?.getTableList()
   } catch {
     // 用户取消
   }
 }
 
 const handleResetPwd = (row) => {
-  if (row.role === 'admin') {
+  if (row.role === 'Admin') {
     ElMessage.warning('不能重置管理员密码')
     return
   }
@@ -400,13 +239,13 @@ const handleResetPwdSubmit = async () => {
 }
 
 const handleDelete = async (row) => {
-  if (row.role === 'admin') {
+  if (row.role === 'Admin') {
     ElMessage.warning('不能删除管理员用户')
     return
   }
   try {
     await ElMessageBox.confirm(
-      `确定要删除用户"${row.userName}"吗？删除后用户状态将变为"已删除"。`,
+      `确定要删除用户"${row.userName}"吗？`,
       '提示',
       {
         confirmButtonText: '确定',
@@ -414,14 +253,14 @@ const handleDelete = async (row) => {
         type: 'warning',
       },
     )
-    const index = mockData.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      mockData.value[index].status = '已删除'
-      ElMessage.success('删除成功')
-      proTableRef.value?.getTableList()
+    await deleteUser(row.userId)
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error(error.response?.data?.message || '删除失败')
     }
-  } catch {
-    // 用户取消
   }
 }
 
@@ -430,7 +269,7 @@ const handleBatchFreeze = async (selectedList) => {
     ElMessage.warning('请先选择要冻结的用户')
     return
   }
-  const adminUsers = selectedList.filter((item) => item.role === 'admin')
+  const adminUsers = selectedList.filter((item) => item.role === 'Admin')
   if (adminUsers.length > 0) {
     ElMessage.warning('不能冻结管理员用户')
     return
@@ -440,12 +279,6 @@ const handleBatchFreeze = async (selectedList) => {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning',
-    })
-    selectedList.forEach((item) => {
-      const index = mockData.value.findIndex((data) => data.id === item.id)
-      if (index > -1) {
-        mockData.value[index].status = '禁用'
-      }
     })
     ElMessage.success(`成功冻结 ${selectedList.length} 个用户`)
     proTableRef.value?.getTableList()
@@ -465,12 +298,6 @@ const handleBatchUnfreeze = async (selectedList) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    selectedList.forEach((item) => {
-      const index = mockData.value.findIndex((data) => data.id === item.id)
-      if (index > -1) {
-        mockData.value[index].status = '启用'
-      }
-    })
     ElMessage.success(`成功解冻 ${selectedList.length} 个用户`)
     proTableRef.value?.getTableList()
   } catch {
@@ -483,26 +310,16 @@ const handleBatchDelete = async (selectedList) => {
     ElMessage.warning('请先选择要删除的用户')
     return
   }
-  const adminUsers = selectedList.filter((item) => item.role === 'admin')
+  const adminUsers = selectedList.filter((item) => item.role === 'Admin')
   if (adminUsers.length > 0) {
     ElMessage.warning('不能删除管理员用户')
     return
   }
   try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedList.length} 个用户吗？删除后用户状态将变为"已删除"。`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      },
-    )
-    selectedList.forEach((item) => {
-      const index = mockData.value.findIndex((data) => data.id === item.id)
-      if (index > -1) {
-        mockData.value[index].status = '已删除'
-      }
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedList.length} 个用户吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
     })
     ElMessage.success(`成功删除 ${selectedList.length} 个用户`)
     proTableRef.value?.getTableList()
@@ -540,43 +357,39 @@ const handleExportBatch = (selectedList) => {
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (isEdit.value) {
-        const index = mockData.value.findIndex((item) => item.id === formData.id)
-        if (index > -1) {
-          mockData.value[index] = {
-            ...mockData.value[index],
+      try {
+        if (isEdit.value) {
+          const updateData = {
+            id: formData.id,
             userName: formData.userName,
             phone: formData.phone,
-            email: formData.email,
+            address: formData.email,
             role: formData.role,
-            status: formData.status,
+            userStatus: formData.userStatus,
           }
+          await updateUserInfo(updateData)
+          ElMessage.success('修改成功')
+        } else {
+          const userData = {
+            userId: formData.userId,
+            userName: formData.userName,
+            phone: formData.phone,
+            address: formData.email,
+            role: formData.role,
+            userStatus: formData.userStatus,
+          }
+          console.log('新增的用户数据:', userData)
+          await createUser(userData)
+          ElMessage.success('新增成功')
         }
-        ElMessage.success('修改成功')
-      } else {
-        const maxId = mockData.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
-        const now = new Date()
-        const registerTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
-        mockData.value.push({
-          id: maxId + 1,
-          userId: formData.userId,
-          userName: formData.userName,
-          phone: formData.phone,
-          email: formData.email,
-          role: formData.role,
-          status: formData.status,
-          registerTime: registerTime,
-          lastLoginTime: '-',
-        })
-        ElMessage.success('新增成功')
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        console.error('操作失败:', error)
+        ElMessage.error(error.response?.data?.message || '操作失败')
       }
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
     }
   })
 }
@@ -585,56 +398,46 @@ const handleCancel = () => {
   dialogVisible.value = false
 }
 
-const filterData = (data, params) => {
-  let filteredData = [...data]
+const getTableList = async (params) => {
+  const res = await getUserList()
+  const innerData = res.data.data
+  let list = Array.isArray(innerData?.data)
+    ? innerData.data
+    : (innerData?.list ?? innerData?.records ?? [])
 
   if (params?.userId) {
-    filteredData = filteredData.filter((item) => item.userId.includes(params.userId))
+    list = list.filter((item) => item.userId?.includes(params.userId))
   }
-
   if (params?.userName) {
-    filteredData = filteredData.filter((item) => item.userName.includes(params.userName))
+    list = list.filter((item) => item.userName?.includes(params.userName))
   }
-
   if (params?.phone) {
-    filteredData = filteredData.filter((item) => item.phone.includes(params.phone))
+    list = list.filter((item) => item.phone?.includes(params.phone))
   }
-
   if (params?.role) {
-    filteredData = filteredData.filter((item) => item.role === params.role)
+    list = list.filter((item) => item.role === params.role)
+  }
+  if (params?.userStatus) {
+    list = list.filter((item) => item.userStatus === params.userStatus)
   }
 
-  if (params?.status) {
-    filteredData = filteredData.filter((item) => item.status === params.status)
+  const total = list.length
+  const pageNum = params?.pageNum || 1
+  const pageSize = params?.pageSize || 10
+  const startIndex = (pageNum - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedList = list.slice(startIndex, endIndex)
+  const dataWithIndex = paginatedList.map((item, index) => ({
+    ...item,
+    index: startIndex + index + 1,
+    email: item.email || item.address,
+  }))
+  return {
+    data: {
+      list: dataWithIndex,
+      total,
+    },
   }
-
-  return filteredData
-}
-
-const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const filteredData = filterData(mockData.value, params)
-
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
-
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
-
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
 }
 </script>
 
@@ -682,50 +485,56 @@ const getTableList = async (params) => {
       <template #role="scope">
         <el-tag
           :type="
-            scope.row.role === 'admin'
+            scope.row.role === 'Admin'
               ? 'danger'
-              : scope.row.role === 'supervisor'
+              : scope.row.role === 'Supervisor'
                 ? 'warning'
                 : 'primary'
           "
         >
           {{
-            scope.row.role === 'admin'
+            scope.row.role === 'Admin'
               ? '管理员'
-              : scope.row.role === 'supervisor'
+              : scope.row.role === 'Supervisor'
                 ? '主管'
                 : '设计师'
           }}
         </el-tag>
       </template>
 
-      <template #status="scope">
+      <template #userStatus="scope">
         <el-tag
           :type="
-            scope.row.status === '启用'
+            scope.row.userStatus === 'Active'
               ? 'success'
-              : scope.row.status === '禁用'
+              : scope.row.userStatus === 'Inactive'
                 ? 'warning'
                 : 'danger'
           "
         >
-          {{ scope.row.status }}
+          {{
+            scope.row.userStatus === 'Active'
+              ? '启用'
+              : scope.row.userStatus === 'Inactive'
+                ? '禁用'
+                : '已删除'
+          }}
         </el-tag>
       </template>
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <template v-if="scope.row.role !== 'admin'">
+        <template v-if="scope.row.role !== 'Admin'">
           <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)"
             >编辑</el-button
           >
           <el-button
-            :type="scope.row.status === '启用' ? 'warning' : 'success'"
+            :type="scope.row.userStatus === 'Active' ? 'warning' : 'success'"
             link
             :icon="Lock"
             @click="handleToggleStatus(scope.row)"
           >
-            {{ scope.row.status === '启用' ? '冻结' : '解冻' }}
+            {{ scope.row.userStatus === 'Active' ? '冻结' : '解冻' }}
           </el-button>
           <el-button type="primary" link :icon="Refresh" @click="handleResetPwd(scope.row)"
             >重置密码</el-button
@@ -749,7 +558,7 @@ const getTableList = async (params) => {
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
         <div class="form-grid">
           <el-form-item label="用户ID">
-            <el-input v-model="formData.userId" disabled placeholder="系统自动生成" />
+            <el-input v-model="formData.userId" />
           </el-form-item>
           <el-form-item label="用户名" prop="userName">
             <el-input v-model="formData.userName" placeholder="请输入用户名" />
@@ -770,10 +579,15 @@ const getTableList = async (params) => {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="用户状态" prop="status">
-            <el-select v-model="formData.status" placeholder="请选择用户状态" style="width: 100%">
-              <el-option label="启用" value="启用" />
-              <el-option label="禁用" value="禁用" />
+          <el-form-item label="用户状态" prop="userStatus">
+            <el-select
+              v-model="formData.userStatus"
+              placeholder="请选择用户状态"
+              style="width: 100%"
+            >
+              <el-option label="正常" value="Active" />
+              <el-option label="冻结" value="Inactive" />
+              <!-- <el-option label="已删除" value="Deleted" /> -->
             </el-select>
           </el-form-item>
           <el-form-item v-if="!isEdit" label="密码" prop="password">

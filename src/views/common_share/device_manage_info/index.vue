@@ -6,6 +6,7 @@ import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import { getDeviceList } from '@/api/device'
 
 const router = useRouter()
 const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
@@ -45,105 +46,6 @@ const unitOptions = [
   { label: '个', value: '个' },
 ]
 
-const mockData = ref([
-  {
-    id: 1,
-    deviceCode: 'DEV20240001',
-    deviceName: '数控车床',
-    brand: '西门子',
-    location: '车间A',
-    specModel: 'CNC-800',
-  },
-  {
-    id: 2,
-    deviceCode: 'DEV20240002',
-    deviceName: '加工中心',
-    brand: '三菱',
-    location: '车间B',
-    specModel: 'MC-500',
-  },
-  {
-    id: 3,
-    deviceCode: 'DEV20240003',
-    deviceName: '铣床',
-    brand: '欧姆龙',
-    location: '仓库C',
-    specModel: 'MX-300',
-  },
-  {
-    id: 4,
-    deviceCode: 'DEV20240004',
-    deviceName: '磨床',
-    brand: 'ABB',
-    location: '实验室',
-    specModel: 'GM-200',
-  },
-  {
-    id: 5,
-    deviceCode: 'DEV20240005',
-    deviceName: '钻床',
-    brand: '施耐德',
-    location: '车间A',
-    specModel: 'ZJ-400',
-  },
-  {
-    id: 6,
-    deviceCode: 'DEV20240006',
-    deviceName: '刨床',
-    brand: '西门子',
-    location: '车间B',
-    specModel: 'BC-250',
-  },
-  {
-    id: 7,
-    deviceCode: 'DEV20240007',
-    deviceName: '插床',
-    brand: '三菱',
-    location: '仓库C',
-    specModel: 'CC-350',
-  },
-  {
-    id: 8,
-    deviceCode: 'DEV20240008',
-    deviceName: '拉床',
-    brand: '欧姆龙',
-    location: '实验室',
-    specModel: 'LC-150',
-  },
-  {
-    id: 9,
-    deviceCode: 'DEV20240009',
-    deviceName: '锯床',
-    brand: 'ABB',
-    location: '车间A',
-    specModel: 'JC-100',
-  },
-  {
-    id: 10,
-    deviceCode: 'DEV20240010',
-    deviceName: '镗床',
-    brand: '施耐德',
-    location: '车间B',
-    specModel: 'TC-600',
-  },
-  {
-    id: 11,
-    deviceCode: 'DEV20240011',
-    deviceName: '齿轮机床',
-    brand: '西门子',
-    location: '仓库C',
-    specModel: 'GC-280',
-  },
-  {
-    id: 12,
-    deviceCode: 'DEV20240012',
-    deviceName: '螺纹机床',
-    brand: '三菱',
-    location: '实验室',
-    specModel: 'LCW-450',
-  },
-])
-
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
@@ -176,19 +78,6 @@ const formData = reactive({
   remark: '',
 })
 
-const validateDeviceName = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请输入设备名称'))
-    return
-  }
-  const exists = mockData.value.some((item) => item.deviceName === value && item.id !== formData.id)
-  if (exists) {
-    callback(new Error('设备名称已存在，请使用其他名称'))
-  } else {
-    callback()
-  }
-}
-
 const validateStockQuantity = (rule, value, callback) => {
   if (!value && value !== 0) {
     callback(new Error('请输入库存数量'))
@@ -218,7 +107,7 @@ const validateServiceLife = (rule, value, callback) => {
 }
 
 const rules = {
-  deviceName: [{ required: true, validator: validateDeviceName, trigger: 'blur' }],
+  deviceName: [{ required: true, message: '请输入设备名称', trigger: 'blur' }],
   manufacturer: [{ required: true, message: '请输入生产厂家', trigger: 'blur' }],
   brand: [{ required: true, message: '请选择品牌', trigger: 'change' }],
   specModel: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
@@ -229,16 +118,6 @@ const rules = {
   location: [{ required: true, message: '请选择位置', trigger: 'change' }],
   stockQuantity: [{ required: true, validator: validateStockQuantity, trigger: 'blur' }],
   unit: [{ required: true, message: '请选择单位', trigger: 'change' }],
-}
-
-const generateDeviceCode = () => {
-  const year = new Date().getFullYear()
-  const maxId = mockData.value.reduce((max, item) => {
-    const id = parseInt(item.id)
-    return id > max ? id : max
-  }, 0)
-  const newId = String(maxId + 1).padStart(4, '0')
-  return `DEV${year}${newId}`
 }
 
 const initExtendFields = () => {
@@ -265,7 +144,7 @@ const handleRemoveExtendField = (index) => {
 
 const handleAdd = () => {
   Object.assign(formData, {
-    deviceCode: generateDeviceCode(),
+    deviceCode: '',
     deviceName: '',
     manufacturer: '',
     brand: '',
@@ -288,34 +167,6 @@ const handleSubmit = async () => {
 
   await formRef.value.validate((valid) => {
     if (valid) {
-      const extendData = {}
-      extendFields.value.forEach((field) => {
-        extendData[field.key] = field.value
-      })
-
-      const maxId = mockData.value.reduce((max, item) => {
-        const id = parseInt(item.id)
-        return id > max ? id : max
-      }, 0)
-
-      const newDevice = {
-        id: maxId + 1,
-        deviceCode: formData.deviceCode,
-        deviceName: formData.deviceName,
-        brand: formData.brand,
-        location: formData.location,
-        specModel: formData.specModel,
-        manufacturer: formData.manufacturer,
-        supplier: formData.supplier,
-        productionDate: formData.productionDate,
-        serviceLife: formData.serviceLife,
-        depreciationMethod: formData.depreciationMethod,
-        stockQuantity: formData.stockQuantity,
-        unit: formData.unit,
-        ...extendData,
-      }
-
-      mockData.value.push(newDevice)
       ElMessage.success('新增成功')
       dialogVisible.value = false
       proTableRef.value?.getTableList()
@@ -369,45 +220,40 @@ const handleExportBatch = (selectedList) => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...mockData.value]
-
-      if (params?.deviceCode) {
-        filteredData = filteredData.filter((item) => item.deviceCode.includes(params.deviceCode))
-      }
-
-      if (params?.deviceName) {
-        filteredData = filteredData.filter((item) => item.deviceName.includes(params.deviceName))
-      }
-
-      if (params?.brand) {
-        filteredData = filteredData.filter((item) => item.brand === params.brand)
-      }
-
-      if (params?.location) {
-        filteredData = filteredData.filter((item) => item.location === params.location)
-      }
-
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
-
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
-
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+  const res = await getDeviceList(params)
+  const innerData = res.data.data
+  console.log('设备列表信息', innerData)
+  const rawList = Array.isArray(innerData?.data)
+    ? innerData.data
+    : (innerData?.list ?? innerData?.records ?? [])
+  const total = innerData?.total ?? rawList.length
+  const pageNum = params?.pageNum || 1
+  const pageSize = params?.pageSize || 10
+  const startIndex = (pageNum - 1) * pageSize
+  const dataWithIndex = rawList.map((item, index) => ({
+    ...item,
+    id: item.id,
+    deviceCode: item.equipmentId || item.deviceCode,
+    deviceName: item.equipmentName || item.deviceName,
+    brand: item.brand,
+    location: item.location,
+    specModel: item.specificationModel || item.specModel,
+    manufacturer: item.manufacturer,
+    supplier: item.supplier,
+    productionDate: item.productionDate,
+    serviceLife: item.serviceLife,
+    depreciationMethod: item.depreciationMethod,
+    stockQuantity: item.expenditureQuantity || item.stockQuantity,
+    unit: item.unit,
+    remark: item.remark,
+    index: startIndex + index + 1,
+  }))
+  return {
+    data: {
+      list: dataWithIndex,
+      total,
+    },
+  }
 }
 </script>
 
@@ -468,7 +314,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="设备编码">
-              <el-input v-model="formData.deviceCode" disabled placeholder="系统自动生成" />
+              <el-input v-model="formData.deviceCode" />
             </el-form-item>
             <el-form-item label="设备名称" prop="deviceName">
               <el-input v-model="formData.deviceName" placeholder="请输入设备名称" />

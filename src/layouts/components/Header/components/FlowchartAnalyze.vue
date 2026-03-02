@@ -26,7 +26,7 @@ const handleNavigate = () => {
     color: var(--el-header-text-color);
     cursor: pointer;
     transition: all 0.3s;
-    
+
     &:hover {
       color: var(--el-color-primary);
       transform: scale(1.1);

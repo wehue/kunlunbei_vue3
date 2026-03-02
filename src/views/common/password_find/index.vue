@@ -2,7 +2,16 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElNotification } from 'element-plus'
-import { User, Lock, Key, View, Hide, Iphone, CircleClose, UserFilled } from '@element-plus/icons-vue'
+import {
+  User,
+  Lock,
+  Key,
+  View,
+  Hide,
+  Iphone,
+  CircleClose,
+  UserFilled,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -491,7 +500,6 @@ onMounted(() => {
         font-size: 14px;
         color: #666;
       }
-
     }
   }
 }

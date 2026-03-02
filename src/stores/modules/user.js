@@ -79,7 +79,7 @@ export const useUserStore = defineStore(
           const authStore = useAuthStore()
           authStore.getAuthMenuList()
         }
-      }
+      },
     )
 
     return {

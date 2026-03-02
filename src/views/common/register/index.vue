@@ -2,7 +2,16 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElNotification } from 'element-plus'
-import { User, Lock, Key, View, Hide, Iphone, CircleClose, UserFilled } from '@element-plus/icons-vue'
+import {
+  User,
+  Lock,
+  Key,
+  View,
+  Hide,
+  Iphone,
+  CircleClose,
+  UserFilled,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -201,7 +210,8 @@ onMounted(() => {
           </el-form-item>
           <el-form-item>
             <el-checkbox v-model="agreeTerms">
-              我已阅读并同意<el-link type="primary" :underline="false">《用户协议》</el-link>和<el-link type="primary" :underline="false">《隐私政策》</el-link>
+              我已阅读并同意<el-link type="primary" :underline="false">《用户协议》</el-link
+              >和<el-link type="primary" :underline="false">《隐私政策》</el-link>
             </el-checkbox>
           </el-form-item>
         </el-form>

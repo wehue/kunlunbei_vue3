@@ -16,18 +16,102 @@ const formRef = ref()
 const deptOptions = ref([])
 
 const mockDeptData = {
-  1: { id: 1, deptCode: 'DEPT20240001', deptName: '技术部', parentId: null, parentName: '', establishDate: '2020-01-15' },
-  2: { id: 2, deptCode: 'DEPT20240002', deptName: '生产部', parentId: null, parentName: '', establishDate: '2020-02-20' },
-  3: { id: 3, deptCode: 'DEPT20240003', deptName: '质量部', parentId: null, parentName: '', establishDate: '2020-03-10' },
-  4: { id: 4, deptCode: 'DEPT20240004', deptName: '采购部', parentId: null, parentName: '', establishDate: '2020-04-05' },
-  5: { id: 5, deptCode: 'DEPT20240005', deptName: '销售部', parentId: null, parentName: '', establishDate: '2020-05-12' },
-  6: { id: 6, deptCode: 'DEPT20240006', deptName: '财务部', parentId: null, parentName: '', establishDate: '2020-06-18' },
-  7: { id: 7, deptCode: 'DEPT20240007', deptName: '人力资源部', parentId: null, parentName: '', establishDate: '2020-07-22' },
-  8: { id: 8, deptCode: 'DEPT20240008', deptName: '研发中心', parentId: 1, parentName: '技术部', establishDate: '2021-01-08' },
-  9: { id: 9, deptCode: 'DEPT20240009', deptName: '测试中心', parentId: 1, parentName: '技术部', establishDate: '2021-02-15' },
-  10: { id: 10, deptCode: 'DEPT20240010', deptName: '生产一车间', parentId: 2, parentName: '生产部', establishDate: '2021-03-20' },
-  11: { id: 11, deptCode: 'DEPT20240011', deptName: '生产二车间', parentId: 2, parentName: '生产部', establishDate: '2021-04-10' },
-  12: { id: 12, deptCode: 'DEPT20240012', deptName: '仓储中心', parentId: 2, parentName: '生产部', establishDate: '2021-05-05' },
+  1: {
+    id: 1,
+    deptCode: 'DEPT20240001',
+    deptName: '技术部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-01-15',
+  },
+  2: {
+    id: 2,
+    deptCode: 'DEPT20240002',
+    deptName: '生产部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-02-20',
+  },
+  3: {
+    id: 3,
+    deptCode: 'DEPT20240003',
+    deptName: '质量部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-03-10',
+  },
+  4: {
+    id: 4,
+    deptCode: 'DEPT20240004',
+    deptName: '采购部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-04-05',
+  },
+  5: {
+    id: 5,
+    deptCode: 'DEPT20240005',
+    deptName: '销售部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-05-12',
+  },
+  6: {
+    id: 6,
+    deptCode: 'DEPT20240006',
+    deptName: '财务部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-06-18',
+  },
+  7: {
+    id: 7,
+    deptCode: 'DEPT20240007',
+    deptName: '人力资源部',
+    parentId: null,
+    parentName: '',
+    establishDate: '2020-07-22',
+  },
+  8: {
+    id: 8,
+    deptCode: 'DEPT20240008',
+    deptName: '研发中心',
+    parentId: 1,
+    parentName: '技术部',
+    establishDate: '2021-01-08',
+  },
+  9: {
+    id: 9,
+    deptCode: 'DEPT20240009',
+    deptName: '测试中心',
+    parentId: 1,
+    parentName: '技术部',
+    establishDate: '2021-02-15',
+  },
+  10: {
+    id: 10,
+    deptCode: 'DEPT20240010',
+    deptName: '生产一车间',
+    parentId: 2,
+    parentName: '生产部',
+    establishDate: '2021-03-20',
+  },
+  11: {
+    id: 11,
+    deptCode: 'DEPT20240011',
+    deptName: '生产二车间',
+    parentId: 2,
+    parentName: '生产部',
+    establishDate: '2021-04-10',
+  },
+  12: {
+    id: 12,
+    deptCode: 'DEPT20240012',
+    deptName: '仓储中心',
+    parentId: 2,
+    parentName: '生产部',
+    establishDate: '2021-05-05',
+  },
 }
 
 const initDeptOptions = () => {
@@ -145,7 +229,9 @@ onMounted(() => {
             <div class="info-item">
               <div class="info-label">所属部门</div>
               <div class="info-value">
-                <el-tag v-if="deptData.parentName" type="success" size="default">{{ deptData.parentName }}</el-tag>
+                <el-tag v-if="deptData.parentName" type="success" size="default">{{
+                  deptData.parentName
+                }}</el-tag>
                 <span v-else>-</span>
               </div>
             </div>

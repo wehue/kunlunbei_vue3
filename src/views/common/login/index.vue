@@ -231,7 +231,7 @@ onBeforeUnmount(() => {
           <h2 class="logo-text">智造精艺</h2>
         </div>
         <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" size="large">
-                    <el-form-item>
+          <el-form-item>
             <el-select v-model="loginForm.role" placeholder="请选择角色" style="width: 100%">
               <el-option
                 v-for="item in roleOptions"
@@ -282,7 +282,9 @@ onBeforeUnmount(() => {
           <el-form-item>
             <div class="form-options">
               <el-checkbox v-model="loginForm.remember">记住账号</el-checkbox>
-              <el-link type="primary" :underline="false" @click="goToPasswordFind">忘记密码？</el-link>
+              <el-link type="primary" :underline="false" @click="goToPasswordFind"
+                >忘记密码？</el-link
+              >
             </div>
           </el-form-item>
         </el-form>
@@ -302,7 +304,9 @@ onBeforeUnmount(() => {
           </el-button>
         </div>
         <div class="login-footer">
-          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister">立即注册</el-link>
+          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister"
+            >立即注册</el-link
+          >
         </div>
       </div>
     </div>

@@ -224,10 +224,7 @@ const getOperationColor = computed(() => {
               :class="getChangeType(field)"
             >
               <div class="field-label">
-                <el-icon
-                  v-if="isValueChanged(field)"
-                  :color="getChangeColor(getChangeType(field))"
-                >
+                <el-icon v-if="isValueChanged(field)" :color="getChangeColor(getChangeType(field))">
                   <component :is="getChangeIcon(getChangeType(field))" />
                 </el-icon>
                 {{ getFieldLabel(field) }}
@@ -264,10 +261,7 @@ const getOperationColor = computed(() => {
               :class="getChangeType(field)"
             >
               <div class="field-label">
-                <el-icon
-                  v-if="isValueChanged(field)"
-                  :color="getChangeColor(getChangeType(field))"
-                >
+                <el-icon v-if="isValueChanged(field)" :color="getChangeColor(getChangeType(field))">
                   <component :is="getChangeIcon(getChangeType(field))" />
                 </el-icon>
                 {{ getFieldLabel(field) }}
@@ -282,7 +276,10 @@ const getOperationColor = computed(() => {
     </div>
 
     <div v-else class="table-view">
-      <el-table :data="allFields.map((field) => ({ field, changeType: getChangeType(field) }))" border>
+      <el-table
+        :data="allFields.map((field) => ({ field, changeType: getChangeType(field) }))"
+        border
+      >
         <el-table-column label="字段名称" width="180">
           <template #default="{ row }">
             <div class="field-name-cell" :class="row.changeType">
@@ -335,7 +332,9 @@ const getOperationColor = computed(() => {
               "
               size="small"
             >
-              {{ row.changeType === 'added' ? '新增' : row.changeType === 'removed' ? '删除' : '修改' }}
+              {{
+                row.changeType === 'added' ? '新增' : row.changeType === 'removed' ? '删除' : '修改'
+              }}
             </el-tag>
             <span v-else class="unchanged-text">未变更</span>
           </template>

@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, ArrowLeft } from '@element-plus/icons-vue'
+import { getWarehouseDetail, updateWarehouse } from '@/api/warehouse'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,64 +15,65 @@ const formData = reactive({})
 const formRef = ref()
 
 const warehouseTypeOptions = ref([
-  { label: '物料仓库', value: '物料仓库' },
-  { label: '设备仓库', value: '设备仓库' },
+  { label: '物料仓库', value: 'MaterialWarehouse' },
+  { label: '设备仓库', value: 'EquipmentWarehouse' },
 ])
 
-const deptOptions = ref([
-  { label: '技术部', value: '技术部' },
-  { label: '生产部', value: '生产部' },
-  { label: '质量部', value: '质量部' },
-  { label: '采购部', value: '采购部' },
-  { label: '销售部', value: '销售部' },
-  { label: '财务部', value: '财务部' },
-  { label: '人力资源部', value: '人力资源部' },
-])
+const deptOptions = ref([])
 
-const userOptions = ref([
-  { label: '张三', value: '张三' },
-  { label: '李四', value: '李四' },
-  { label: '王五', value: '王五' },
-  { label: '赵六', value: '赵六' },
-  { label: '钱七', value: '钱七' },
-  { label: '孙八', value: '孙八' },
-  { label: '周九', value: '周九' },
-  { label: '吴十', value: '吴十' },
-  { label: '郑十一', value: '郑十一' },
-  { label: '王十二', value: '王十二' },
-  { label: '刘明', value: '刘明' },
-  { label: '陈华', value: '陈华' },
-])
+const userOptions = ref([])
 
-const mockWarehouseData = {
-  1: { id: 1, warehouseCode: 'WH20240001', warehouseName: '物料仓库A', warehouseType: '物料仓库', manager: '张三', phone: '13800138001', deptName: '采购部', address: '厂区东侧A栋', remark: '存放原材料', establishDate: '2020-01-15' },
-  2: { id: 2, warehouseCode: 'WH20240002', warehouseName: '设备仓库A', warehouseType: '设备仓库', manager: '李四', phone: '13800138002', deptName: '生产部', address: '厂区西侧B栋', remark: '存放设备', establishDate: '2020-02-20' },
-  3: { id: 3, warehouseCode: 'WH20240003', warehouseName: '物料仓库B', warehouseType: '物料仓库', manager: '王五', phone: '13800138003', deptName: '生产部', address: '车间内部C区', remark: '存放半成品物料', establishDate: '2020-03-10' },
-  4: { id: 4, warehouseCode: 'WH20240004', warehouseName: '设备仓库B', warehouseType: '设备仓库', manager: '赵六', phone: '13800138004', deptName: '技术部', address: '厂区北侧D栋', remark: '存放设备备件', establishDate: '2020-04-05' },
-  5: { id: 5, warehouseCode: 'WH20240005', warehouseName: '物料仓库C', warehouseType: '物料仓库', manager: '钱七', phone: '13800138005', deptName: '生产部', address: '车间内部E区', remark: '存放工具物料', establishDate: '2020-05-12' },
-  6: { id: 6, warehouseCode: 'WH20240006', warehouseName: '设备仓库C', warehouseType: '设备仓库', manager: '孙八', phone: '13800138006', deptName: '生产部', address: '厂区南侧F栋', remark: '存放大型设备', establishDate: '2020-06-18' },
-  7: { id: 7, warehouseCode: 'WH20240007', warehouseName: '物料仓库D', warehouseType: '物料仓库', manager: '周九', phone: '13800138007', deptName: '采购部', address: '厂区东侧G栋', remark: '存放原材料', establishDate: '2020-07-22' },
-  8: { id: 8, warehouseCode: 'WH20240008', warehouseName: '设备仓库D', warehouseType: '设备仓库', manager: '吴十', phone: '13800138008', deptName: '技术部', address: '厂区西侧H栋', remark: '存放精密设备', establishDate: '2021-01-08' },
-  9: { id: 9, warehouseCode: 'WH20240009', warehouseName: '物料仓库E', warehouseType: '物料仓库', manager: '郑十一', phone: '13800138009', deptName: '采购部', address: '厂区北侧I栋', remark: '存放需冷藏物料', establishDate: '2021-02-15' },
-  10: { id: 10, warehouseCode: 'WH20240010', warehouseName: '设备仓库E', warehouseType: '设备仓库', manager: '王十二', phone: '13800138010', deptName: '技术部', address: '厂区隔离区J栋', remark: '存放危险设备', establishDate: '2021-03-20' },
-  11: { id: 11, warehouseCode: 'WH20240011', warehouseName: '物料仓库F', warehouseType: '物料仓库', manager: '刘明', phone: '13800138011', deptName: '生产部', address: '厂区东侧K栋', remark: '存放包装材料', establishDate: '2021-04-10' },
-  12: { id: 12, warehouseCode: 'WH20240012', warehouseName: '设备仓库F', warehouseType: '设备仓库', manager: '陈华', phone: '13800138012', deptName: '技术部', address: '厂区西侧L栋', remark: '存放检测设备', establishDate: '2021-05-05' },
-}
-
-const loadWarehouseData = () => {
+const loadWarehouseData = async () => {
   loading.value = true
-  setTimeout(() => {
-    const id = route.params.id
-    const data = mockWarehouseData[id] || mockWarehouseData[1]
-    warehouseData.value = { ...data }
-    Object.assign(formData, data)
+  try {
+    const warhouseId = route.params.warhouseId || route.params.id
+    const res = await getWarehouseDetail(warhouseId)
+    console.log('仓库详情接口返回:', res)
+
+    const item = res.data?.data?.data || {}
+    console.log('原始数据:', item)
+
+    const mappedData = {
+      id: item.id,
+      warehouseCode: item.warhouseId,
+      warehouseName: item.warhouseName,
+      warehouseTypeRaw: item.warhouseType,
+      warehouseType:
+        item.warhouseType === 'MaterialWarehouse'
+          ? '物料仓库'
+          : item.warhouseType === 'EquipmentWarehouse'
+            ? '设备仓库'
+            : item.warhouseType,
+      manager: item.warhouseManager?.productionStaffName || '',
+      managerId: item.warhouseManager?.id || '',
+      phone: item.phone || '',
+      deptName: item.department?.departmentName || '',
+      deptId: item.department?.id || '',
+      address: item.warhouseLocation || '',
+      remark: item.remark || '',
+      establishDate: item.createTime ? item.createTime.split('T')[0] : '',
+    }
+
+    console.log('映射后数据:', mappedData)
+
+    warehouseData.value = { ...mappedData }
+    Object.assign(formData, mappedData)
+  } catch (error) {
+    console.error('获取仓库详情失败:', error)
+    ElMessage.error('获取仓库详情失败')
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const handleEdit = () => {
   isEdit.value = true
-  Object.assign(formData, warehouseData.value)
+  Object.assign(formData, {
+    ...warehouseData.value,
+    warehouseType: warehouseData.value.warehouseTypeRaw || warehouseData.value.warehouseType,
+    manager: warehouseData.value.managerId || '',
+    deptName: warehouseData.value.deptId || '',
+  })
 }
 
 const handleCancel = () => {
@@ -90,12 +92,34 @@ const handleCancel = () => {
 const handleSave = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      Object.assign(warehouseData.value, formData)
-      mockWarehouseData[warehouseData.value.id] = { ...warehouseData.value }
-      ElMessage.success('保存成功')
-      isEdit.value = false
+      try {
+        const submitData = {
+          id: warehouseData.value.id,
+          warhouseId: warehouseData.value.warehouseCode,
+          warhouseName: formData.warehouseName,
+          warhouseType: formData.warehouseType,
+          warhouseManager: {
+            id: formData.manager,
+          },
+          phone: formData.phone,
+          department: {
+            id: formData.deptName,
+          },
+          warhouseLocation: formData.address,
+          remark: formData.remark,
+          createTime: formData.establishDate,
+        }
+        console.log('详情页修改提交数据:', submitData)
+        await updateWarehouse(submitData)
+        await loadWarehouseData()
+        ElMessage.success('保存成功')
+        isEdit.value = false
+      } catch (error) {
+        console.error('保存失败:', error)
+        ElMessage.error('保存失败，请重试')
+      }
     }
   })
 }
@@ -202,7 +226,11 @@ onMounted(() => {
                 <el-input v-model="formData.warehouseName" placeholder="请输入仓库名称" />
               </el-form-item>
               <el-form-item label="仓库类型" prop="warehouseType">
-                <el-select v-model="formData.warehouseType" placeholder="请选择仓库类型" style="width: 100%">
+                <el-select
+                  v-model="formData.warehouseType"
+                  placeholder="请选择仓库类型"
+                  style="width: 100%"
+                >
                   <el-option
                     v-for="item in warehouseTypeOptions"
                     :key="item.value"
@@ -230,7 +258,11 @@ onMounted(() => {
                 <el-input v-model="formData.phone" placeholder="请输入联系电话" />
               </el-form-item>
               <el-form-item label="所属部门" prop="deptName">
-                <el-select v-model="formData.deptName" placeholder="请选择所属部门" style="width: 100%">
+                <el-select
+                  v-model="formData.deptName"
+                  placeholder="请选择所属部门"
+                  style="width: 100%"
+                >
                   <el-option
                     v-for="item in deptOptions"
                     :key="item.value"
@@ -275,7 +307,12 @@ onMounted(() => {
         <template v-else>
           <div class="extend-edit">
             <el-form-item label="备注">
-              <el-input v-model="formData.remark" type="textarea" :rows="4" placeholder="请输入备注" />
+              <el-input
+                v-model="formData.remark"
+                type="textarea"
+                :rows="4"
+                placeholder="请输入备注"
+              />
             </el-form-item>
           </div>
         </template>

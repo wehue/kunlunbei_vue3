@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, ArrowLeft } from '@element-plus/icons-vue'
+import { getUserDetailById, updateUserInfo } from '@/api/user'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,155 +15,60 @@ const formData = reactive({})
 const formRef = ref()
 
 const roleOptions = ref([
-  { label: '管理员', value: 'admin' },
-  { label: '主管', value: 'supervisor' },
-  { label: '设计师', value: 'designer' },
+  { label: '管理员', value: 'Admin' },
+  { label: '主管', value: 'Supervisor' },
+  { label: '设计师', value: 'Designer' },
 ])
 
-const mockUserData = {
-  1: {
-    id: 1,
-    userId: 'U001',
-    userName: '张三',
-    phone: '13800138001',
-    email: 'zhangsan@example.com',
-    role: 'admin',
-    status: '启用',
-    registerTime: '2023-01-15 10:30:00',
-    lastLoginTime: '2024-01-15 08:30:25',
-  },
-  2: {
-    id: 2,
-    userId: 'U002',
-    userName: '李四',
-    phone: '13800138002',
-    email: 'lisi@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-02-20 14:20:00',
-    lastLoginTime: '2024-01-15 08:32:10',
-  },
-  3: {
-    id: 3,
-    userId: 'U003',
-    userName: '王五',
-    phone: '13800138003',
-    email: 'wangwu@example.com',
-    role: 'designer',
-    status: '启用',
-    registerTime: '2023-03-10 09:15:00',
-    lastLoginTime: '2024-01-15 08:35:42',
-  },
-  4: {
-    id: 4,
-    userId: 'U004',
-    userName: '赵六',
-    phone: '13800138004',
-    email: 'zhaoliu@example.com',
-    role: 'designer',
-    status: '禁用',
-    registerTime: '2023-04-05 16:45:00',
-    lastLoginTime: '2024-01-10 10:20:15',
-  },
-  5: {
-    id: 5,
-    userId: 'U005',
-    userName: '钱七',
-    phone: '13800138005',
-    email: 'qianqi@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-05-12 11:30:00',
-    lastLoginTime: '2024-01-15 09:25:50',
-  },
-  6: {
-    id: 6,
-    userId: 'U006',
-    userName: '孙八',
-    phone: '13800138006',
-    email: 'sunba@example.com',
-    role: 'designer',
-    status: '启用',
-    registerTime: '2023-06-18 13:55:00',
-    lastLoginTime: '2024-01-15 10:10:45',
-  },
-  7: {
-    id: 7,
-    userId: 'U007',
-    userName: '周九',
-    phone: '13800138007',
-    email: 'zhoujiu@example.com',
-    role: 'admin',
-    status: '启用',
-    registerTime: '2023-07-22 15:10:00',
-    lastLoginTime: '2024-01-15 10:20:18',
-  },
-  8: {
-    id: 8,
-    userId: 'U008',
-    userName: '吴十',
-    phone: '13800138008',
-    email: 'wushi@example.com',
-    role: 'designer',
-    status: '禁用',
-    registerTime: '2023-08-08 08:40:00',
-    lastLoginTime: '2024-01-12 14:05:30',
-  },
-  9: {
-    id: 9,
-    userId: 'U009',
-    userName: '郑十一',
-    phone: '13800138009',
-    email: 'zheng11@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-09-15 10:25:00',
-    lastLoginTime: '2024-01-15 11:10:55',
-  },
-  10: {
-    id: 10,
-    userId: 'U010',
-    userName: '王十二',
-    phone: '13800138010',
-    email: 'wang12@example.com',
-    role: 'designer',
-    status: '已删除',
-    registerTime: '2023-10-20 12:35:00',
-    lastLoginTime: '2024-01-05 09:15:20',
-  },
-  11: {
-    id: 11,
-    userId: 'U011',
-    userName: '刘明',
-    phone: '13800138011',
-    email: 'liuming@example.com',
-    role: 'designer',
-    status: '启用',
-    registerTime: '2023-11-05 14:50:00',
-    lastLoginTime: '2024-01-15 14:05:12',
-  },
-  12: {
-    id: 12,
-    userId: 'U012',
-    userName: '陈华',
-    phone: '13800138012',
-    email: 'chenhua@example.com',
-    role: 'supervisor',
-    status: '启用',
-    registerTime: '2023-12-01 09:20:00',
-    lastLoginTime: '2024-01-15 14:15:45',
-  },
+const statusOptions = ref([
+  { label: '启用', value: 'Active' },
+  { label: '禁用', value: 'Inactive' },
+  { label: '已删除', value: 'Deleted' },
+])
+
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
-const loadUserData = () => {
+const loadUserData = async () => {
   loading.value = true
-  setTimeout(() => {
-    const id = route.params.id
-    const data = mockUserData[id] || mockUserData[1]
-    userData.value = { ...data }
-    Object.assign(formData, data)
+  try {
+    const userId = route.params.id
+    const res = await getUserDetailById(userId)
+    console.log('用户详情', res)
+
+    let data = null
+    if (res.data.data) {
+      if (res.data.data.data) {
+        data = res.data.data.data
+      } else if (res.data.data.code === 200 && res.data.data.data !== null) {
+        data = res.data.data.data
+      } else {
+        data = res.data.data
+      }
+    }
+
+    if (data) {
+      const mappedData = {
+        ...data,
+        email: data.email || data.address,
+      }
+      userData.value = { ...mappedData }
+      Object.assign(formData, mappedData)
+    }
+  } catch (error) {
+    console.error('加载用户详情失败:', error)
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const handleEdit = () => {
@@ -186,12 +92,25 @@ const handleCancel = () => {
 const handleSave = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      Object.assign(userData.value, formData)
-      mockUserData[userData.value.id] = { ...userData.value }
-      ElMessage.success('保存成功')
-      isEdit.value = false
+      try {
+        const updateData = {
+          id: formData.id,
+          userName: formData.userName,
+          phone: formData.phone,
+          address: formData.email,
+          role: formData.role,
+          userStatus: formData.userStatus,
+        }
+        await updateUserInfo(updateData)
+        Object.assign(userData.value, formData)
+        ElMessage.success('保存成功')
+        isEdit.value = false
+      } catch (error) {
+        console.error('保存失败:', error)
+        ElMessage.error(error.response?.data?.message || '保存失败')
+      }
     }
   })
 }
@@ -211,7 +130,7 @@ const rules = {
     { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
   ],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-  status: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
+  userStatus: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
 }
 
 onMounted(() => {
@@ -271,18 +190,18 @@ onMounted(() => {
               <div class="info-value">
                 <el-tag
                   :type="
-                    userData.role === 'admin'
+                    userData.role === 'Admin'
                       ? 'danger'
-                      : userData.role === 'supervisor'
+                      : userData.role === 'Supervisor'
                         ? 'warning'
                         : 'primary'
                   "
                   size="default"
                 >
                   {{
-                    userData.role === 'admin'
+                    userData.role === 'Admin'
                       ? '管理员'
-                      : userData.role === 'supervisor'
+                      : userData.role === 'Supervisor'
                         ? '主管'
                         : '设计师'
                   }}
@@ -294,25 +213,31 @@ onMounted(() => {
               <div class="info-value">
                 <el-tag
                   :type="
-                    userData.status === '启用'
+                    userData.userStatus === 'Active'
                       ? 'success'
-                      : userData.status === '禁用'
+                      : userData.userStatus === 'Inactive'
                         ? 'warning'
                         : 'danger'
                   "
                   size="default"
                 >
-                  {{ userData.status }}
+                  {{
+                    userData.userStatus === 'Active'
+                      ? '启用'
+                      : userData.userStatus === 'Inactive'
+                        ? '禁用'
+                        : '已删除'
+                  }}
                 </el-tag>
               </div>
             </div>
             <div class="info-item">
               <div class="info-label">注册时间</div>
-              <div class="info-value">{{ userData.registerTime }}</div>
+              <div class="info-value">{{ formatDateTime(userData.createTime) }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">最后登录时间</div>
-              <div class="info-value">{{ userData.lastLoginTime }}</div>
+              <div class="info-label">修改时间</div>
+              <div class="info-value">{{ formatDateTime(userData.lastUpdateTime) }}</div>
             </div>
           </div>
         </template>
@@ -342,15 +267,18 @@ onMounted(() => {
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="用户状态" prop="status">
+              <el-form-item label="用户状态" prop="userStatus">
                 <el-select
-                  v-model="formData.status"
+                  v-model="formData.userStatus"
                   placeholder="请选择用户状态"
                   style="width: 100%"
                 >
-                  <el-option label="启用" value="启用" />
-                  <el-option label="禁用" value="禁用" />
-                  <el-option label="已删除" value="已删除" />
+                  <el-option
+                    v-for="item in statusOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
                 </el-select>
               </el-form-item>
             </div>

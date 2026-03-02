@@ -1,23 +1,23 @@
 import instance from '@/utils/request'
 
-export function getWarehouseList(params) {
-  return instance.get('/api/warehouse/list', { params })
+export function getWarehouseList() {
+  return instance.get('/api/warhouse/find')
 }
 
-export function getWarehouseDetail(id) {
-  return instance.get(`/api/warehouse/${id}`)
+export function getWarehouseDetail(warhouseId) {
+  return instance.get('/api/warhouse/findByWarhouseId', { params: { warhouseId } })
 }
 
-export function addWarehouse(data) {
-  return instance.post('/api/warehouse', data)
+export function createWarehouse(data) {
+  return instance.post('/api/warhouse/create', data)
 }
 
 export function updateWarehouse(data) {
-  return instance.put('/api/warehouse', data)
+  return instance.put('/api/warhouse/update', data)
 }
 
-export function deleteWarehouse(id) {
-  return instance.delete(`/api/warehouse/${id}`)
+export function deleteWarehouse(warhouseId) {
+  return instance.put('/api/warhouse/delete', null, { params: { warhouseId } })
 }
 
 export function checkWarehouseRelation(id) {

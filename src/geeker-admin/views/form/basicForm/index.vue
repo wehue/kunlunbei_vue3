@@ -25,7 +25,9 @@
           <el-checkbox value="Online activities" name="type"> Online activities </el-checkbox>
           <el-checkbox value="Promotion activities" name="type"> Promotion activities </el-checkbox>
           <el-checkbox value="Offline activities" name="type"> Offline activities </el-checkbox>
-          <el-checkbox value="Simple brand exposure" name="type"> Simple brand exposure </el-checkbox>
+          <el-checkbox value="Simple brand exposure" name="type">
+            Simple brand exposure
+          </el-checkbox>
         </el-checkbox-group>
       </el-form-item>
       <el-form-item label="Resources :">
@@ -46,26 +48,26 @@
 </template>
 
 <script setup name="basicForm">
-import { ElMessage } from "element-plus";
-import { reactive } from "vue";
+import { ElMessage } from 'element-plus'
+import { reactive } from 'vue'
 
 // do not use same name with ref
 const formData = reactive({
-  name: "",
-  region: "",
-  date1: "",
-  date2: "",
+  name: '',
+  region: '',
+  date1: '',
+  date2: '',
   delivery: false,
   type: [],
-  resource: "",
-  desc: ""
-});
+  resource: '',
+  desc: '',
+})
 
 const onSubmit = () => {
-  ElMessage.success("提交的数据为 : " + JSON.stringify(formData));
-};
+  ElMessage.success('提交的数据为 : ' + JSON.stringify(formData))
+}
 </script>
 
 <style scoped lang="scss">
-@import "./index.scss";
+@import './index.scss';
 </style>

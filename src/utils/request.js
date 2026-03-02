@@ -3,7 +3,7 @@ import axios from 'axios'
 import router from '@/router'
 import { ElMessage } from 'element-plus'
 
-const baseURL = ''
+const baseURL = '/'
 
 const instance = axios.create({
   baseURL,
@@ -23,14 +23,18 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   (res) => {
-    if (res.data.code === 0) {
+    const code = res.data.code
+    if (code === 0 || code === 200 || Array.isArray(res.data)) {
       return res
     }
-    ElMessage({ message: res.data.message || '服务异常', type: 'error' })
-    return Promise.reject(res.data)
+    if (code !== undefined) {
+      ElMessage({ message: res.data.message || '服务异常', type: 'error' })
+      return Promise.reject(res.data)
+    }
+    return res
   },
   (err) => {
-    ElMessage({ message: err.response.data.message || '服务异常', type: 'error' })
+    ElMessage({ message: err.response?.data?.message || '服务异常', type: 'error' })
     console.log(err)
     if (err.response?.status === 401) {
       router.push('/login')

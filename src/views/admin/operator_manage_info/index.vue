@@ -1,9 +1,16 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
+import {
+  getProductionStaffList,
+  addProductionStaff,
+  updateProductionStaff,
+  deleteProductionStaff,
+} from '@/api/productionStaff'
+import { getDeptOptions } from '@/api/dept'
 
 const router = useRouter()
 
@@ -12,125 +19,21 @@ const dialogVisible = ref(false)
 const formRef = ref()
 const isEdit = ref(false)
 
-const deptOptions = ref([
-  { label: '技术部', value: '技术部' },
-  { label: '生产部', value: '生产部' },
-  { label: '质量部', value: '质量部' },
-  { label: '采购部', value: '采购部' },
-  { label: '销售部', value: '销售部' },
-  { label: '财务部', value: '财务部' },
-  { label: '人力资源部', value: '人力资源部' },
-])
-
-const positionOptions = ref([
-  { label: '工程师', value: '工程师' },
-  { label: '技术员', value: '技术员' },
-  { label: '操作工', value: '操作工' },
-  { label: '质检员', value: '质检员' },
-  { label: '采购员', value: '采购员' },
-  { label: '销售员', value: '销售员' },
-  { label: '会计', value: '会计' },
-  { label: '人事专员', value: '人事专员' },
-  { label: '主管', value: '主管' },
-  { label: '经理', value: '经理' },
-])
-
-const mockData = ref([
-  {
-    id: 1,
-    employeeCode: 'EMP20240001',
-    employeeName: '张三',
-    deptName: '技术部',
-    position: '工程师',
-  },
-  {
-    id: 2,
-    employeeCode: 'EMP20240002',
-    employeeName: '李四',
-    deptName: '生产部',
-    position: '操作工',
-  },
-  {
-    id: 3,
-    employeeCode: 'EMP20240003',
-    employeeName: '王五',
-    deptName: '质量部',
-    position: '质检员',
-  },
-  {
-    id: 4,
-    employeeCode: 'EMP20240004',
-    employeeName: '赵六',
-    deptName: '采购部',
-    position: '采购员',
-  },
-  {
-    id: 5,
-    employeeCode: 'EMP20240005',
-    employeeName: '钱七',
-    deptName: '销售部',
-    position: '销售员',
-  },
-  {
-    id: 6,
-    employeeCode: 'EMP20240006',
-    employeeName: '孙八',
-    deptName: '财务部',
-    position: '会计',
-  },
-  {
-    id: 7,
-    employeeCode: 'EMP20240007',
-    employeeName: '周九',
-    deptName: '人力资源部',
-    position: '人事专员',
-  },
-  {
-    id: 8,
-    employeeCode: 'EMP20240008',
-    employeeName: '吴十',
-    deptName: '技术部',
-    position: '技术员',
-  },
-  {
-    id: 9,
-    employeeCode: 'EMP20240009',
-    employeeName: '郑十一',
-    deptName: '生产部',
-    position: '主管',
-  },
-  {
-    id: 10,
-    employeeCode: 'EMP20240010',
-    employeeName: '王十二',
-    deptName: '技术部',
-    position: '经理',
-  },
-  {
-    id: 11,
-    employeeCode: 'EMP20240011',
-    employeeName: '刘明',
-    deptName: '质量部',
-    position: '质检员',
-  },
-  {
-    id: 12,
-    employeeCode: 'EMP20240012',
-    employeeName: '陈华',
-    deptName: '生产部',
-    position: '操作工',
-  },
-])
+const deptOptions = ref([])
 
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
-  { prop: 'employeeCode', label: '工号', search: { el: 'input', key: 'employeeCode' } },
-  { prop: 'employeeName', label: '姓名', search: { el: 'input', key: 'employeeName' } },
+  { prop: 'productionStaffId', label: '工号', search: { el: 'input', key: 'productionStaffId' } },
   {
-    prop: 'deptName',
+    prop: 'productionStaffName',
+    label: '姓名',
+    search: { el: 'input', key: 'productionStaffName' },
+  },
+  {
+    prop: 'departmentName',
     label: '所属部门',
-    search: { el: 'select', key: 'deptName' },
+    search: { el: 'select', key: 'departmentName' },
     enum: deptOptions,
   },
   { prop: 'position', label: '岗位' },
@@ -139,35 +42,25 @@ const columns = reactive([
 
 const formData = reactive({
   id: null,
-  employeeCode: '',
-  employeeName: '',
-  deptName: '',
+  productionStaffId: '',
+  productionStaffName: '',
+  departmentId: '',
   position: '',
 })
 
 const rules = {
-  employeeName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  deptName: [{ required: true, message: '请选择所属部门', trigger: 'change' }],
-  position: [{ required: true, message: '请选择岗位', trigger: 'change' }],
-}
-
-const generateEmployeeCode = () => {
-  const year = new Date().getFullYear()
-  const maxId = mockData.value.reduce((max, item) => {
-    const id = parseInt(item.id)
-    return id > max ? id : max
-  }, 0)
-  const newId = String(maxId + 1).padStart(4, '0')
-  return `EMP${year}${newId}`
+  productionStaffName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  departmentId: [{ required: true, message: '请选择所属部门', trigger: 'change' }],
+  position: [{ required: true, message: '请输入岗位', trigger: 'blur' }],
 }
 
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    employeeCode: generateEmployeeCode(),
-    employeeName: '',
-    deptName: '',
+    productionStaffId: '',
+    productionStaffName: '',
+    departmentId: '',
     position: '',
   })
   dialogVisible.value = true
@@ -181,9 +74,9 @@ const handleEdit = (row) => {
   isEdit.value = true
   Object.assign(formData, {
     id: row.id,
-    employeeCode: row.employeeCode,
-    employeeName: row.employeeName,
-    deptName: row.deptName,
+    productionStaffId: row.productionStaffId,
+    productionStaffName: row.productionStaffName,
+    departmentId: row.departmentId || '',
     position: row.position,
   })
   dialogVisible.value = true
@@ -196,41 +89,47 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const index = mockData.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      mockData.value.splice(index, 1)
-      ElMessage.success('删除成功')
-      proTableRef.value?.getTableList()
+    await deleteProductionStaff(row.productionStaffId)
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败，请重试')
+      console.error('删除失败:', error)
     }
-  } catch {
-    // 用户取消
   }
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (isEdit.value) {
-        const index = mockData.value.findIndex((item) => item.id === formData.id)
-        if (index > -1) {
-          mockData.value[index] = { ...mockData.value[index], ...formData }
+      try {
+        const selectedDept = deptOptions.value.find((item) => item.value === formData.departmentId)
+        const requestData = {
+          id: formData.id,
+          productionStaffName: formData.productionStaffName,
+          position: formData.position,
+          department: {
+            id: formData.departmentId,
+            departmentName: selectedDept?.label || '',
+          },
         }
-        ElMessage.success('修改成功')
-      } else {
-        const maxId = mockData.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
-        mockData.value.push({
-          id: maxId + 1,
-          ...formData,
-        })
-        ElMessage.success('新增成功')
+
+        if (isEdit.value) {
+          await updateProductionStaff(requestData)
+          ElMessage.success('修改成功')
+        } else {
+          await addProductionStaff(requestData)
+          ElMessage.success('新增成功')
+        }
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        ElMessage.error('操作失败，请重试')
+        console.error('操作失败:', error)
       }
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
     }
   })
 }
@@ -240,46 +139,70 @@ const handleCancel = () => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...mockData.value]
+  const res = await getProductionStaffList()
+  console.log('操作人员列表信息', res)
+  const innerData = res.data.data
+  let list = Array.isArray(innerData)
+    ? innerData
+    : Array.isArray(innerData?.data)
+      ? innerData.data
+      : (innerData?.list ?? innerData?.records ?? [])
 
-      if (params?.employeeCode) {
-        filteredData = filteredData.filter((item) =>
-          item.employeeCode.includes(params.employeeCode),
-        )
-      }
+  if (params?.productionStaffId) {
+    list = list.filter((item) => item.productionStaffId?.includes(params.productionStaffId))
+  }
+  if (params?.productionStaffName) {
+    list = list.filter((item) => item.productionStaffName?.includes(params.productionStaffName))
+  }
+  if (params?.departmentName) {
+    list = list.filter((item) => {
+      const deptName = item.department?.departmentName || ''
+      return deptName.includes(params.departmentName)
+    })
+  }
 
-      if (params?.employeeName) {
-        filteredData = filteredData.filter((item) =>
-          item.employeeName.includes(params.employeeName),
-        )
-      }
-
-      if (params?.deptName) {
-        filteredData = filteredData.filter((item) => item.deptName === params.deptName)
-      }
-
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
-
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
-
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+  const total = list.length
+  const pageNum = params?.pageNum || 1
+  const pageSize = params?.pageSize || 10
+  const startIndex = (pageNum - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedList = list.slice(startIndex, endIndex)
+  const dataWithIndex = paginatedList.map((item, index) => ({
+    ...item,
+    id: item.id,
+    productionStaffId: item.productionStaffId,
+    productionStaffName: item.productionStaffName,
+    departmentName: item.department?.departmentName || '',
+    departmentId: String(item.department?.id || item.department?.departmentId || ''),
+    position: item.position,
+    index: startIndex + index + 1,
+  }))
+  return {
+    data: {
+      list: dataWithIndex,
+      total,
+    },
+  }
 }
+
+const fetchDeptOptions = async () => {
+  try {
+    const res = await getDeptOptions()
+    console.log('部门列表', res)
+
+    const data = res.data?.data?.data || []
+    deptOptions.value = data.map((item) => ({
+      label: item.workingProcedureName,
+      value: String(item.id),
+    }))
+  } catch (error) {
+    console.error('获取部门选项失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchDeptOptions()
+})
 </script>
 
 <template>
@@ -294,8 +217,8 @@ const getTableList = async (params) => {
         <el-button type="primary" :icon="Plus" @click="handleAdd">新增人员</el-button>
       </template>
 
-      <template #deptName="scope">
-        <el-tag type="success">{{ scope.row.deptName }}</el-tag>
+      <template #departmentName="scope">
+        <el-tag type="success">{{ scope.row.departmentName }}</el-tag>
       </template>
 
       <template #position="scope">
@@ -321,13 +244,17 @@ const getTableList = async (params) => {
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
         <div class="form-grid">
           <el-form-item label="工号">
-            <el-input v-model="formData.employeeCode" disabled placeholder="系统自动生成" />
+            <el-input v-model="formData.productionStaffId" placeholder="请输入工号" />
           </el-form-item>
-          <el-form-item label="姓名" prop="employeeName">
-            <el-input v-model="formData.employeeName" placeholder="请输入姓名" />
+          <el-form-item label="姓名" prop="productionStaffName">
+            <el-input v-model="formData.productionStaffName" placeholder="请输入姓名" />
           </el-form-item>
-          <el-form-item label="所属部门" prop="deptName">
-            <el-select v-model="formData.deptName" placeholder="请选择所属部门" style="width: 100%">
+          <el-form-item label="所属部门" prop="departmentId">
+            <el-select
+              v-model="formData.departmentId"
+              placeholder="请选择所属部门"
+              style="width: 100%"
+            >
               <el-option
                 v-for="item in deptOptions"
                 :key="item.value"
@@ -337,14 +264,7 @@ const getTableList = async (params) => {
             </el-select>
           </el-form-item>
           <el-form-item label="岗位" prop="position">
-            <el-select v-model="formData.position" placeholder="请选择岗位" style="width: 100%">
-              <el-option
-                v-for="item in positionOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
+            <el-input v-model="formData.position" placeholder="请输入岗位" />
           </el-form-item>
         </div>
       </el-form>
