@@ -1,12 +1,12 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getDeviceList } from '@/api/device'
+import { getDeviceList, getBrandList, getLocationList, addDevice, deleteDevice } from '@/api/device'
 
 const router = useRouter()
 const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
@@ -18,49 +18,101 @@ const dialogVisible = ref(false)
 const formRef = ref()
 const extendFields = ref([])
 
-const brandOptions = [
-  { label: '西门子', value: '西门子' },
-  { label: '三菱', value: '三菱' },
-  { label: '欧姆龙', value: '欧姆龙' },
-  { label: 'ABB', value: 'ABB' },
-  { label: '施耐德', value: '施耐德' },
-]
+const brandOptions = ref([])
+const locationOptions = ref([])
 
-const locationOptions = [
-  { label: '车间A', value: '车间A' },
-  { label: '车间B', value: '车间B' },
-  { label: '仓库C', value: '仓库C' },
-  { label: '实验室', value: '实验室' },
-]
+const fetchBrandOptions = async () => {
+  try {
+    const res = await getBrandList()
+    console.log('获取品牌列表成功', res)
+    const data = res.data?.data?.data || []
+    brandOptions.value = data.map((item) => ({
+      label: item,
+      value: item,
+    }))
+    return brandOptions.value
+  } catch (error) {
+    console.error('获取品牌列表失败:', error)
+    return []
+  }
+}
+
+const fetchLocationOptions = async () => {
+  try {
+    const res = await getLocationList()
+    console.log('获取仓库位置列表成功', res)
+    const data = res.data?.data?.data || []
+    locationOptions.value = data.map((item) => ({
+      label: item.warhouseName,
+      value: item.warhouseName,
+      id: item.id,
+    }))
+    return locationOptions.value
+  } catch (error) {
+    console.error('获取位置列表失败:', error)
+    return []
+  }
+}
+
+onMounted(() => {
+  fetchBrandOptions()
+  fetchLocationOptions()
+})
 
 const depreciationOptions = [
-  { label: '直线法', value: '直线法' },
-  { label: '年数总和法', value: '年数总和法' },
-  { label: '双倍余额递减法', value: '双倍余额递减法' },
+  { label: '直线折旧', value: 'SD' },
+  { label: '加速折旧', value: 'AD' },
 ]
 
 const unitOptions = [
-  { label: '台', value: '台' },
-  { label: '套', value: '套' },
-  { label: '件', value: '件' },
-  { label: '个', value: '个' },
+  { label: '个', value: 'A' },
+  { label: '米', value: 'M' },
+  { label: '克', value: 'G' },
+  { label: '千克', value: 'KG' },
 ]
 
-const columns = reactive([
+const getBrandEnum = async () => {
+  const res = await getBrandList()
+  const data = res.data?.data?.data || []
+  return {
+    data: data.map((item) => ({
+      label: item,
+      value: item,
+    })),
+  }
+}
+
+const getLocationEnum = async () => {
+  const res = await getLocationList()
+  const data = res.data?.data?.data || []
+  return {
+    data: data.map((item) => ({
+      label: item.warhouseName,
+      value: item.warhouseName,
+    })),
+  }
+}
+
+const columns = [
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
   { prop: 'deviceCode', label: '设备编码', search: { el: 'input', key: 'deviceCode' } },
   { prop: 'deviceName', label: '设备名称', search: { el: 'input', key: 'deviceName' } },
-  { prop: 'brand', label: '品牌', search: { el: 'select', key: 'brand' }, enum: brandOptions },
+  {
+    prop: 'brand',
+    label: '品牌',
+    search: { el: 'select', key: 'brand' },
+    enum: getBrandEnum,
+  },
   {
     prop: 'location',
     label: '位置',
     search: { el: 'select', key: 'location' },
-    enum: locationOptions,
+    enum: getLocationEnum,
   },
   { prop: 'specModel', label: '规格型号' },
-  { prop: 'operation', label: '操作', width: 150, fixed: 'right' },
-])
+  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+]
 
 const formData = reactive({
   deviceCode: '',
@@ -71,10 +123,11 @@ const formData = reactive({
   supplier: '',
   productionDate: '',
   serviceLife: 10,
-  depreciationMethod: '直线法',
+  depreciationMethod: 'SD',
   location: '',
+  locationId: '',
   stockQuantity: 1,
-  unit: '台',
+  unit: 'A',
   remark: '',
 })
 
@@ -152,10 +205,11 @@ const handleAdd = () => {
     supplier: '',
     productionDate: '',
     serviceLife: 10,
-    depreciationMethod: '直线法',
+    depreciationMethod: 'SD',
     location: '',
+    locationId: '',
     stockQuantity: 1,
-    unit: '台',
+    unit: 'A',
     remark: '',
   })
   initExtendFields()
@@ -165,11 +219,54 @@ const handleAdd = () => {
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      ElMessage.success('新增成功')
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
+      try {
+        const locationItem = locationOptions.value.find((item) => item.value === formData.location)
+
+        const technicalParamsValue = extendFields.value.find(
+          (f) => f.key === 'technicalParams',
+        )?.value
+        const sparePartsValue = extendFields.value.find((f) => f.key === 'spareParts')?.value
+
+        const extAttrs = [
+          {
+            name: 'TechnicalParameterInfo',
+            type: 'STRING',
+            value: technicalParamsValue ? technicalParamsValue : null,
+          },
+          {
+            name: 'SparePartsInfo',
+            type: 'STRING',
+            value: sparePartsValue ? sparePartsValue : null,
+          },
+        ]
+
+        const submitData = {
+          equipmentId: formData.deviceCode,
+          equipmentName: formData.deviceName,
+          brand: formData.brand,
+          unit: formData.unit,
+          specificationModel: formData.specModel,
+          serviceLife: String(formData.serviceLife),
+          productionDate: formData.productionDate,
+          manufacturer: formData.manufacturer,
+          remark: formData.remark,
+          supplier: formData.supplier,
+          expenditureQuantity: String(formData.stockQuantity),
+          depreciationMethod: formData.depreciationMethod,
+          extAttrs,
+          location: locationItem ? { id: locationItem.id } : null,
+        }
+
+        await addDevice(submitData)
+        ElMessage.success('新增成功')
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        console.error('新增设备失败:', error)
+        ElMessage.error('新增失败')
+      }
     }
   })
 }
@@ -179,7 +276,25 @@ const handleCancel = () => {
 }
 
 const handleView = (row) => {
-  router.push(`/device-manage/device-manage-detail/${row.id}`)
+  router.push(`/device-manage/device-manage-detail/${row.deviceCode}`)
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该设备吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await deleteDevice(row.deviceCode || row.id)
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除设备失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 const exportToExcel = (data, fileName = '设备列表') => {
@@ -222,7 +337,7 @@ const handleExportBatch = (selectedList) => {
 const getTableList = async (params) => {
   const res = await getDeviceList(params)
   const innerData = res.data.data
-  console.log('设备列表信息', innerData)
+  console.log('获取设备列表信息成功', innerData)
   const rawList = Array.isArray(innerData?.data)
     ? innerData.data
     : (innerData?.list ?? innerData?.records ?? [])
@@ -236,7 +351,7 @@ const getTableList = async (params) => {
     deviceCode: item.equipmentId || item.deviceCode,
     deviceName: item.equipmentName || item.deviceName,
     brand: item.brand,
-    location: item.location,
+    location: item.location?.warhouseName || item.location || '',
     specModel: item.specificationModel || item.specModel,
     manufacturer: item.manufacturer,
     supplier: item.supplier,
@@ -289,9 +404,14 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
-          导出
-        </el-button>
+        <el-button
+          v-if="isAdminRole"
+          type="danger"
+          link
+          :icon="Delete"
+          @click="handleDelete(scope.row)"
+          >删除</el-button
+        >
       </template>
     </ProTable>
 
@@ -464,18 +584,14 @@ const getTableList = async (params) => {
         .el-table__row {
           .el-table__cell:last-child {
             .cell {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 4px 8px;
-              justify-items: stretch;
-              align-items: stretch;
+              display: flex;
+              flex-wrap: nowrap;
+              gap: 8px;
+              justify-content: center;
+              align-items: center;
 
               .el-button {
-                width: 100%;
-                min-width: 60px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
+                min-width: auto;
                 padding: 4px 8px !important;
                 margin: 0 !important;
 

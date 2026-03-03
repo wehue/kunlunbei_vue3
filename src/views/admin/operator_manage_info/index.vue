@@ -37,7 +37,7 @@ const columns = reactive([
     enum: deptOptions,
   },
   { prop: 'position', label: '岗位' },
-  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -226,6 +226,7 @@ onMounted(() => {
       </template>
 
       <template #operation="scope">
+        <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
           >删除</el-button

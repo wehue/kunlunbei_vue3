@@ -468,9 +468,6 @@ const getTableList = async (params) => {
         >
           提交审核
         </el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
-          导出
-        </el-button>
       </template>
     </ProTable>
   </div>

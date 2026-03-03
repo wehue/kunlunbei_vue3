@@ -5,6 +5,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, Plus, ArrowLeft, Download } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import {
+  getDeviceDetailByEquipmentId,
+  updateDevice,
+  getBrandList,
+  getLocationList,
+} from '@/api/device'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,101 +25,116 @@ const formData = reactive({})
 const extendFields = ref([])
 const formRef = ref()
 
-const brandOptions = [
-  { label: '西门子', value: '西门子' },
-  { label: '三菱', value: '三菱' },
-  { label: '欧姆龙', value: '欧姆龙' },
-  { label: 'ABB', value: 'ABB' },
-  { label: '施耐德', value: '施耐德' },
-]
+const brandOptions = ref([])
 
-const locationOptions = [
-  { label: '车间A', value: '车间A' },
-  { label: '车间B', value: '车间B' },
-  { label: '仓库C', value: '仓库C' },
-  { label: '实验室', value: '实验室' },
-]
+const locationOptions = ref([])
+
+const fetchBrandOptions = async () => {
+  try {
+    const res = await getBrandList()
+    const data = res.data?.data?.data || []
+    brandOptions.value = data.map((item) => ({
+      label: item,
+      value: item,
+    }))
+  } catch (error) {
+    console.error('获取品牌列表失败:', error)
+  }
+}
+
+const fetchLocationOptions = async () => {
+  try {
+    const res = await getLocationList()
+    const data = res.data?.data?.data || []
+    locationOptions.value = data.map((item) => ({
+      label: item.warhouseName,
+      value: item.warhouseName,
+      id: item.id,
+    }))
+  } catch (error) {
+    console.error('获取位置列表失败:', error)
+  }
+}
 
 const depreciationOptions = [
-  { label: '直线法', value: '直线法' },
-  { label: '年数总和法', value: '年数总和法' },
-  { label: '双倍余额递减法', value: '双倍余额递减法' },
+  { label: '直线折旧', value: 'SD' },
+  { label: '快速折旧', value: 'AD' },
 ]
 
 const unitOptions = [
-  { label: '台', value: '台' },
-  { label: '套', value: '套' },
-  { label: '件', value: '件' },
-  { label: '个', value: '个' },
+  { label: '个', value: 'A' },
+  { label: '米', value: 'M' },
+  { label: '克', value: 'G' },
+  { label: '千克', value: 'KG' },
 ]
 
-const mockDeviceData = {
-  1: {
-    id: 1,
-    deviceCode: 'DEV20240001',
-    deviceName: '数控车床',
-    manufacturer: '西门子工业自动化有限公司',
-    brand: '西门子',
-    specModel: 'CNC-800',
-    supplier: '北京华工设备贸易有限公司',
-    productionDate: '2022-03-15',
-    serviceLife: 15,
-    depreciationMethod: '直线法',
-    location: '车间A',
-    stockQuantity: 5,
-    unit: '台',
-    technicalParams: '主轴转速：100-3000rpm\n加工直径：≤800mm\n加工长度：≤1500mm\n功率：22kW',
-    spareParts: '主轴轴承、导轨滑块、丝杠螺母、刀具夹头',
-    remark: '设备运行状态良好，定期保养中',
-  },
-  2: {
-    id: 2,
-    deviceCode: 'DEV20240002',
-    deviceName: '加工中心',
-    manufacturer: '三菱电机自动化有限公司',
-    brand: '三菱',
-    specModel: 'MC-500',
-    supplier: '上海精密机械有限公司',
-    productionDate: '2021-06-20',
-    serviceLife: 12,
-    depreciationMethod: '年数总和法',
-    location: '车间B',
-    stockQuantity: 3,
-    unit: '台',
-    technicalParams: '工作台尺寸：500×500mm\n行程：X600 Y500 Z500\n主轴转速：60-12000rpm',
-    spareParts: '主轴单元、刀库组件、伺服电机',
-    remark: '高精度加工设备',
-  },
-  3: {
-    id: 3,
-    deviceCode: 'DEV20240003',
-    deviceName: '铣床',
-    manufacturer: '欧姆龙自动化中心',
-    brand: '欧姆龙',
-    specModel: 'MX-300',
-    supplier: '广州机电设备有限公司',
-    productionDate: '2023-01-10',
-    serviceLife: 10,
-    depreciationMethod: '直线法',
-    location: '仓库C',
-    stockQuantity: 8,
-    unit: '台',
-    technicalParams: '工作台尺寸：300×1200mm\n主轴转速：50-2500rpm',
-    spareParts: '主轴、工作台、进给系统',
-    remark: '',
-  },
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-const loadDeviceData = () => {
+const getDepreciationLabel = (value) => {
+  const option = depreciationOptions.find((item) => item.value === value)
+  return option ? option.label : value
+}
+
+const getUnitLabel = (value) => {
+  const option = unitOptions.find((item) => item.value === value)
+  return option ? option.label : value
+}
+
+const loadDeviceData = async () => {
   loading.value = true
-  setTimeout(() => {
-    const id = route.params.id
-    const data = mockDeviceData[id] || mockDeviceData[1]
-    deviceData.value = { ...data }
-    Object.assign(formData, data)
+  try {
+    const equipmentId = route.params.id
+    const res = await getDeviceDetailByEquipmentId(equipmentId)
+    console.log('获取设备详情成功', res)
+
+    const data = res.data?.data.data || {}
+    const extAttrs = data.extAttrs || []
+
+    const getExtAttrValue = (name) => {
+      const attr = extAttrs.find((item) => item.name === name)
+      if (!attr) return ''
+      if (attr.type === 'REFERENCE_OBJECT' && attr.value) {
+        return typeof attr.value === 'string' ? attr.value : JSON.stringify(attr.value)
+      }
+      return attr.value || ''
+    }
+
+    const mappedData = {
+      id: data.id,
+      deviceCode: data.equipmentId || '',
+      deviceName: data.equipmentName || '',
+      manufacturer: data.manufacturer || '',
+      brand: data.brand || '',
+      specModel: data.specificationModel || '',
+      supplier: data.supplier || '',
+      productionDate: formatDate(data.productionDate),
+      serviceLife: data.serviceLife || '',
+      depreciationMethod: data.depreciationMethod || '',
+      depreciationMethodLabel: getDepreciationLabel(data.depreciationMethod),
+      location: data.location?.warhouseName || data.location || '',
+      stockQuantity: data.expenditureQuantity || data.stockQuantity || 0,
+      unit: data.unit || '',
+      unitLabel: getUnitLabel(data.unit),
+      technicalParams: getExtAttrValue('TechnicalParameterInfo'),
+      spareParts: getExtAttrValue('SparePartsInfo'),
+      remark: data.remark || '',
+    }
+    deviceData.value = { ...mappedData }
+    Object.assign(formData, mappedData)
     initExtendFields()
+  } catch (error) {
+    console.error('获取设备详情失败:', error)
+    ElMessage.error('获取设备详情失败')
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const initExtendFields = () => {
@@ -156,17 +177,37 @@ const handleCancel = () => {
 const handleSave = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      extendFields.value.forEach((field) => {
-        formData[field.key] = field.value
-      })
+      try {
+        extendFields.value.forEach((field) => {
+          formData[field.key] = field.value
+        })
 
-      Object.assign(deviceData.value, formData)
-      mockDeviceData[deviceData.value.id] = { ...deviceData.value }
+        const updateData = {
+          id: formData.id,
+          equipmentName: formData.deviceName,
+          brand: formData.brand,
+          unit: formData.unit,
+          specificationModel: formData.specModel,
+          serviceLife: formData.serviceLife,
+          productionDate: formData.productionDate,
+          manufacturer: formData.manufacturer,
+          remark: formData.remark,
+          supplier: formData.supplier,
+          expenditureQuantity: formData.stockQuantity,
+          depreciationMethod: formData.depreciationMethod,
+        }
 
-      ElMessage.success('保存成功')
-      isEdit.value = false
+        await updateDevice(updateData)
+        Object.assign(deviceData.value, formData)
+
+        ElMessage.success('保存成功')
+        isEdit.value = false
+      } catch (error) {
+        console.error('修改设备失败:', error)
+        ElMessage.error('保存失败')
+      }
     }
   })
 }
@@ -234,6 +275,8 @@ const rules = {
 
 onMounted(() => {
   loadDeviceData()
+  fetchBrandOptions()
+  fetchLocationOptions()
 })
 </script>
 
@@ -307,7 +350,7 @@ onMounted(() => {
             </div>
             <div class="info-item">
               <div class="info-label">折旧方式</div>
-              <div class="info-value">{{ deviceData.depreciationMethod }}</div>
+              <div class="info-value">{{ deviceData.depreciationMethodLabel }}</div>
             </div>
             <div class="info-item">
               <div class="info-label">位置</div>
@@ -317,7 +360,9 @@ onMounted(() => {
             </div>
             <div class="info-item">
               <div class="info-label">库存数量</div>
-              <div class="info-value">{{ deviceData.stockQuantity }} {{ deviceData.unit }}</div>
+              <div class="info-value">
+                {{ deviceData.stockQuantity }} {{ deviceData.unitLabel }}
+              </div>
             </div>
             <div class="info-item full-width">
               <div class="info-label">备注</div>

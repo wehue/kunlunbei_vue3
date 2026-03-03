@@ -797,9 +797,6 @@ const getTableList = async (params) => {
           @click="handleEdit(scope.row)"
           >修改</el-button
         >
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)"
-          >导出</el-button
-        >
       </template>
     </ProTable>
 

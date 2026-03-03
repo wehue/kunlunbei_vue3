@@ -1,8 +1,8 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Plus, View, Download } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
@@ -499,6 +499,27 @@ const handleView = (row) => {
   router.push(`/material-manage/material-manage-detail/${row.id}`)
 }
 
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该物料吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    const index = allMaterials.value.findIndex((item) => item.id === row.id)
+    if (index > -1) {
+      allMaterials.value.splice(index, 1)
+    }
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除物料失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
 const exportToExcel = (data, fileName = '物料列表') => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -647,9 +668,7 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
-          导出
-        </el-button>
+        <el-button v-if="isAdminRole" type="danger" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
       </template>
     </ProTable>
 

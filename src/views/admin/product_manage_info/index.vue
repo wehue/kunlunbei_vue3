@@ -19,7 +19,7 @@ const columns = reactive([
   { prop: 'productId', label: '产品编码', search: { el: 'input', key: 'productId' } },
   { prop: 'productName', label: '产品名称', search: { el: 'input', key: 'productName' } },
   { prop: 'productDescription', label: '产品描述', minWidth: 200 },
-  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -174,6 +174,7 @@ const getTableList = async (params) => {
       </template>
 
       <template #operation="scope">
+        <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
           >删除</el-button

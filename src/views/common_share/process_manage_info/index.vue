@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
@@ -98,7 +98,7 @@ const columns = reactive([
   { prop: 'processCode', label: '工序编号', search: { el: 'input', key: 'processCode' } },
   { prop: 'processName', label: '工序名称', search: { el: 'input', key: 'processName' } },
   { prop: 'productionStep', label: '生产步骤', minWidth: 300 },
-  { prop: 'operation', label: '操作', width: 150, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -230,6 +230,27 @@ const handleView = (row) => {
   router.push(`/process-manage/process-manage-detail/${row.id}`)
 }
 
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该工序吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    const index = mockData.value.findIndex((item) => item.id === row.id)
+    if (index > -1) {
+      mockData.value.splice(index, 1)
+    }
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除工序失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
 const exportToExcel = (data, fileName = '工序列表') => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -328,9 +349,14 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button type="success" link :icon="Download" @click="handleExportSingle(scope.row)">
-          导出
-        </el-button>
+        <el-button
+          v-if="isAdminRole"
+          type="danger"
+          link
+          :icon="Delete"
+          @click="handleDelete(scope.row)"
+          >删除</el-button
+        >
       </template>
     </ProTable>
 
@@ -509,18 +535,14 @@ const getTableList = async (params) => {
         .el-table__row {
           .el-table__cell:last-child {
             .cell {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 4px 8px;
-              justify-items: stretch;
-              align-items: stretch;
+              display: flex;
+              flex-wrap: nowrap;
+              gap: 8px;
+              justify-content: center;
+              align-items: center;
 
               .el-button {
-                width: 100%;
-                min-width: 60px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
+                min-width: auto;
                 padding: 4px 8px !important;
                 margin: 0 !important;
 

@@ -2,7 +2,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, View, Edit, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import { getDeptList, addDept, updateDept, deleteDept } from '@/api/dept'
 
@@ -19,7 +19,7 @@ const columns = reactive([
   { prop: 'deptCode', label: '部门编号', search: { el: 'input', key: 'deptCode' } },
   { prop: 'deptName', label: '部门名称', search: { el: 'input', key: 'deptName' } },
   { prop: 'establishDate', label: '成立时间' },
-  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -40,6 +40,10 @@ const handleAdd = () => {
     departmentName: '',
   })
   dialogVisible.value = true
+}
+
+const handleView = (row) => {
+  router.push(`/dept-manage/dept-manage-detail/${row.departmentId || row.deptId || row.id}`)
 }
 
 const handleEdit = (row) => {
@@ -171,6 +175,7 @@ const getTableList = async (params) => {
       </template>
 
       <template #operation="scope">
+        <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
           >删除</el-button
