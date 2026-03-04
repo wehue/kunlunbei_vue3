@@ -1,8 +1,14 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { usePermission } from '@/hooks/usePermission'
+import {
+  getPartCategoryList,
+  addPartCategory,
+  updatePartCategory,
+  deletePartCategory,
+} from '@/api/material'
 
 const { isAdminRole } = usePermission()
 
@@ -16,195 +22,115 @@ const formData = reactive({
   label: '',
   parentId: null,
   parentName: '',
+  parentLevel: null,
 })
 
 const rules = {
   label: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
 }
 
-const categoryData = ref([
-  {
-    id: 1,
-    label: '电子元器件',
-    parentId: 0,
-    level: 1,
-    children: [
-      {
-        id: 11,
-        label: '无源分立元件',
-        parentId: 1,
-        level: 2,
-        children: [
-          {
-            id: 111,
-            label: '磁性元件',
-            parentId: 11,
-            level: 3,
-            children: [
-              { id: 1111, label: '贴片电感', parentId: 111, level: 4, children: [] },
-              { id: 1112, label: '功率磁环', parentId: 111, level: 4, children: [] },
-              { id: 1113, label: '互感器磁芯', parentId: 111, level: 4, children: [] },
-            ],
-          },
-          { id: 112, label: '电阻', parentId: 11, level: 3, children: [] },
-          { id: 113, label: '电容', parentId: 11, level: 3, children: [] },
-          { id: 114, label: '电感', parentId: 11, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 12,
-        label: '有源器件',
-        parentId: 1,
-        level: 2,
-        children: [
-          { id: 121, label: '二极管', parentId: 12, level: 3, children: [] },
-          { id: 122, label: '三极管', parentId: 12, level: 3, children: [] },
-          { id: 123, label: '集成电路', parentId: 12, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 13,
-        label: '连接器件',
-        parentId: 1,
-        level: 2,
-        children: [
-          { id: 131, label: '接插件', parentId: 13, level: 3, children: [] },
-          { id: 132, label: '线缆', parentId: 13, level: 3, children: [] },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: '机械零件',
-    parentId: 0,
-    level: 1,
-    children: [
-      {
-        id: 21,
-        label: '紧固件',
-        parentId: 2,
-        level: 2,
-        children: [
-          { id: 211, label: '螺栓', parentId: 21, level: 3, children: [] },
-          { id: 212, label: '螺母', parentId: 21, level: 3, children: [] },
-          { id: 213, label: '垫圈', parentId: 21, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 22,
-        label: '传动件',
-        parentId: 2,
-        level: 2,
-        children: [
-          { id: 221, label: '齿轮', parentId: 22, level: 3, children: [] },
-          { id: 222, label: '轴承', parentId: 22, level: 3, children: [] },
-          { id: 223, label: '皮带', parentId: 22, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 23,
-        label: '结构件',
-        parentId: 2,
-        level: 2,
-        children: [
-          { id: 231, label: '支架', parentId: 23, level: 3, children: [] },
-          { id: 232, label: '外壳', parentId: 23, level: 3, children: [] },
-        ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: '金属材料',
-    parentId: 0,
-    level: 1,
-    children: [
-      {
-        id: 31,
-        label: '钢材',
-        parentId: 3,
-        level: 2,
-        children: [
-          { id: 311, label: '碳钢', parentId: 31, level: 3, children: [] },
-          { id: 312, label: '不锈钢', parentId: 31, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 32,
-        label: '铝材',
-        parentId: 3,
-        level: 2,
-        children: [
-          { id: 321, label: '铝合金板', parentId: 32, level: 3, children: [] },
-          { id: 322, label: '铝型材', parentId: 32, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 33,
-        label: '铜材',
-        parentId: 3,
-        level: 2,
-        children: [
-          { id: 331, label: '黄铜', parentId: 33, level: 3, children: [] },
-          { id: 332, label: '紫铜', parentId: 33, level: 3, children: [] },
-        ],
-      },
-    ],
-  },
-  {
-    id: 4,
-    label: '塑料件',
-    parentId: 0,
-    level: 1,
-    children: [
-      { id: 41, label: 'ABS塑料', parentId: 4, level: 2, children: [] },
-      { id: 42, label: 'PP塑料', parentId: 4, level: 2, children: [] },
-      { id: 43, label: 'PC塑料', parentId: 4, level: 2, children: [] },
-    ],
-  },
-  {
-    id: 5,
-    label: '成品',
-    parentId: 0,
-    level: 1,
-    children: [
-      {
-        id: 51,
-        label: '电子成品',
-        parentId: 5,
-        level: 2,
-        children: [
-          { id: 511, label: '控制板', parentId: 51, level: 3, children: [] },
-          { id: 512, label: '电源模块', parentId: 51, level: 3, children: [] },
-          { id: 513, label: '传感器组件', parentId: 51, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 52,
-        label: '机械成品',
-        parentId: 5,
-        level: 2,
-        children: [
-          { id: 521, label: '传动装置', parentId: 52, level: 3, children: [] },
-          { id: 522, label: '结构件组件', parentId: 52, level: 3, children: [] },
-          { id: 523, label: '连接件组件', parentId: 52, level: 3, children: [] },
-        ],
-      },
-      {
-        id: 53,
-        label: '组装成品',
-        parentId: 5,
-        level: 2,
-        children: [
-          { id: 531, label: '汽车零部件', parentId: 53, level: 3, children: [] },
-          { id: 532, label: '电子设备', parentId: 53, level: 3, children: [] },
-          { id: 533, label: '管道组件', parentId: 53, level: 3, children: [] },
-        ],
-      },
-    ],
-  },
-])
+const categoryData = ref([])
+const flatCategoryList = ref([])
+const loading = ref(false)
+
+const fetchCategoryList = async () => {
+  loading.value = true
+  try {
+    const res = await getPartCategoryList()
+    console.log('完整响应:', res)
+
+    let dataList = []
+    if (res.data && Array.isArray(res.data)) {
+      dataList = res.data
+    } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
+      dataList = res.data.data
+    } else if (
+      res.data &&
+      res.data.data &&
+      res.data.data.data &&
+      Array.isArray(res.data.data.data)
+    ) {
+      dataList = res.data.data.data
+    }
+
+    console.log('最终数据列表:', dataList)
+
+    if (dataList.length > 0) {
+      flatCategoryList.value = dataList
+      categoryData.value = transformToTree(dataList)
+      console.log('转换后的树形数据:', categoryData.value)
+    }
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
+    ElMessage.error('获取分类列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const transformToTree = (flatList) => {
+  console.log('开始转换数据，原始数据:', flatList)
+
+  const maxList = []
+  const midMap = new Map()
+  const minMap = new Map()
+
+  flatList.forEach((item) => {
+    const id = String(item.categoryId)
+    console.log(`处理项: id=${id}, name=${item.categoryName}, level=${item.level}`)
+
+    const node = {
+      id: item.categoryId,
+      label: item.categoryName,
+      level: item.level,
+      children: [],
+    }
+
+    if (item.level === 'Max') {
+      maxList.push(node)
+      console.log('添加到 Max 列表')
+    } else if (item.level === 'Mid') {
+      const parentId = Math.floor(parseInt(id) / 100) * 100
+      console.log(`Mid 的父级ID: ${parentId}`)
+      if (!midMap.has(String(parentId))) {
+        midMap.set(String(parentId), [])
+      }
+      midMap.get(String(parentId)).push(node)
+    } else if (item.level === 'Min') {
+      const parentId = id.substring(0, 3)
+      console.log(`Min 的父级ID: ${parentId}`)
+      if (!minMap.has(parentId)) {
+        minMap.set(parentId, [])
+      }
+      minMap.get(parentId).push(node)
+    }
+  })
+
+  console.log('Max列表:', maxList)
+  console.log('MidMap:', Object.fromEntries(midMap))
+  console.log('MinMap:', Object.fromEntries(minMap))
+
+  maxList.forEach((maxNode) => {
+    const maxId = String(maxNode.id)
+    console.log(`处理 Max 节点: ${maxId}`)
+    const midChildren = midMap.get(maxId) || []
+    console.log(`找到 ${midChildren.length} 个 Mid 子节点`)
+    midChildren.forEach((midNode) => {
+      const midId = String(midNode.id)
+      const minChildren = minMap.get(midId) || []
+      console.log(`Mid ${midId} 找到 ${minChildren.length} 个 Min 子节点`)
+      midNode.children = minChildren
+    })
+    maxNode.children = midChildren
+  })
+
+  console.log('最终树形数据:', maxList)
+  return maxList
+}
+
+onMounted(() => {
+  fetchCategoryList()
+})
 
 const defaultProps = {
   children: 'children',
@@ -219,24 +145,13 @@ const isLeaf = (node) => {
   return !node.children || node.children.length === 0
 }
 
-const generateId = () => {
-  const maxId = (data) => {
-    let max = 0
-    data.forEach((item) => {
-      if (item.id > max) max = item.id
-      if (item.children && item.children.length > 0) {
-        const childMax = maxId(item.children)
-        if (childMax > max) max = childMax
-      }
-    })
-    return max
-  }
-  return maxId(categoryData.value) + 1
-}
-
 const handleAdd = (node, data) => {
   if (!canAdd.value) {
     ElMessage.warning('您没有新增分类的权限')
+    return
+  }
+  if (data.level === 'Min') {
+    ElMessage.warning('末级分类不能添加子分类')
     return
   }
   dialogType.value = 'add'
@@ -245,6 +160,7 @@ const handleAdd = (node, data) => {
     label: '',
     parentId: data.id,
     parentName: data.label,
+    parentLevel: data.level,
   })
   dialogVisible.value = true
 }
@@ -258,8 +174,9 @@ const handleAddRoot = () => {
   Object.assign(formData, {
     id: null,
     label: '',
-    parentId: 0,
+    parentId: null,
     parentName: '',
+    parentLevel: null,
   })
   dialogVisible.value = true
 }
@@ -273,13 +190,14 @@ const handleEdit = (node, data) => {
   Object.assign(formData, {
     id: data.id,
     label: data.label,
-    parentId: data.parentId,
+    parentId: null,
     parentName: '',
+    parentLevel: null,
   })
   dialogVisible.value = true
 }
 
-const handleDelete = (node, data) => {
+const handleDelete = async (node, data) => {
   if (!canDelete.value) {
     ElMessage.warning('您没有删除分类的权限')
     return
@@ -290,35 +208,20 @@ const handleDelete = (node, data) => {
     return
   }
 
-  ElMessageBox.confirm(`确定要删除分类"${data.label}"吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  })
-    .then(() => {
-      deleteNode(categoryData.value, data.id, data.parentId)
-      ElMessage.success('删除成功')
+  try {
+    await ElMessageBox.confirm(`确定要删除分类"${data.label}"吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
     })
-    .catch(() => {})
-}
-
-const deleteNode = (data, id, parentId) => {
-  if (parentId === 0) {
-    const index = data.findIndex((item) => item.id === id)
-    if (index > -1) {
-      data.splice(index, 1)
+    await deletePartCategory(data.id)
+    ElMessage.success('删除成功')
+    await fetchCategoryList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败')
     }
-  } else {
-    data.forEach((item) => {
-      if (item.children && item.children.length > 0) {
-        const index = item.children.findIndex((child) => child.id === id)
-        if (index > -1) {
-          item.children.splice(index, 1)
-        } else {
-          deleteNode(item.children, id, parentId)
-        }
-      }
-    })
   }
 }
 
@@ -336,41 +239,73 @@ const findNodeById = (data, id) => {
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      if (dialogType.value === 'add') {
-        const newNode = {
-          id: generateId(),
-          label: formData.label,
-          parentId: formData.parentId,
-          level: formData.parentId === 0 ? 1 : 0,
-          children: [],
-        }
+  try {
+    await formRef.value.validate()
 
-        if (formData.parentId === 0) {
-          newNode.level = 1
-          categoryData.value.push(newNode)
-        } else {
-          const parentNode = findNodeById(categoryData.value, formData.parentId)
-          if (parentNode) {
-            newNode.level = parentNode.level + 1
-            if (!parentNode.children) {
-              parentNode.children = []
-            }
-            parentNode.children.push(newNode)
-          }
-        }
-        ElMessage.success('新增成功')
-      } else {
-        const node = findNodeById(categoryData.value, formData.id)
-        if (node) {
-          node.label = formData.label
-        }
-        ElMessage.success('修改成功')
-      }
-      dialogVisible.value = false
+    const isNameExist = flatCategoryList.value.some(
+      (item) => item.categoryName === formData.label && item.categoryId !== formData.id,
+    )
+    if (isNameExist) {
+      ElMessage.warning('分类名称已存在，请使用其他名称')
+      return
     }
-  })
+
+    if (dialogType.value === 'add') {
+      let newId
+      let level
+
+      if (!formData.parentId) {
+        const maxIds = flatCategoryList.value
+          .filter((item) => item.level === 'Max')
+          .map((item) => parseInt(item.categoryId))
+        const maxId = maxIds.length > 0 ? Math.max(...maxIds) : 0
+        newId = maxId + 100
+        level = 'Max'
+      } else if (formData.parentLevel === 'Max') {
+        const parentId = parseInt(formData.parentId)
+        const parentNode = findNodeById(categoryData.value, formData.parentId)
+        if (parentNode && parentNode.children) {
+          const siblingIds = parentNode.children.map((item) => item.id)
+          const maxSibling = siblingIds.length > 0 ? Math.max(...siblingIds) : parentId
+          newId = maxSibling + 1
+        } else {
+          newId = parentId + 1
+        }
+        level = 'Mid'
+      } else if (formData.parentLevel === 'Mid') {
+        const parentId = parseInt(formData.parentId)
+        const parentNode = findNodeById(categoryData.value, formData.parentId)
+        if (parentNode && parentNode.children) {
+          const siblingIds = parentNode.children.map((item) => item.id)
+          const maxSibling = siblingIds.length > 0 ? Math.max(...siblingIds) : parentId * 100
+          newId = maxSibling + 1
+        } else {
+          newId = parentId * 100 + 1
+        }
+        level = 'Min'
+      }
+
+      await addPartCategory({
+        id: String(newId),
+        categoryId: String(newId),
+        categoryName: formData.label,
+        level: level,
+      })
+      ElMessage.success('新增成功')
+    } else {
+      await updatePartCategory({
+        id: formData.id,
+        categoryName: formData.label,
+      })
+      ElMessage.success('修改成功')
+    }
+
+    dialogVisible.value = false
+    await fetchCategoryList()
+  } catch (error) {
+    console.error('操作失败:', error)
+    ElMessage.error('操作失败')
+  }
 }
 
 const handleCancel = () => {
@@ -383,7 +318,6 @@ const getLeafCategories = (data, result = []) => {
       result.push({
         id: item.id,
         label: item.label,
-        parentId: item.parentId,
         level: item.level,
       })
     } else {
@@ -398,7 +332,6 @@ const getAllCategoriesFlat = (data, result = []) => {
     result.push({
       id: item.id,
       label: item.label,
-      parentId: item.parentId,
       level: item.level,
       isLeaf: !item.children || item.children.length === 0,
     })
@@ -424,7 +357,7 @@ defineExpose({
       >
     </div>
 
-    <div class="category-content">
+    <div class="category-content" v-loading="loading">
       <el-tree
         ref="treeRef"
         :data="categoryData"
@@ -449,7 +382,7 @@ defineExpose({
                 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
                   <path
                     fill="currentColor"
-                    d="M832 64H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V96c0-17.7-14.3-32-32-32zm-600 72h560v208H232V136zm560 480H232V408h560v208zm0 272H232V680h560v208z"
+                    d="M880 298.4H521L403.7 186.2a8.15 8.15 0 0 0-5.5-2.2H144c-17.7 0-32 14.3-32 32v592c0 17.7 14.3 32 32 32h736c17.7 0 32-14.3 32-32V330.4c0-17.7-14.3-32-32-32z"
                   />
                 </svg>
               </el-icon>
@@ -458,7 +391,7 @@ defineExpose({
             </span>
             <span class="node-actions">
               <el-button
-                v-if="canAdd"
+                v-if="canAdd && data.level !== 'Min'"
                 type="primary"
                 link
                 :icon="Plus"
@@ -570,7 +503,7 @@ defineExpose({
           }
 
           .leaf-icon {
-            color: #67c23a;
+            color: #e6a23c;
           }
 
           .leaf-tag {

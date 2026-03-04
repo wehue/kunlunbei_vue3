@@ -174,7 +174,7 @@ const getTableList = async (params) => {
       </template>
 
       <template #operation="scope">
-        <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
+        <!-- <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button> -->
         <el-button type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button type="danger" link :icon="Delete" @click="handleDelete(scope.row)"
           >删除</el-button
