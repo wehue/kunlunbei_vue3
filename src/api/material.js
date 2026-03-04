@@ -16,3 +16,28 @@ export function deletePartCategory(categoryId) {
 export function updatePartCategory(data) {
   return instance.put('/api/partCategory/update', data)
 }
+
+// 获取部件（物料）列表
+export function getPartList() {
+  return instance.get('/api/part/find')
+}
+
+// 获取部件（物料）详情
+export function getPartDetail(id) {
+  return instance.get('/api/part/findById', { params: { id } })
+}
+
+// 添加部件（物料）
+export function addPart(data) {
+  return instance.post('/api/part/create', data)
+}
+
+// 删除部件（物料）
+export function deletePart(data) {
+  return instance.put('/api/part/delete', data)
+}
+
+// 修改部件（物料）
+export function updatePart(data) {
+  return instance.put('/api/part/update', data)
+}

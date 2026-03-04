@@ -80,12 +80,24 @@ const loadOptions = async () => {
   try {
     const [deptRes, staffRes] = await Promise.all([getDeptList(), getProductionStaffList()])
 
-    deptOptions.value = (deptRes.data?.data?.data || []).map((item) => ({
+    const deptData = deptRes.data?.data
+    const deptList = Array.isArray(deptData)
+      ? deptData
+      : Array.isArray(deptData?.data)
+        ? deptData.data
+        : []
+    deptOptions.value = deptList.map((item) => ({
       label: item.departmentName,
       value: item.id,
     }))
 
-    userOptions.value = (staffRes.data?.data?.data || []).map((item) => ({
+    const staffData = staffRes.data?.data
+    const staffList = Array.isArray(staffData)
+      ? staffData
+      : Array.isArray(staffData?.data)
+        ? staffData.data
+        : []
+    userOptions.value = staffList.map((item) => ({
       label: item.productionStaffName,
       value: item.id,
     }))
@@ -215,10 +227,17 @@ const handleCancel = () => {
 
 const getTableList = async (params) => {
   try {
-    const res = await getWarehouseList()
+    // 构建查询参数，映射前端参数名到后端参数名
+    const apiParams = {
+      warhouseId: params?.warehouseCode,
+      warhouseName: params?.warehouseName,
+      warhouseType: params?.warehouseType,
+    }
+
+    const res = await getWarehouseList(apiParams)
     console.log('获取仓库列表成功:', res)
 
-    let dataList = res.data?.data?.data || []
+    let dataList = res.data?.data?.data || res.data?.data || []
 
     dataList = dataList.map((item, index) => ({
       ...item,
@@ -241,18 +260,6 @@ const getTableList = async (params) => {
       address: item.warhouseLocation || '',
       remark: item.remark || '',
     }))
-
-    if (params?.warehouseCode) {
-      dataList = dataList.filter((item) => item.warehouseCode.includes(params.warehouseCode))
-    }
-
-    if (params?.warehouseName) {
-      dataList = dataList.filter((item) => item.warehouseName.includes(params.warehouseName))
-    }
-
-    if (params?.warehouseType) {
-      dataList = dataList.filter((item) => item.warehouseTypeRaw === params.warehouseType)
-    }
 
     const pageNum = params?.pageNum || 1
     const pageSize = params?.pageSize || 10

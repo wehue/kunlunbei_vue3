@@ -5,16 +5,117 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, ArrowLeft, Download } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import { getPartDetail, getPartCategoryList } from '@/api/material'
+import { getWarehouseList } from '@/api/warehouse'
 
 const route = useRoute()
 const router = useRouter()
 const { isDesignerRole, isAdminRole } = usePermission()
+
+const warehouseMap = ref(new Map())
+const categoryMap = ref(new Map())
+
+const fetchWarehouseList = async () => {
+  try {
+    const res = await getWarehouseList()
+    console.log('获取仓库列表信息成功', res)
+    const list = res.data?.data?.data || res.data?.data || []
+    list.forEach((item) => {
+      warehouseMap.value.set(item.id || item.warhouseId, item.warhouseName)
+    })
+  } catch (error) {
+    console.error('获取仓库列表失败:', error)
+  }
+}
+
+const fetchCategoryList = async () => {
+  try {
+    const res = await getPartCategoryList()
+    console.log('获取物料分类列表信息成功', res)
+    const list = res.data?.data?.data || res.data?.data || []
+    list.forEach((item) => {
+      categoryMap.value.set(item.categoryId, item.categoryName)
+    })
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchWarehouseList()
+  fetchCategoryList()
+})
 
 const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const isEdit = ref(false)
 const loading = ref(false)
 const materialData = ref({})
+const categoryList = ref([])
+const categoryTreeData = ref([])
+const warehouseList = ref([])
+
+const transformToTree = (flatList) => {
+  const maxList = []
+  const midMap = new Map()
+  const minMap = new Map()
+
+  flatList.forEach((item) => {
+    const id = String(item.categoryId)
+    const node = {
+      value: item.categoryId,
+      label: item.categoryName,
+      level: item.level,
+      children: [],
+    }
+
+    if (item.level === 'Max') {
+      maxList.push(node)
+    } else if (item.level === 'Mid') {
+      const parentId = Math.floor(parseInt(id) / 100) * 100
+      if (!midMap.has(String(parentId))) {
+        midMap.set(String(parentId), [])
+      }
+      midMap.get(String(parentId)).push(node)
+    } else if (item.level === 'Min') {
+      const parentId = id.substring(0, 3)
+      if (!minMap.has(parentId)) {
+        minMap.set(parentId, [])
+      }
+      minMap.get(parentId).push(node)
+    }
+  })
+
+  maxList.forEach((maxNode) => {
+    const maxId = String(maxNode.value)
+    const midChildren = midMap.get(maxId) || []
+    midChildren.forEach((midNode) => {
+      const midId = String(midNode.value)
+      const minChildren = minMap.get(midId) || []
+      midNode.children = minChildren
+    })
+    maxNode.children = midChildren
+  })
+
+  return maxList
+}
+
+const fetchOptions = async () => {
+  try {
+    const [warehouseRes, categoryRes] = await Promise.all([
+      getWarehouseList(),
+      getPartCategoryList(),
+    ])
+    warehouseList.value = warehouseRes.data?.data?.data || warehouseRes.data?.data || []
+    categoryList.value = categoryRes.data?.data?.data || categoryRes.data?.data || []
+    if (categoryList.value.length > 0) {
+      categoryTreeData.value = transformToTree(categoryList.value)
+    }
+  } catch (error) {
+    console.error('获取选项数据失败:', error)
+  }
+}
+
 const formData = reactive({
   materialCode: '',
   materialName: '',
@@ -22,309 +123,17 @@ const formData = reactive({
   stockQuantity: 0,
   supplier: '',
   version: '',
-  category: '',
+  category: [],
+  selectedCategoryId: null,
   location: '',
+  warehouse: null,
 })
 const formRef = ref()
 const currentVersionId = ref(null)
 
-const categoryTreeData = [
-  {
-    id: 1,
-    label: '电子元器件',
-    children: [
-      {
-        id: 11,
-        label: '无源分立元件',
-        children: [
-          {
-            id: 111,
-            label: '磁性元件',
-            children: [
-              { id: 1111, label: '贴片电感' },
-              { id: 1112, label: '功率磁环' },
-              { id: 1113, label: '互感器磁芯' },
-            ],
-          },
-          { id: 112, label: '电阻' },
-          { id: 113, label: '电容' },
-          { id: 114, label: '电感' },
-        ],
-      },
-      {
-        id: 12,
-        label: '有源器件',
-        children: [
-          { id: 121, label: '二极管' },
-          { id: 122, label: '三极管' },
-          { id: 123, label: '集成电路' },
-        ],
-      },
-      {
-        id: 13,
-        label: '连接器件',
-        children: [
-          { id: 131, label: '接插件' },
-          { id: 132, label: '线缆' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: '机械零件',
-    children: [
-      {
-        id: 21,
-        label: '紧固件',
-        children: [
-          { id: 211, label: '螺栓' },
-          { id: 212, label: '螺母' },
-          { id: 213, label: '垫圈' },
-        ],
-      },
-      {
-        id: 22,
-        label: '传动件',
-        children: [
-          { id: 221, label: '齿轮' },
-          { id: 222, label: '轴承' },
-          { id: 223, label: '皮带' },
-        ],
-      },
-      {
-        id: 23,
-        label: '结构件',
-        children: [
-          { id: 231, label: '支架' },
-          { id: 232, label: '外壳' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: '金属材料',
-    children: [
-      {
-        id: 31,
-        label: '钢材',
-        children: [
-          { id: 311, label: '碳钢' },
-          { id: 312, label: '不锈钢' },
-        ],
-      },
-      {
-        id: 32,
-        label: '铝材',
-        children: [
-          { id: 321, label: '铝合金板' },
-          { id: 322, label: '铝型材' },
-        ],
-      },
-      {
-        id: 33,
-        label: '铜材',
-        children: [
-          { id: 331, label: '黄铜' },
-          { id: 332, label: '紫铜' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 4,
-    label: '塑料件',
-    children: [
-      { id: 41, label: 'ABS塑料' },
-      { id: 42, label: 'PP塑料' },
-      { id: 43, label: 'PC塑料' },
-    ],
-  },
-  {
-    id: 5,
-    label: '成品',
-    children: [
-      {
-        id: 51,
-        label: '电子成品',
-        children: [
-          { id: 511, label: '控制板' },
-          { id: 512, label: '电源模块' },
-          { id: 513, label: '传感器组件' },
-        ],
-      },
-      {
-        id: 52,
-        label: '机械成品',
-        children: [
-          { id: 521, label: '传动装置' },
-          { id: 522, label: '结构件组件' },
-          { id: 523, label: '连接件组件' },
-        ],
-      },
-      {
-        id: 53,
-        label: '组装成品',
-        children: [
-          { id: 531, label: '汽车零部件' },
-          { id: 532, label: '电子设备' },
-          { id: 533, label: '管道组件' },
-        ],
-      },
-    ],
-  },
-]
-
-const locationOptions = [
-  { label: '仓库A', value: '仓库A' },
-  { label: '仓库B', value: '仓库B' },
-  { label: '仓库C', value: '仓库C' },
-  { label: '生产线', value: '生产线' },
-]
-
-const allMaterials = ref([
-  {
-    id: 1,
-    materialCode: 'MAT20240001',
-    materialName: '碳钢板材',
-    version: 'V1.0',
-    isCurrent: false,
-    specModel: 'Q235B-10mm',
-    stockQuantity: 500,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库A',
-    baseId: 'MAT001',
-  },
-  {
-    id: 2,
-    materialCode: 'MAT20240001',
-    materialName: '碳钢板材',
-    version: 'V2.0',
-    isCurrent: true,
-    specModel: 'Q235B-12mm',
-    stockQuantity: 300,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库A',
-    baseId: 'MAT001',
-  },
-  {
-    id: 3,
-    materialCode: 'MAT20240002',
-    materialName: '铝合金板',
-    version: 'V1.0',
-    isCurrent: true,
-    specModel: '6061-T6-5mm',
-    stockQuantity: 200,
-    supplier: '上海铝业公司',
-    category: '铝材',
-    location: '仓库B',
-    baseId: 'MAT002',
-  },
-  {
-    id: 4,
-    materialCode: 'MAT20240003',
-    materialName: '黄铜棒材',
-    version: 'V1.0',
-    isCurrent: false,
-    specModel: 'H62-Φ20',
-    stockQuantity: 150,
-    supplier: '广州铜材厂',
-    category: '铜材',
-    location: '仓库C',
-    baseId: 'MAT003',
-  },
-  {
-    id: 5,
-    materialCode: 'MAT20240003',
-    materialName: '黄铜棒材',
-    version: 'V2.0',
-    isCurrent: false,
-    specModel: 'H62-Φ25',
-    stockQuantity: 100,
-    supplier: '广州铜材厂',
-    category: '铜材',
-    location: '仓库C',
-    baseId: 'MAT003',
-  },
-  {
-    id: 6,
-    materialCode: 'MAT20240003',
-    materialName: '黄铜棒材',
-    version: 'V3.0',
-    isCurrent: true,
-    specModel: 'H62-Φ30',
-    stockQuantity: 80,
-    supplier: '广州铜材厂',
-    category: '铜材',
-    location: '仓库C',
-    baseId: 'MAT003',
-  },
-  {
-    id: 7,
-    materialCode: 'MAT20240004',
-    materialName: 'ABS塑料件',
-    version: 'V1.0',
-    isCurrent: true,
-    specModel: 'ABS-标准件',
-    stockQuantity: 1000,
-    supplier: '深圳塑胶科技',
-    category: '塑料件',
-    location: '仓库A',
-    baseId: 'MAT004',
-  },
-  {
-    id: 8,
-    materialCode: 'MAT20240005',
-    materialName: '电阻电容',
-    version: 'V1.0',
-    isCurrent: true,
-    specModel: '0402封装',
-    stockQuantity: 5000,
-    supplier: '东莞电子元件',
-    category: '电子元件',
-    location: '仓库B',
-    baseId: 'MAT005',
-  },
-  {
-    id: 9,
-    materialCode: 'MAT20240006',
-    materialName: '不锈钢管',
-    version: 'V1.0',
-    isCurrent: false,
-    specModel: '304-Φ50',
-    stockQuantity: 200,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库C',
-    baseId: 'MAT006',
-  },
-  {
-    id: 10,
-    materialCode: 'MAT20240006',
-    materialName: '不锈钢管',
-    version: 'V2.0',
-    isCurrent: true,
-    specModel: '304-Φ60',
-    stockQuantity: 150,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库C',
-    baseId: 'MAT006',
-  },
-])
-
 const materialVersions = computed(() => {
-  if (!materialData.value.baseId) return []
-  return allMaterials.value
-    .filter((m) => m.baseId === materialData.value.baseId)
-    .sort((a, b) => {
-      const vA = parseFloat(a.version.replace('V', ''))
-      const vB = parseFloat(b.version.replace('V', ''))
-      return vB - vA
-    })
+  if (!materialData.value.id) return []
+  return [materialData.value].filter(Boolean)
 })
 
 const versionOptions = computed(() => {
@@ -334,42 +143,92 @@ const versionOptions = computed(() => {
   }))
 })
 
-const loadMaterialData = () => {
-  loading.value = true
-  setTimeout(() => {
-    const id = route.params.id
-    const data = allMaterials.value.find((m) => m.id === parseInt(id)) || allMaterials.value[0]
-    materialData.value = { ...data }
-    currentVersionId.value = data.id
-    Object.assign(formData, {
-      materialCode: data.materialCode,
-      materialName: data.materialName,
-      specModel: data.specModel,
-      stockQuantity: data.stockQuantity,
-      supplier: data.supplier,
-      version: data.version,
-      category: data.category,
-      location: data.location,
-    })
-    loading.value = false
-  }, 300)
+const findCategoryPath = (categoryId, tree, path = []) => {
+  const targetId = String(categoryId)
+  for (const node of tree) {
+    const currentPath = [...path, node.value]
+    if (String(node.value) === targetId) {
+      return currentPath
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findCategoryPath(categoryId, node.children, currentPath)
+      if (found) return found
+    }
+  }
+  return null
 }
 
-const handleVersionChange = (versionId) => {
-  const data = allMaterials.value.find((m) => m.id === versionId)
-  if (data) {
-    materialData.value = { ...data }
+const loadMaterialData = async () => {
+  loading.value = true
+  try {
+    const id = route.params.id
+    console.log('物料详情页获取到的id:', id)
+    if (!id) {
+      ElMessage.error('物料ID不存在')
+      return
+    }
+    const res = await getPartDetail(id)
+    console.log('获取物料信息详情成功', res)
+    const data = res.data?.data?.data || res.data?.data || {}
+    console.log('API返回的原始数据:', data)
+
+    const categoryId = data.category?.categoryId || data.categoryId || data.category
+    const categoryName = categoryMap.value.get(categoryId) || data.category?.categoryName || ''
+    const warehouseId = data.warhouse?.id || data.warhouseId || data.warhouse
+    const warehouseName = warehouseMap.value.get(warehouseId) || data.warhouse?.warhouseName || ''
+
+    const transformedData = {
+      id: data.id,
+      materialCode: data.partId || data.materialId || data.id,
+      materialName: data.partName || data.materialName,
+      version: data.versions || data.version,
+      isCurrent: true,
+      specModel: data.specificationModel || data.specModel || data.spec || '',
+      stockQuantity: data.stockQuantity || data.stock || data.quantity || 0,
+      supplier: data.supplier || data.supplierName || '',
+      categoryId: categoryId,
+      category: categoryName,
+      warehouseId: warehouseId,
+      location: warehouseName,
+      baseId: data.baseId || data.id,
+    }
+    console.log('转换后的数据:', transformedData)
+
+    materialData.value = { ...transformedData }
+    currentVersionId.value = transformedData.id
+
+    console.log('开始查找分类路径, categoryId:', categoryId)
+    console.log('categoryTreeData:', categoryTreeData.value)
+
+    const categoryPath =
+      categoryId && categoryTreeData.value.length > 0
+        ? findCategoryPath(categoryId, categoryTreeData.value)
+        : []
+
+    console.log('找到的分类路径:', categoryPath)
+
     Object.assign(formData, {
-      materialCode: data.materialCode,
-      materialName: data.materialName,
-      specModel: data.specModel,
-      stockQuantity: data.stockQuantity,
-      supplier: data.supplier,
-      version: data.version,
-      category: data.category,
-      location: data.location,
+      materialCode: transformedData.materialCode,
+      materialName: transformedData.materialName,
+      specModel: transformedData.specModel,
+      stockQuantity: transformedData.stockQuantity,
+      supplier: transformedData.supplier,
+      version: transformedData.version,
+      category: categoryPath || [],
+      selectedCategoryId: categoryId,
+      location: warehouseName,
+      warehouse: warehouseId ? { id: warehouseId } : null,
     })
+  } catch (error) {
+    console.error('获取物料详情失败:', error)
+    ElMessage.error('获取物料详情失败')
+  } finally {
+    loading.value = false
   }
+}
+
+const handleVersionChange = async (versionId) => {
+  await loadMaterialData()
 }
 
 const handleEdit = () => {
@@ -384,6 +243,10 @@ const handleCancel = () => {
   })
     .then(() => {
       isEdit.value = false
+      const categoryPath =
+        materialData.value.categoryId && categoryTreeData.value.length > 0
+          ? findCategoryPath(materialData.value.categoryId, categoryTreeData.value)
+          : []
       Object.assign(formData, {
         materialCode: materialData.value.materialCode,
         materialName: materialData.value.materialName,
@@ -391,8 +254,10 @@ const handleCancel = () => {
         stockQuantity: materialData.value.stockQuantity,
         supplier: materialData.value.supplier,
         version: materialData.value.version,
-        category: materialData.value.category,
+        category: categoryPath || [],
+        selectedCategoryId: materialData.value.categoryId,
         location: materialData.value.location,
+        warehouse: materialData.value.warehouseId ? { id: materialData.value.warehouseId } : null,
       })
     })
     .catch(() => {})
@@ -488,21 +353,41 @@ const handleExport = () => {
   ElMessage.success('导出成功')
 }
 
+const validateCategory = (rule, value, callback) => {
+  if (!formData.selectedCategoryId) {
+    callback(new Error('请选择分类'))
+    return
+  }
+  callback()
+}
+
+const handleCategoryChange = (value) => {
+  if (value && value.length > 0) {
+    formData.selectedCategoryId = value[value.length - 1]
+  } else {
+    formData.selectedCategoryId = null
+  }
+}
+
 const rules = {
   materialName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
   specModel: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
   supplier: [{ required: true, message: '请选择供应商', trigger: 'change' }],
-  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
-  location: [{ required: true, message: '请选择位置', trigger: 'change' }],
+  category: [{ required: true, validator: validateCategory, trigger: 'change' }],
+  warehouse: [{ required: true, message: '请选择仓库', trigger: 'change' }],
 }
 
-onMounted(() => {
+onMounted(async () => {
+  fetchWarehouseList()
+  fetchCategoryList()
+  await fetchOptions()
   loadMaterialData()
 })
 
 watch(
   () => route.params.id,
-  () => {
+  async () => {
+    await fetchOptions()
     loadMaterialData()
   },
 )
@@ -633,25 +518,27 @@ watch(
                   v-model="formData.category"
                   :options="categoryTreeData"
                   :props="{
-                    label: 'label',
-                    value: 'label',
-                    children: 'children',
-                    checkStrictly: false,
-                    emitPath: false,
+                    checkStrictly: true,
+                    emitPath: true,
                   }"
                   placeholder="请选择分类"
                   style="width: 100%"
                   clearable
-                  filterable
+                  @change="handleCategoryChange"
                 />
               </el-form-item>
-              <el-form-item label="位置" prop="location">
-                <el-select v-model="formData.location" placeholder="请选择位置" style="width: 100%">
+              <el-form-item label="仓库" prop="warehouse">
+                <el-select
+                  v-model="formData.warehouse"
+                  placeholder="请选择仓库"
+                  style="width: 100%"
+                  value-key="id"
+                >
                   <el-option
-                    v-for="item in locationOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
+                    v-for="item in warehouseList"
+                    :key="item.id"
+                    :label="item.warhouseName"
+                    :value="{ id: item.id }"
                   />
                 </el-select>
               </el-form-item>
@@ -681,6 +568,8 @@ watch(
                   <span>规格型号：{{ version.specModel }}</span>
                   <span>供应商：{{ version.supplier }}</span>
                   <span>库存：{{ version.stockQuantity }}</span>
+                  <span>分类：{{ version.category }}</span>
+                  <span>位置：{{ version.location }}</span>
                 </div>
               </div>
             </el-timeline-item>

@@ -115,20 +115,12 @@ const handleCancel = () => {
 
 const getTableList = async (params) => {
   try {
-    const res = await getProductFind()
+    const res = await getProductFind(params)
     console.log('产品列表', res)
 
-    let dataList = res.data?.data?.data || []
+    let dataList = res.data?.data?.data || res.data?.data || []
     if (!Array.isArray(dataList)) {
       dataList = []
-    }
-
-    if (params?.productId) {
-      dataList = dataList.filter((item) => item.productId?.includes(params.productId))
-    }
-
-    if (params?.productName) {
-      dataList = dataList.filter((item) => item.productName?.includes(params.productName))
     }
 
     const pageNum = params?.pageNum || 1

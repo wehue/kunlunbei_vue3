@@ -1,13 +1,44 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import { getPartList, getPartCategoryList, addPart , deletePart } from '@/api/material'
+import { getWarehouseList } from '@/api/warehouse'
 
 const { hasPermission, isDesignerRole, isAdminRole } = usePermission()
+
+const warehouseMap = ref(new Map())
+const categoryMap = ref(new Map())
+
+const fetchWarehouseList = async () => {
+  try {
+    const res = await getWarehouseList()
+    console.log('获取仓库列表信息成功', res)
+    const list = res.data?.data?.data || res.data?.data || []
+    list.forEach((item) => {
+      warehouseMap.value.set(item.id || item.warhouseId, item.warhouseName)
+    })
+  } catch (error) {
+    console.error('获取仓库列表失败:', error)
+  }
+}
+
+const fetchCategoryList = async () => {
+  try {
+    const res = await getPartCategoryList()
+    console.log('获取物分类信息成功', res)
+    const list = res.data?.data?.data || res.data?.data || []
+    list.forEach((item) => {
+      categoryMap.value.set(item.categoryId, item.categoryName)
+    })
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
+  }
+}
 
 const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
@@ -18,331 +49,14 @@ const dialogVisible = ref(false)
 const formRef = ref()
 const showAllVersions = ref(false)
 
-const categoryTreeData = [
-  {
-    id: 1,
-    label: '电子元器件',
-    children: [
-      {
-        id: 11,
-        label: '无源分立元件',
-        children: [
-          {
-            id: 111,
-            label: '磁性元件',
-            children: [
-              { id: 1111, label: '贴片电感' },
-              { id: 1112, label: '功率磁环' },
-              { id: 1113, label: '互感器磁芯' },
-            ],
-          },
-          { id: 112, label: '电阻' },
-          { id: 113, label: '电容' },
-          { id: 114, label: '电感' },
-        ],
-      },
-      {
-        id: 12,
-        label: '有源器件',
-        children: [
-          { id: 121, label: '二极管' },
-          { id: 122, label: '三极管' },
-          { id: 123, label: '集成电路' },
-        ],
-      },
-      {
-        id: 13,
-        label: '连接器件',
-        children: [
-          { id: 131, label: '接插件' },
-          { id: 132, label: '线缆' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: '机械零件',
-    children: [
-      {
-        id: 21,
-        label: '紧固件',
-        children: [
-          { id: 211, label: '螺栓' },
-          { id: 212, label: '螺母' },
-          { id: 213, label: '垫圈' },
-        ],
-      },
-      {
-        id: 22,
-        label: '传动件',
-        children: [
-          { id: 221, label: '齿轮' },
-          { id: 222, label: '轴承' },
-          { id: 223, label: '皮带' },
-        ],
-      },
-      {
-        id: 23,
-        label: '结构件',
-        children: [
-          { id: 231, label: '支架' },
-          { id: 232, label: '外壳' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 3,
-    label: '金属材料',
-    children: [
-      {
-        id: 31,
-        label: '钢材',
-        children: [
-          { id: 311, label: '碳钢' },
-          { id: 312, label: '不锈钢' },
-        ],
-      },
-      {
-        id: 32,
-        label: '铝材',
-        children: [
-          { id: 321, label: '铝合金板' },
-          { id: 322, label: '铝型材' },
-        ],
-      },
-      {
-        id: 33,
-        label: '铜材',
-        children: [
-          { id: 331, label: '黄铜' },
-          { id: 332, label: '紫铜' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 4,
-    label: '塑料件',
-    children: [
-      { id: 41, label: 'ABS塑料' },
-      { id: 42, label: 'PP塑料' },
-      { id: 43, label: 'PC塑料' },
-    ],
-  },
-  {
-    id: 5,
-    label: '成品',
-    children: [
-      {
-        id: 51,
-        label: '电子成品',
-        children: [
-          { id: 511, label: '控制板' },
-          { id: 512, label: '电源模块' },
-          { id: 513, label: '传感器组件' },
-        ],
-      },
-      {
-        id: 52,
-        label: '机械成品',
-        children: [
-          { id: 521, label: '传动装置' },
-          { id: 522, label: '结构件组件' },
-          { id: 523, label: '连接件组件' },
-        ],
-      },
-      {
-        id: 53,
-        label: '组装成品',
-        children: [
-          { id: 531, label: '汽车零部件' },
-          { id: 532, label: '电子设备' },
-          { id: 533, label: '管道组件' },
-        ],
-      },
-    ],
-  },
-]
-
-const getLeafCategories = (data, result = []) => {
-  data.forEach((item) => {
-    if (!item.children || item.children.length === 0) {
-      result.push({ id: item.id, label: item.label })
-    } else {
-      getLeafCategories(item.children, result)
-    }
-  })
-  return result
-}
-
-const categoryOptions = getLeafCategories(categoryTreeData)
-
-const locationOptions = [
-  { label: '仓库A', value: '仓库A' },
-  { label: '仓库B', value: '仓库B' },
-  { label: '仓库C', value: '仓库C' },
-  { label: '生产线', value: '生产线' },
-]
-
-const versionOptions = computed(() => {
-  const versions = [...new Set(allMaterials.value.map((m) => m.version))]
-  return versions.sort().map((v) => ({ label: v, value: v }))
-})
-
-const allMaterials = ref([
-  {
-    id: 1,
-    materialCode: 'MAT20240001',
-    materialName: '碳钢板材',
-    version: 'V1.0',
-    isCurrent: false,
-    specModel: 'Q235B-10mm',
-    stockQuantity: 500,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库A',
-    baseId: 'MAT001',
-  },
-  {
-    id: 2,
-    materialCode: 'MAT20240001',
-    materialName: '碳钢板材',
-    version: 'V2.0',
-    isCurrent: true,
-    specModel: 'Q235B-12mm',
-    stockQuantity: 300,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库A',
-    baseId: 'MAT001',
-  },
-  {
-    id: 3,
-    materialCode: 'MAT20240002',
-    materialName: '铝合金板',
-    version: 'V1.0',
-    isCurrent: true,
-    specModel: '6061-T6-5mm',
-    stockQuantity: 200,
-    supplier: '上海铝业公司',
-    category: '铝材',
-    location: '仓库B',
-    baseId: 'MAT002',
-  },
-  {
-    id: 4,
-    materialCode: 'MAT20240003',
-    materialName: '黄铜棒材',
-    version: 'V1.0',
-    isCurrent: false,
-    specModel: 'H62-Φ20',
-    stockQuantity: 150,
-    supplier: '广州铜材厂',
-    category: '铜材',
-    location: '仓库C',
-    baseId: 'MAT003',
-  },
-  {
-    id: 5,
-    materialCode: 'MAT20240003',
-    materialName: '黄铜棒材',
-    version: 'V2.0',
-    isCurrent: false,
-    specModel: 'H62-Φ25',
-    stockQuantity: 100,
-    supplier: '广州铜材厂',
-    category: '铜材',
-    location: '仓库C',
-    baseId: 'MAT003',
-  },
-  {
-    id: 6,
-    materialCode: 'MAT20240003',
-    materialName: '黄铜棒材',
-    version: 'V3.0',
-    isCurrent: true,
-    specModel: 'H62-Φ30',
-    stockQuantity: 80,
-    supplier: '广州铜材厂',
-    category: '铜材',
-    location: '仓库C',
-    baseId: 'MAT003',
-  },
-  {
-    id: 7,
-    materialCode: 'MAT20240004',
-    materialName: 'ABS塑料件',
-    version: 'V1.0',
-    isCurrent: true,
-    specModel: 'ABS-标准件',
-    stockQuantity: 1000,
-    supplier: '深圳塑胶科技',
-    category: '塑料件',
-    location: '仓库A',
-    baseId: 'MAT004',
-  },
-  {
-    id: 8,
-    materialCode: 'MAT20240005',
-    materialName: '电阻电容',
-    version: 'V1.0',
-    isCurrent: true,
-    specModel: '0402封装',
-    stockQuantity: 5000,
-    supplier: '东莞电子元件',
-    category: '电子元件',
-    location: '仓库B',
-    baseId: 'MAT005',
-  },
-  {
-    id: 9,
-    materialCode: 'MAT20240006',
-    materialName: '不锈钢管',
-    version: 'V1.0',
-    isCurrent: false,
-    specModel: '304-Φ50',
-    stockQuantity: 200,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库C',
-    baseId: 'MAT006',
-  },
-  {
-    id: 10,
-    materialCode: 'MAT20240006',
-    materialName: '不锈钢管',
-    version: 'V2.0',
-    isCurrent: true,
-    specModel: '304-Φ60',
-    stockQuantity: 150,
-    supplier: '北京钢铁集团',
-    category: '钢材',
-    location: '仓库C',
-    baseId: 'MAT006',
-  },
-])
-
-const getVersionCount = (baseId) => {
-  return allMaterials.value.filter((m) => m.baseId === baseId).length
-}
-
-const displayData = computed(() => {
-  if (showAllVersions.value) {
-    return allMaterials.value
-  }
-  return allMaterials.value.filter((m) => m.isCurrent)
-})
-
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
   {
-    prop: 'materialCode',
+    prop: 'materialId',
     label: '物料编号',
     minWidth: 140,
-    search: { el: 'input', key: 'materialCode' },
+    search: { el: 'input', key: 'materialId' },
   },
   {
     prop: 'materialName',
@@ -351,64 +65,111 @@ const columns = reactive([
     search: { el: 'input', key: 'materialName' },
   },
   {
-    prop: 'version',
+    prop: 'versions',
     label: '版本号',
     minWidth: 100,
     align: 'center',
-    search: { el: 'select', key: 'version' },
-    enum: versionOptions,
   },
   {
-    prop: 'category',
+    prop: 'categoryName',
     label: '分类',
     minWidth: 100,
-    search: { el: 'select', key: 'category' },
-    enum: categoryOptions,
   },
-  { prop: 'location', label: '位置', minWidth: 100 },
+  { prop: 'warhouseName', label: '仓库', minWidth: 100 },
   { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
 ])
 
-const formData = reactive({
-  materialCode: '',
-  materialName: '',
-  specModel: '',
-  stockQuantity: 0,
-  supplier: '',
-  version: 'V1.0',
-  category: '',
-  location: '',
+const warehouseList = ref([])
+const categoryList = ref([])
+const categoryTreeData = ref([])
+
+const transformToTree = (flatList) => {
+  const maxList = []
+  const midMap = new Map()
+  const minMap = new Map()
+
+  flatList.forEach((item) => {
+    const id = String(item.categoryId)
+    const node = {
+      value: item.categoryId,
+      label: item.categoryName,
+      level: item.level,
+      children: [],
+    }
+
+    if (item.level === 'Max') {
+      maxList.push(node)
+    } else if (item.level === 'Mid') {
+      const parentId = Math.floor(parseInt(id) / 100) * 100
+      if (!midMap.has(String(parentId))) {
+        midMap.set(String(parentId), [])
+      }
+      midMap.get(String(parentId)).push(node)
+    } else if (item.level === 'Min') {
+      const parentId = id.substring(0, 3)
+      if (!minMap.has(parentId)) {
+        minMap.set(parentId, [])
+      }
+      minMap.get(parentId).push(node)
+    }
+  })
+
+  maxList.forEach((maxNode) => {
+    const maxId = String(maxNode.value)
+    const midChildren = midMap.get(maxId) || []
+    midChildren.forEach((midNode) => {
+      const midId = String(midNode.value)
+      const minChildren = minMap.get(midId) || []
+      midNode.children = minChildren
+    })
+    maxNode.children = midChildren
+  })
+
+  return maxList
+}
+
+const fetchOptions = async () => {
+  try {
+    const [warehouseRes, categoryRes] = await Promise.all([
+      getWarehouseList(),
+      getPartCategoryList(),
+    ])
+    warehouseList.value = warehouseRes.data?.data?.data || warehouseRes.data?.data || []
+    categoryList.value = categoryRes.data?.data?.data || categoryRes.data?.data || []
+    if (categoryList.value.length > 0) {
+      categoryTreeData.value = transformToTree(categoryList.value)
+    }
+  } catch (error) {
+    console.error('获取选项数据失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchWarehouseList()
+  fetchCategoryList()
+  fetchOptions()
 })
 
-const validateMaterialName = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请输入物料名称'))
-    return
-  }
-  const exists = allMaterials.value.some(
-    (item) => item.materialName === value && item.id !== formData.id,
-  )
-  if (exists) {
-    callback(new Error('物料名称已存在，请使用其他名称'))
-  } else {
-    callback()
-  }
-}
+const unitOptions = [
+  { label: '个', value: 'A' },
+  { label: '米', value: 'M' },
+  { label: '克', value: 'G' },
+  { label: '千克', value: 'KG' },
+]
 
-const validateSpecModel = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请输入规格型号'))
-    return
-  }
-  const sameMaterial = allMaterials.value.find(
-    (item) => item.materialName === formData.materialName && item.id !== formData.id,
-  )
-  if (sameMaterial && sameMaterial.specModel === value) {
-    callback(new Error('相同物料名称下规格型号不能重复'))
-  } else {
-    callback()
-  }
-}
+const formData = reactive({
+  id: '',
+  materialId: '',
+  materialName: '',
+  versions: 'V1.0',
+  supplier: '',
+  specificationModel: '',
+  stockQuantity: null,
+  unit: 'A',
+  warehouse: null,
+  category: [],
+  selectedCategoryId: null,
+})
 
 const validateStockQuantity = (rule, value, callback) => {
   if (value === '' || value === null || value === undefined) {
@@ -424,35 +185,46 @@ const validateStockQuantity = (rule, value, callback) => {
   }
 }
 
-const rules = {
-  materialName: [{ required: true, validator: validateMaterialName, trigger: 'blur' }],
-  specModel: [{ required: true, validator: validateSpecModel, trigger: 'blur' }],
-  supplier: [{ required: true, message: '请输入供应商', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
-  location: [{ required: true, message: '请选择位置', trigger: 'change' }],
-  stockQuantity: [{ validator: validateStockQuantity, trigger: 'blur' }],
+const validateCategory = (rule, value, callback) => {
+  if (!formData.selectedCategoryId) {
+    callback(new Error('请选择分类'))
+    return
+  }
+  callback()
 }
 
-const generateMaterialCode = () => {
-  const year = new Date().getFullYear()
-  const maxBaseId = allMaterials.value.reduce((max, item) => {
-    const num = parseInt(item.baseId.replace('MAT', ''))
-    return num > max ? num : max
-  }, 0)
-  const newId = String(maxBaseId + 1).padStart(3, '0')
-  return `MAT${year}${newId}`
+const rules = {
+  materialId: [{ required: true, message: '请输入物料编号', trigger: 'blur' }],
+  materialName: [{ required: true, message: '请输入物料名称', trigger: 'blur' }],
+  specificationModel: [{ required: true, message: '请输入规格型号', trigger: 'blur' }],
+  supplier: [{ required: true, message: '请输入供应商', trigger: 'blur' }],
+  category: [{ required: true, validator: validateCategory, trigger: 'change' }],
+  warehouse: [{ required: true, message: '请选择仓库', trigger: 'change' }],
+  stockQuantity: [{ required: true, validator: validateStockQuantity, trigger: 'blur' }],
+  unit: [{ required: true, message: '请选择单位', trigger: 'change' }],
+}
+
+const handleCategoryChange = (value) => {
+  if (value && value.length > 0) {
+    formData.selectedCategoryId = value[value.length - 1]
+  } else {
+    formData.selectedCategoryId = null
+  }
 }
 
 const handleAdd = () => {
   Object.assign(formData, {
-    materialCode: generateMaterialCode(),
+    id: '',
+    materialId: '',
     materialName: '',
-    specModel: '',
-    stockQuantity: 0,
+    versions: 'V1.0',
     supplier: '',
-    version: 'V1.0',
-    category: '',
-    location: '',
+    specificationModel: '',
+    stockQuantity: null,
+    unit: 'A',
+    warehouse: null,
+    category: [],
+    selectedCategoryId: null,
   })
   dialogVisible.value = true
 }
@@ -460,33 +232,36 @@ const handleAdd = () => {
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      const maxId = allMaterials.value.reduce((max, item) => {
-        const id = parseInt(item.id)
-        return id > max ? id : max
-      }, 0)
+      try {
+        const submitData = {
+          id: formData.id || formData.materialId,
+          materialId: formData.materialId,
+          materialName: formData.materialName,
+          versions: formData.versions,
+          supplier: formData.supplier,
+          specificationModel: formData.specificationModel,
+          stockQuantity: formData.stockQuantity != null ? String(formData.stockQuantity) : '',
+          unit: formData.unit,
+          warhouse: formData.warehouse,
+          category: formData.selectedCategoryId ? { id: formData.selectedCategoryId } : null,
+          master: {
+            id: formData.id || formData.materialId,
+          },
+          branch: {
+            id: formData.id || formData.materialId,
+          },
+        }
 
-      const baseId = formData.materialCode.replace(/MAT\d{4}/, 'MAT')
-
-      const newMaterial = {
-        id: maxId + 1,
-        materialCode: formData.materialCode,
-        materialName: formData.materialName,
-        version: formData.version,
-        isCurrent: true,
-        specModel: formData.specModel,
-        stockQuantity: formData.stockQuantity,
-        supplier: formData.supplier,
-        category: formData.category,
-        location: formData.location,
-        baseId: baseId,
+        await addPart(submitData)
+        ElMessage.success('新增成功')
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        console.error('新增物料失败:', error)
+        ElMessage.error('新增失败')
       }
-
-      allMaterials.value.push(newMaterial)
-      ElMessage.success('新增成功')
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
     }
   })
 }
@@ -506,10 +281,13 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const index = allMaterials.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      allMaterials.value.splice(index, 1)
+
+    // 调用删除 API，传递 master.id
+    const deleteData = {
+      masterId: row.master?.id || row.id,
     }
+    await deletePart(deleteData)
+
     ElMessage.success('删除成功')
     proTableRef.value?.getTableList()
   } catch (error) {
@@ -558,50 +336,70 @@ const handleExportBatch = (selectedList) => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...displayData.value]
+  try {
+    const res = await getPartList()
+    console.log('获取物料信息列表成功', res)
 
-      if (params?.materialCode) {
-        filteredData = filteredData.filter((item) =>
-          item.materialCode.includes(params.materialCode),
-        )
-      }
+    const rawList = res.data?.data?.data || res.data?.data || []
 
-      if (params?.materialName) {
-        filteredData = filteredData.filter((item) =>
-          item.materialName.includes(params.materialName),
-        )
-      }
+    const transformedList = rawList.map((item) => ({
+      id: item.id || item.partId,
+      materialId: item.materialId || item.id,
+      materialName: item.partName || item.materialName,
+      versions: item.versions || item.version,
+      specificationModel: item.specificationModel || item.specModel || '',
+      warhouseId: item.warhouse?.id || item.warhouseId || item.warhouse,
+      warhouseName:
+        warehouseMap.value.get(item.warhouse?.id || item.warhouseId || item.warhouse) ||
+        item.warhouse?.warhouseName ||
+        '',
+      categoryId: item.category?.categoryId || item.categoryId || item.category,
+      categoryName:
+        categoryMap.value.get(item.category?.categoryId || item.categoryId || item.category) ||
+        item.category?.categoryName ||
+        '',
+      master: item.master,
+    }))
 
-      if (params?.version) {
-        filteredData = filteredData.filter((item) => item.version.includes(params.version))
-      }
+    let filteredData = [...transformedList]
 
-      if (params?.category) {
-        filteredData = filteredData.filter((item) => item.category === params.category)
-      }
+    if (params?.materialName) {
+      filteredData = filteredData.filter((item) => item.materialName.includes(params.materialName))
+    }
 
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
+    if (params?.version) {
+      filteredData = filteredData.filter((item) => item.versions?.includes(params.version))
+    }
 
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-        versionCount: getVersionCount(item.baseId),
-      }))
+    if (params?.category) {
+      filteredData = filteredData.filter((item) => item.categoryName === params.category)
+    }
 
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+    const pageNum = params?.pageNum || 1
+    const pageSize = params?.pageSize || 10
+    const startIndex = (pageNum - 1) * pageSize
+    const paginatedData = filteredData.slice(startIndex, startIndex + pageSize)
+
+    const dataWithIndex = paginatedData.map((item, index) => ({
+      ...item,
+      index: startIndex + index + 1,
+    }))
+
+    return {
+      data: {
+        list: dataWithIndex,
+        total: filteredData.length,
+      },
+    }
+  } catch (error) {
+    console.error('获取物料列表失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 </script>
 
@@ -639,36 +437,36 @@ const getTableList = async (params) => {
         </div>
       </template>
 
-      <template #materialCode="scope">
-        <span>{{ scope.row.materialCode }}</span>
+      <template #materialId="scope">
+        <span>{{ scope.row.materialId }}</span>
       </template>
 
-      <template #version="scope">
+      <template #versions="scope">
         <div class="version-cell">
-          <el-tag size="default" :type="scope.row.isCurrent ? 'success' : 'info'">
-            {{ scope.row.version }}
+          <el-tag size="default">
+            {{ scope.row.versions }}
           </el-tag>
-          <el-tooltip
-            v-if="scope.row.versionCount > 1"
-            :content="`该物料包含${scope.row.versionCount}个历史版本，点击详情页可切换查看`"
-            placement="top"
-          >
-            <span class="version-icon">🔄</span>
-          </el-tooltip>
         </div>
       </template>
 
-      <template #category="scope">
-        <el-tag size="default">{{ scope.row.category }}</el-tag>
+      <template #categoryName="scope">
+        <el-tag size="default">{{ scope.row.categoryName }}</el-tag>
       </template>
 
-      <template #location="scope">
-        <el-tag type="warning" size="default">{{ scope.row.location }}</el-tag>
+      <template #warhouseName="scope">
+        <el-tag type="warning" size="default">{{ scope.row.warhouseName }}</el-tag>
       </template>
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button v-if="isAdminRole" type="danger" link :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
+        <el-button
+          v-if="isAdminRole"
+          type="danger"
+          link
+          :icon="Delete"
+          @click="handleDelete(scope.row)"
+          >删除</el-button
+        >
       </template>
     </ProTable>
 
@@ -690,14 +488,14 @@ const getTableList = async (params) => {
             <span class="title-text">基本信息</span>
           </div>
           <div class="form-grid">
-            <el-form-item label="物料编号">
-              <el-input v-model="formData.materialCode" disabled placeholder="系统自动生成" />
+            <el-form-item label="物料编号" prop="materialId">
+              <el-input v-model="formData.materialId" placeholder="请输入物料编号" />
             </el-form-item>
             <el-form-item label="物料名称" prop="materialName">
               <el-input v-model="formData.materialName" placeholder="请输入物料名称" />
             </el-form-item>
-            <el-form-item label="规格型号" prop="specModel">
-              <el-input v-model="formData.specModel" placeholder="请输入规格型号" />
+            <el-form-item label="规格型号" prop="specificationModel">
+              <el-input v-model="formData.specificationModel" placeholder="请输入规格型号" />
             </el-form-item>
             <el-form-item label="库存数量" prop="stockQuantity">
               <el-input-number
@@ -711,34 +509,46 @@ const getTableList = async (params) => {
               <el-input v-model="formData.supplier" placeholder="请输入供应商名称" />
             </el-form-item>
             <el-form-item label="版本号">
-              <el-input v-model="formData.version" disabled placeholder="默认V1.0" />
+              <el-input v-model="formData.versions" disabled placeholder="默认V1.0" />
+            </el-form-item>
+            <el-form-item label="单位" prop="unit">
+              <el-select v-model="formData.unit" placeholder="请选择单位" style="width: 100%">
+                <el-option
+                  v-for="item in unitOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="仓库" prop="warehouse">
+              <el-select
+                v-model="formData.warehouse"
+                placeholder="请选择仓库"
+                style="width: 100%"
+                value-key="id"
+              >
+                <el-option
+                  v-for="item in warehouseList"
+                  :key="item.id"
+                  :label="item.warhouseName"
+                  :value="{ id: item.id }"
+                />
+              </el-select>
             </el-form-item>
             <el-form-item label="分类" prop="category">
               <el-cascader
                 v-model="formData.category"
                 :options="categoryTreeData"
                 :props="{
-                  label: 'label',
-                  value: 'label',
-                  children: 'children',
-                  checkStrictly: false,
-                  emitPath: false,
+                  checkStrictly: true,
+                  emitPath: true,
                 }"
                 placeholder="请选择分类"
                 style="width: 100%"
                 clearable
-                filterable
+                @change="handleCategoryChange"
               />
-            </el-form-item>
-            <el-form-item label="位置" prop="location">
-              <el-select v-model="formData.location" placeholder="请选择位置" style="width: 100%">
-                <el-option
-                  v-for="item in locationOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
             </el-form-item>
           </div>
         </div>

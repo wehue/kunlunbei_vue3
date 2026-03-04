@@ -139,7 +139,14 @@ const handleCancel = () => {
 }
 
 const getTableList = async (params) => {
-  const res = await getProductionStaffList()
+  // 构建查询参数，映射前端参数名到后端参数名
+  const apiParams = {
+    productionStaffId: params?.productionStaffId,
+    productionStaffName: params?.productionStaffName,
+    departmentId: params?.departmentName
+  }
+  
+  const res = await getProductionStaffList(apiParams)
   console.log('操作人员列表信息', res)
   const innerData = res.data.data
   let list = Array.isArray(innerData)
@@ -147,19 +154,6 @@ const getTableList = async (params) => {
     : Array.isArray(innerData?.data)
       ? innerData.data
       : (innerData?.list ?? innerData?.records ?? [])
-
-  if (params?.productionStaffId) {
-    list = list.filter((item) => item.productionStaffId?.includes(params.productionStaffId))
-  }
-  if (params?.productionStaffName) {
-    list = list.filter((item) => item.productionStaffName?.includes(params.productionStaffName))
-  }
-  if (params?.departmentName) {
-    list = list.filter((item) => {
-      const deptName = item.department?.departmentName || ''
-      return deptName.includes(params.departmentName)
-    })
-  }
 
   const total = list.length
   const pageNum = params?.pageNum || 1

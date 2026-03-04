@@ -24,13 +24,10 @@ export const useUserStore = defineStore(
 
     const setToken = (t) => {
       token.value = t
-      localStorage.setItem('token', t)
     }
 
     const setUserInfo = (info) => {
       userInfo.value = info
-      localStorage.setItem('userInfo', JSON.stringify(info))
-      // 当用户角色变化时，重新获取菜单
       if (info.role) {
         const authStore = useAuthStore()
         authStore.getAuthMenuList()
@@ -44,34 +41,10 @@ export const useUserStore = defineStore(
         name: '',
         role: '',
       }
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      // 退出登录时清空菜单
       const authStore = useAuthStore()
       authStore.setAuthMenuList([])
     }
 
-    const initFromStorage = () => {
-      const savedToken = localStorage.getItem('token')
-      const savedUserInfo = localStorage.getItem('userInfo')
-      if (savedToken) {
-        token.value = savedToken
-      }
-      if (savedUserInfo) {
-        try {
-          userInfo.value = JSON.parse(savedUserInfo)
-          // 初始化时获取菜单
-          if (userInfo.value.role) {
-            const authStore = useAuthStore()
-            authStore.getAuthMenuList()
-          }
-        } catch (e) {
-          console.error('Failed to parse userInfo from storage', e)
-        }
-      }
-    }
-
-    // 监听角色变化，重新获取菜单
     watch(
       () => userInfo.value.role,
       (newRole) => {
@@ -89,7 +62,6 @@ export const useUserStore = defineStore(
       setToken,
       setUserInfo,
       logout,
-      initFromStorage,
     }
   },
   {

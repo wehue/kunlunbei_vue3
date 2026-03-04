@@ -117,47 +117,50 @@ const handleCancel = () => {
 }
 
 const getTableList = async (params) => {
-  const res = await getDeptList()
-  console.log('部门列表信息', res)
-  const innerData = res.data.data
-  let list = Array.isArray(innerData)
-    ? innerData
-    : Array.isArray(innerData?.data)
-      ? innerData.data
-      : (innerData?.list ?? innerData?.records ?? [])
+  try {
+    // 构建查询参数，映射前端参数名到后端参数名
+    const apiParams = {
+      departmentId: params?.deptCode,
+      departmentName: params?.deptName,
+    }
 
-  if (params?.deptCode) {
-    list = list.filter((item) => {
-      const code = item.departmentId || item.deptId || item.deptCode || ''
-      return code.includes(params.deptCode)
-    })
-  }
-  if (params?.deptName) {
-    list = list.filter((item) => {
-      const name = item.departmentName || item.deptName || item.name || ''
-      return name.includes(params.deptName)
-    })
-  }
+    const res = await getDeptList(apiParams)
+    console.log('部门列表信息', res)
+    const innerData = res.data.data
+    let list = Array.isArray(innerData)
+      ? innerData
+      : Array.isArray(innerData?.data)
+        ? innerData.data
+        : (innerData?.list ?? innerData?.records ?? [])
 
-  const total = list.length
-  const pageNum = params?.pageNum || 1
-  const pageSize = params?.pageSize || 10
-  const startIndex = (pageNum - 1) * pageSize
-  const endIndex = startIndex + pageSize
-  const paginatedList = list.slice(startIndex, endIndex)
-  const dataWithIndex = paginatedList.map((item, index) => ({
-    ...item,
-    id: item.departmentId || item.deptId || item.id,
-    deptCode: item.departmentId || item.deptId || item.deptCode || '',
-    deptName: item.departmentName || item.deptName || item.name || '',
-    establishDate: formatDateTime(item.createTime || item.establishDate || ''),
-    index: startIndex + index + 1,
-  }))
-  return {
-    data: {
-      list: dataWithIndex,
-      total,
-    },
+    const total = list.length
+    const pageNum = params?.pageNum || 1
+    const pageSize = params?.pageSize || 10
+    const startIndex = (pageNum - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedList = list.slice(startIndex, endIndex)
+    const dataWithIndex = paginatedList.map((item, index) => ({
+      ...item,
+      id: item.departmentId || item.deptId || item.id,
+      deptCode: item.departmentId || item.deptId || item.deptCode || '',
+      deptName: item.departmentName || item.deptName || item.name || '',
+      establishDate: formatDateTime(item.createTime || item.establishDate || ''),
+      index: startIndex + index + 1,
+    }))
+    return {
+      data: {
+        list: dataWithIndex,
+        total,
+      },
+    }
+  } catch (error) {
+    console.error('获取部门列表失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
   }
 }
 </script>
