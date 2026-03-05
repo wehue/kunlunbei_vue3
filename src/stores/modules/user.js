@@ -13,13 +13,13 @@ export const useUserStore = defineStore(
     })
 
     const roleHomeMap = {
-      admin: '/admin-index',
-      designer: '/designer-index',
-      supervisor: '/supervisor-index',
+      Admin: '/admin-index',
+      Designer: '/designer-index',
+      Supervisor: '/supervisor-index',
     }
 
     const homeUrl = computed(() => {
-      return roleHomeMap[userInfo.value.role] || '/admin-index'
+      return roleHomeMap[userInfo.value?.role] || '/admin-index'
     })
 
     const setToken = (t) => {
@@ -27,8 +27,8 @@ export const useUserStore = defineStore(
     }
 
     const setUserInfo = (info) => {
-      userInfo.value = info
-      if (info.role) {
+      userInfo.value = info || { id: '', name: '', role: '' }
+      if (info?.role) {
         const authStore = useAuthStore()
         authStore.getAuthMenuList()
       }
@@ -46,7 +46,7 @@ export const useUserStore = defineStore(
     }
 
     watch(
-      () => userInfo.value.role,
+      () => userInfo.value?.role,
       (newRole) => {
         if (newRole) {
           const authStore = useAuthStore()

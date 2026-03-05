@@ -6,6 +6,7 @@ import { User, Lock, Key, View, Hide, CircleClose, UserFilled } from '@element-p
 import { useUserStore } from '@/stores/modules/user'
 import { useTabsStore } from '@/stores/modules/tabs'
 import { useKeepAliveStore } from '@/stores/modules/keepAlive'
+import { userLogin } from '@/api/login'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -19,32 +20,15 @@ const captchaText = ref('')
 const captchaInput = ref('')
 
 const loginForm = reactive({
-  account: '',
+  userName: '',
   password: '',
-  role: 'designer',
   remember: false,
 })
 
 const loginRules = reactive({
-  account: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+  userName: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 })
-
-const roleOptions = [
-  { label: '管理员', value: 'admin' },
-  { label: '主管', value: 'supervisor' },
-  { label: '设计师', value: 'designer' },
-]
-
-const presetAccounts = {
-  admin: { password: 'admin@2026', name: '系统管理员', isFirstLogin: false },
-}
-
-const mockUsers = {
-  supervisor1: { password: 'User@2025', name: '张主管', isFirstLogin: true },
-  designer1: { password: 'User@2025', name: '李设计师', isFirstLogin: true },
-  designer2: { password: 'User@2025', name: '王设计师', isFirstLogin: true },
-}
 
 const generateCaptcha = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -86,94 +70,79 @@ const login = (formEl) => {
 
     loading.value = true
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      const presetUser = presetAccounts[loginForm.account]
-      const mockUser = mockUsers[loginForm.account]
-
-      let user = null
-      let isFirstLogin = false
-
-      if (presetUser && presetUser.password === loginForm.password) {
-        user = { account: loginForm.account, name: presetUser.name }
-        isFirstLogin = presetUser.isFirstLogin
-      } else if (mockUser && mockUser.password === loginForm.password) {
-        user = { account: loginForm.account, name: mockUser.name }
-        isFirstLogin = mockUser.isFirstLogin
+      // 构建登录请求参数，只传递userName和password
+      const loginData = {
+        userName: loginForm.userName,
+        password: loginForm.password,
       }
 
-      if (!user) {
-        ElMessage.error('账号或密码错误')
-        generateCaptcha()
-        captchaInput.value = ''
-        return
-      }
+      // 调用登录API
+      const res = await userLogin(loginData)
+      console.log('登录成功响应:', res)
+      console.log('res.data:', res.data)
 
-      if (loginForm.remember) {
-        localStorage.setItem('rememberedAccount', loginForm.account)
-        localStorage.setItem('rememberedRole', loginForm.role)
-      } else {
-        localStorage.removeItem('rememberedAccount')
-        localStorage.removeItem('rememberedRole')
-      }
+      if (res.data.code === 200) {
+        const token = res.data.data.token
+        const userInfo = res.data.data.data
 
-      if (isFirstLogin) {
-        const { value: newPassword } = await ElMessageBox.prompt(
-          '这是您首次登录，请设置新密码。密码要求：8-20位，包含大小写字母、数字和特殊字符',
-          '修改密码',
-          {
-            confirmButtonText: '确认',
-            cancelButtonText: '取消',
-            inputType: 'password',
-            inputPlaceholder: '请输入新密码',
-            inputValidator: (value) => {
-              if (!value) return '请输入新密码'
-              const result = validatePassword(value)
-              if (!result.valid) return '密码强度不足'
-              return true
-            },
-          },
-        ).catch(() => {
-          loading.value = false
-          return { value: null }
-        })
+        console.log('用户信息:', userInfo)
+        console.log('用户名:', userInfo?.userName)
+        console.log('用户角色:', userInfo?.role)
 
-        if (!newPassword) {
-          loading.value = false
-          return
+        if (loginForm.remember) {
+          localStorage.setItem('rememberedUserName', loginForm.userName)
+        } else {
+          localStorage.removeItem('rememberedUserName')
         }
 
-        mockUsers[loginForm.account].password = newPassword
-        mockUsers[loginForm.account].isFirstLogin = false
-        ElMessage.success('密码修改成功，请重新登录')
-        loading.value = false
-        return
+        // 保存token和用户信息
+        userStore.setToken(token)
+        userStore.setUserInfo({
+          id: userInfo?.id,
+          name:
+            userInfo?.userName ||
+            userInfo?.name ||
+            userInfo?.username ||
+            loginForm.userName ||
+            '用户',
+          role: userInfo?.role,
+        })
+
+        console.log('保存后的用户信息:', userStore.userInfo)
+
+        tabsStore.setTabs([])
+        keepAliveStore.setKeepAliveName([])
+
+        const roleHomeMap = {
+          Admin: '/admin-index',
+          Supervisor: '/supervisor-index',
+          Designer: '/designer-index',
+          admin: '/admin-index',
+          designer: '/designer-index',
+          supervisor: '/supervisor-index',
+        }
+
+        const userRole = userInfo?.role
+        console.log('用户角色:', userRole)
+        console.log('跳转到:', roleHomeMap[userRole] || '/admin-index')
+
+        router.push(roleHomeMap[userRole] || '/admin-index')
+        ElNotification({
+          title: '欢迎登录',
+          message: `欢迎回来，${userInfo?.userName || userInfo?.name || userInfo?.username || loginForm.userName || '用户'}`,
+          type: 'success',
+          duration: 3000,
+        })
+      } else {
+        ElMessage.error(res.message || '登录失败')
+        generateCaptcha()
+        captchaInput.value = ''
       }
-
-      const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      userStore.setToken(token)
-      userStore.setUserInfo({
-        id: loginForm.account,
-        name: user.name,
-        role: loginForm.role,
-      })
-
-      tabsStore.setTabs([])
-      keepAliveStore.setKeepAliveName([])
-
-      const roleHomeMap = {
-        admin: '/admin-index',
-        supervisor: '/supervisor-index',
-        designer: '/designer-index',
-      }
-
-      router.push(roleHomeMap[loginForm.role] || '/admin-index')
-      ElNotification({
-        title: '欢迎登录',
-        message: `欢迎回来，${user.name}`,
-        type: 'success',
-        duration: 3000,
-      })
+    } catch (error) {
+      console.error('登录失败:', error)
+      ElMessage.error('登录失败，请稍后重试')
+      generateCaptcha()
+      captchaInput.value = ''
     } finally {
       loading.value = false
     }
@@ -196,14 +165,10 @@ const goToPasswordFind = () => {
 
 onMounted(() => {
   generateCaptcha()
-  const rememberedAccount = localStorage.getItem('rememberedAccount')
-  const rememberedRole = localStorage.getItem('rememberedRole')
-  if (rememberedAccount) {
-    loginForm.account = rememberedAccount
+  const rememberedUserName = localStorage.getItem('rememberedUserName')
+  if (rememberedUserName) {
+    loginForm.userName = rememberedUserName
     loginForm.remember = true
-  }
-  if (rememberedRole) {
-    loginForm.role = rememberedRole
   }
 
   document.onkeydown = (e) => {
@@ -231,18 +196,8 @@ onBeforeUnmount(() => {
           <h2 class="logo-text">智造精艺</h2>
         </div>
         <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" size="large">
-          <el-form-item>
-            <el-select v-model="loginForm.role" placeholder="请选择角色" style="width: 100%">
-              <el-option
-                v-for="item in roleOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item prop="account">
-            <el-input v-model="loginForm.account" placeholder="请输入账号">
+          <el-form-item prop="userName">
+            <el-input v-model="loginForm.userName" placeholder="请输入用户名">
               <template #prefix>
                 <el-icon class="el-input__icon">
                   <User />
@@ -282,7 +237,7 @@ onBeforeUnmount(() => {
           <el-form-item>
             <div class="form-options">
               <el-checkbox v-model="loginForm.remember">记住账号</el-checkbox>
-              <el-link type="primary" :underline="false" @click="goToPasswordFind"
+              <el-link type="primary" underline="never" @click="goToPasswordFind"
                 >忘记密码？</el-link
               >
             </div>
@@ -304,7 +259,7 @@ onBeforeUnmount(() => {
           </el-button>
         </div>
         <div class="login-footer">
-          还没有账号？<el-link type="primary" :underline="false" @click="goToRegister"
+          还没有账号？<el-link type="primary" underline="never" @click="goToRegister"
             >立即注册</el-link
           >
         </div>

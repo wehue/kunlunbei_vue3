@@ -5,7 +5,7 @@ import { User, Phone, Message, Lock, Edit, Upload, Check } from '@element-plus/i
 import { useUserStore } from '@/stores/modules/user'
 
 const userStore = useUserStore()
-const currentRole = computed(() => userStore.userInfo.role)
+const currentRole = computed(() => userStore.userInfo?.role)
 
 const loading = ref(false)
 const avatarUploading = ref(false)
@@ -229,8 +229,8 @@ const getRoleName = (role) => {
 
 onMounted(() => {
   if (userStore.userInfo) {
-    userInfo.value.userName = userStore.userInfo.userName || userInfo.value.userName
-    userInfo.value.role = userStore.userInfo.role || userInfo.value.role
+    userInfo.value.userName = userStore.userInfo?.userName || userInfo.value.userName
+    userInfo.value.role = userStore.userInfo?.role || userInfo.value.role
     userInfo.value.roleName = getRoleName(userInfo.value.role)
   }
 })

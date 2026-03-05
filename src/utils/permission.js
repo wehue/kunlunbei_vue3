@@ -7,16 +7,19 @@ import { useUserStore } from '@/stores/modules/user'
  */
 export function hasRole(roles) {
   const userStore = useUserStore()
-  const currentRole = userStore.userInfo.role
+  const currentRole = userStore.userInfo?.role
 
   if (!currentRole) return false
 
+  // 统一转换为小写进行比较
+  const normalizedCurrentRole = currentRole.toLowerCase()
+
   if (typeof roles === 'string') {
-    return currentRole === roles
+    return normalizedCurrentRole === roles.toLowerCase()
   }
 
   if (Array.isArray(roles)) {
-    return roles.includes(currentRole)
+    return roles.map(r => r.toLowerCase()).includes(normalizedCurrentRole)
   }
 
   return false
@@ -27,7 +30,7 @@ export function hasRole(roles) {
  * @returns {boolean}
  */
 export function isAdmin() {
-  return hasRole('admin')
+  return hasRole('Admin')
 }
 
 /**
@@ -35,7 +38,7 @@ export function isAdmin() {
  * @returns {boolean}
  */
 export function isSupervisor() {
-  return hasRole('supervisor')
+  return hasRole('Supervisor')
 }
 
 /**
@@ -43,7 +46,7 @@ export function isSupervisor() {
  * @returns {boolean}
  */
 export function isDesigner() {
-  return hasRole('designer')
+  return hasRole('Designer')
 }
 
 /**
@@ -52,5 +55,5 @@ export function isDesigner() {
  */
 export function getCurrentRole() {
   const userStore = useUserStore()
-  return userStore.userInfo.role || ''
+  return userStore.userInfo?.role || ''
 }

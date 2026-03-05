@@ -8,24 +8,20 @@ import {
   Key,
   View,
   Hide,
-  Iphone,
   CircleClose,
   UserFilled,
+  Message,
 } from '@element-plus/icons-vue'
+import { findPassword, getVerifyCode } from '@/api/password_find'
 
 const router = useRouter()
 
 const loading = ref(false)
-const currentStep = ref(1)
 const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const captchaText = ref('')
-const captchaInput = ref('')
 const countdown = ref(0)
 
 const findForm = reactive({
-  account: '',
-  phone: '',
+  email: '',
   verifyCode: '',
   newPassword: '',
   confirmPassword: '',
@@ -47,67 +43,52 @@ const passwordStrength = computed(() => {
   return { level: 3, text: '强', color: '#67c23a' }
 })
 
-const generateCaptcha = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  let result = ''
-  for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  captchaText.value = result
-}
-
-const sendVerifyCode = () => {
-  if (!findForm.phone) {
-    ElMessage.warning('请输入手机号')
+const sendVerifyCode = async () => {
+  if (!findForm.email) {
+    ElMessage.warning('请输入邮箱')
     return
   }
-  if (!/^1[3-9]\d{9}$/.test(findForm.phone)) {
-    ElMessage.warning('请输入正确的手机号')
-    return
-  }
-  if (!captchaInput.value) {
-    ElMessage.warning('请输入图形验证码')
-    return
-  }
-  if (captchaInput.value.toLowerCase() !== captchaText.value.toLowerCase()) {
-    ElMessage.error('验证码错误')
-    generateCaptcha()
-    captchaInput.value = ''
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(findForm.email)) {
+    ElMessage.warning('请输入正确的邮箱地址')
     return
   }
 
-  countdown.value = 60
-  ElMessage.success('验证码已发送')
+  try {
+    const response = await getVerifyCode({ email: findForm.email })
+    console.log('获取验证码成功', response)
 
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
+    if (response.data.code === 200) {
+      countdown.value = 60
+      ElMessage.success('验证码已发送')
+
+      const timer = setInterval(() => {
+        countdown.value--
+        if (countdown.value <= 0) {
+          clearInterval(timer)
+        }
+      }, 1000)
+    } else {
+      ElMessage.error(response.data.message || '发送验证码失败')
     }
-  }, 1000)
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+    ElMessage.error('发送验证码失败，请稍后重试')
+  }
 }
 
-const validateStep1 = () => {
-  if (!findForm.account) {
-    ElMessage.warning('请输入账号')
+const validateForm = () => {
+  if (!findForm.email) {
+    ElMessage.warning('请输入邮箱')
     return false
   }
-  if (!findForm.phone) {
-    ElMessage.warning('请输入手机号')
-    return false
-  }
-  if (!/^1[3-9]\d{9}$/.test(findForm.phone)) {
-    ElMessage.warning('请输入正确的手机号')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(findForm.email)) {
+    ElMessage.warning('请输入正确的邮箱地址')
     return false
   }
   if (!findForm.verifyCode) {
-    ElMessage.warning('请输入短信验证码')
+    ElMessage.warning('请输入邮箱验证码')
     return false
   }
-  return true
-}
-
-const validateStep2 = () => {
   if (!findForm.newPassword) {
     ElMessage.warning('请输入新密码')
     return false
@@ -123,34 +104,27 @@ const validateStep2 = () => {
   return true
 }
 
-const handleNextStep = () => {
-  if (!validateStep1()) return
-  loading.value = true
-  setTimeout(() => {
-    loading.value = false
-    currentStep.value = 2
-    ElNotification({
-      title: '身份验证通过',
-      message: '请设置新密码',
-      type: 'success',
-      duration: 3000,
-    })
-  }, 800)
-}
-
 const handleResetPassword = async () => {
-  if (!validateStep2()) return
+  if (!validateForm()) return
   loading.value = true
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    ElNotification({
-      title: '密码重置成功',
-      message: '请使用新密码登录',
-      type: 'success',
-      duration: 3000,
+    const response = await findPassword({
+      email: findForm.email,
+      verifyCode: findForm.verifyCode,
+      newPassword: findForm.newPassword,
     })
-    router.push('/login')
+    if (response.data.code === 200) {
+      ElNotification({
+        title: '密码重置成功',
+        message: '请使用新密码登录',
+        type: 'success',
+        duration: 3000,
+      })
+      router.push('/login')
+    } else {
+      ElMessage.error(response.data.message || '密码重置失败')
+    }
   } catch (error) {
     console.error('密码重置失败:', error)
     ElMessage.error('密码重置失败，请稍后重试')
@@ -163,9 +137,12 @@ const goToLogin = () => {
   router.push('/login')
 }
 
-onMounted(() => {
-  generateCaptcha()
-})
+const resetForm = () => {
+  findForm.email = ''
+  findForm.verifyCode = ''
+  findForm.newPassword = ''
+  findForm.confirmPassword = ''
+}
 </script>
 
 <template>
@@ -179,53 +156,19 @@ onMounted(() => {
           <img class="find-icon" src="@/assets/images/logo.png" alt="昆仑杯" />
           <h2 class="logo-text">找回密码</h2>
         </div>
-        <div class="step-indicator">
-          <div class="step" :class="{ active: currentStep >= 1, done: currentStep > 1 }">
-            <span class="step-num">1</span>
-            <span class="step-text">验证身份</span>
-          </div>
-          <div class="step-line" :class="{ active: currentStep > 1 }"></div>
-          <div class="step" :class="{ active: currentStep >= 2 }">
-            <span class="step-num">2</span>
-            <span class="step-text">重置密码</span>
-          </div>
-        </div>
-        <el-form v-if="currentStep === 1" :model="findForm" size="large">
+        <el-form :model="findForm" size="large">
           <el-form-item>
-            <el-input v-model="findForm.account" placeholder="请输入账号">
+            <el-input v-model="findForm.email" placeholder="请输入邮箱">
               <template #prefix>
                 <el-icon class="el-input__icon">
-                  <User />
+                  <Message />
                 </el-icon>
               </template>
             </el-input>
-          </el-form-item>
-          <el-form-item>
-            <el-input v-model="findForm.phone" placeholder="请输入绑定的手机号">
-              <template #prefix>
-                <el-icon class="el-input__icon">
-                  <Iphone />
-                </el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item>
-            <div class="captcha-row">
-              <el-input v-model="captchaInput" placeholder="请输入验证码">
-                <template #prefix>
-                  <el-icon class="el-input__icon">
-                    <Key />
-                  </el-icon>
-                </template>
-              </el-input>
-              <div class="captcha-box" @click="generateCaptcha">
-                {{ captchaText }}
-              </div>
-            </div>
           </el-form-item>
           <el-form-item>
             <div class="sms-row">
-              <el-input v-model="findForm.verifyCode" placeholder="请输入短信验证码" maxlength="6">
+              <el-input v-model="findForm.verifyCode" placeholder="请输入邮箱验证码" maxlength="6">
                 <template #prefix>
                   <el-icon class="el-input__icon">
                     <Key />
@@ -243,28 +186,9 @@ onMounted(() => {
             </div>
           </el-form-item>
           <el-form-item>
-            <div class="find-btn">
-              <el-button :icon="CircleClose" round size="large" @click="captchaInput = ''">
-                重置
-              </el-button>
-              <el-button
-                :icon="UserFilled"
-                round
-                size="large"
-                type="primary"
-                :loading="loading"
-                @click="handleNextStep"
-              >
-                下一步
-              </el-button>
-            </div>
-          </el-form-item>
-        </el-form>
-        <el-form v-if="currentStep === 2" :model="findForm" size="large">
-          <el-form-item>
             <el-input
               v-model="findForm.newPassword"
-              :type="showPassword ? 'text' : 'password'"
+              type="password"
               placeholder="8-20位，包含字母、数字、特殊字符"
               show-password
             >
@@ -274,25 +198,11 @@ onMounted(() => {
                 </el-icon>
               </template>
             </el-input>
-            <div v-if="findForm.newPassword" class="password-strength">
-              <div class="strength-bar">
-                <div
-                  class="strength-fill"
-                  :style="{
-                    width: passwordStrength.level * 33.33 + '%',
-                    background: passwordStrength.color,
-                  }"
-                ></div>
-              </div>
-              <span class="strength-text" :style="{ color: passwordStrength.color }">
-                密码强度：{{ passwordStrength.text }}
-              </span>
-            </div>
           </el-form-item>
           <el-form-item>
             <el-input
               v-model="findForm.confirmPassword"
-              :type="showConfirmPassword ? 'text' : 'password'"
+              type="password"
               placeholder="请再次输入新密码"
               show-password
             >
@@ -305,8 +215,8 @@ onMounted(() => {
           </el-form-item>
           <el-form-item>
             <div class="find-btn">
-              <el-button :icon="CircleClose" round size="large" @click="currentStep = 1">
-                上一步
+              <el-button :icon="CircleClose" round size="large" @click="resetForm">
+                重置
               </el-button>
               <el-button
                 :icon="UserFilled"
@@ -322,7 +232,7 @@ onMounted(() => {
           </el-form-item>
         </el-form>
         <div class="find-footer">
-          <el-link type="primary" :underline="false" @click="goToLogin">返回登录</el-link>
+          <el-link type="primary" underline="never" @click="goToLogin">返回登录</el-link>
         </div>
       </div>
     </div>

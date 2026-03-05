@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
@@ -9,6 +9,8 @@ import { usePermission } from '@/hooks/usePermission'
 
 const router = useRouter()
 const { isAdminRole, isDesignerRole } = usePermission()
+
+const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
@@ -499,7 +501,7 @@ const columns = reactive([
     align: 'center',
     search: { el: 'input', key: 'version' },
   },
-  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -655,6 +657,27 @@ const handleView = (row) => {
   router.push(`/material-manage/bom-manage-detail/${row.id}`)
 }
 
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该BOM吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    const index = allBomData.value.findIndex((item) => item.id === row.id)
+    if (index > -1) {
+      allBomData.value.splice(index, 1)
+    }
+    ElMessage.success('删除成功')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除BOM失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
 const exportToExcel = (data, fileName = 'BOM列表') => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -745,7 +768,7 @@ const getTableList = async (params) => {
       <template #tableHeader="scope">
         <div class="header-controls">
           <div class="header-left">
-            <el-button v-if="isDesignerRole" type="primary" :icon="Plus" @click="handleAdd"
+            <el-button v-if="canManage" type="primary" :icon="Plus" @click="handleAdd"
               >新建BOM</el-button
             >
             <el-button
@@ -790,12 +813,20 @@ const getTableList = async (params) => {
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button
-          v-if="isDesignerRole"
+          v-if="canManage"
           type="warning"
           link
           :icon="Edit"
           @click="handleEdit(scope.row)"
           >修改</el-button
+        >
+        <el-button
+          v-if="isAdminRole"
+          type="danger"
+          link
+          :icon="Delete"
+          @click="handleDelete(scope.row)"
+          >删除</el-button
         >
       </template>
     </ProTable>
@@ -809,7 +840,7 @@ const getTableList = async (params) => {
     >
       <template #header>
         <div class="dialog-header">
-          <span class="dialog-title">新建BOM</span>
+          <span class="dialog-title">{{ isEdit ? '编辑BOM' : '新建BOM' }}</span>
         </div>
       </template>
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">

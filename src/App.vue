@@ -7,7 +7,7 @@ const authStore = useAuthStore()
 const userStore = useUserStore()
 
 onMounted(() => {
-  if (userStore.userInfo.role) {
+  if (userStore.userInfo?.role) {
     authStore.getAuthMenuList()
   }
 })

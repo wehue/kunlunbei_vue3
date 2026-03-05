@@ -1,49 +1,56 @@
 import instance from '@/utils/request'
 
+// 获取用户列表
 export function getUserList(params) {
   return instance.get('/api/user/find', { params })
 }
 
+// 获取用户详情
 export function getUserDetailById(userId) {
   return instance.get('/api/user/findByUserId', { params: { userId } })
 }
 
+// 创建用户
 export function createUser(data) {
   return instance.post('/api/user/create', data)
 }
 
+// 修改用户
 export function addUser(data) {
   return instance.post('/api/user', data)
 }
 
-export function updateUser(data) {
-  return instance.put('/api/user', data)
-}
-
+// 修改用户信息
 export function updateUserInfo(data) {
   return instance.put('/api/user/update', data)
 }
 
+// 删除用户
 export function deleteUser(userId) {
-  return instance.put('/api/user/delete', null, { params: { userId } })
+  return instance.put('/api/user/batch', { ids: [userId], userStatus: 'Deleted' })
 }
 
+// 批量冻结用户
 export function batchFreezeUsers(ids) {
-  return instance.put('/api/user/batch-freeze', { ids })
+  return instance.put('/api/user/batch', { ids, userStatus: 'Frozen' })
 }
 
+// 批量解冻用户
 export function batchUnfreezeUsers(ids) {
-  return instance.put('/api/user/batch-unfreeze', { ids })
+  return instance.put('/api/user/batch', { ids, userStatus: 'Active' })
 }
 
+// 批量删除用户
 export function batchDeleteUsers(ids) {
-  return instance.put('/api/user/batch-delete', { ids })
+  return instance.put('/api/user/batch', { ids, userStatus: 'Deleted' })
 }
 
-export function resetPassword(id, data) {
-  return instance.put(`/api/user/${id}/reset-password`, data)
+// 重置用户密码
+export function resetPassword(userId, password) {
+  return instance.put('/api/user/resetPassword', null, { params: { userId, password } })
 }
 
+// 切换用户状态
 export function toggleUserStatus(id, status) {
   return instance.put(`/api/user/${id}/status`, { status })
 }

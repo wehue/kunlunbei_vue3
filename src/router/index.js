@@ -432,8 +432,8 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  const token = userStore.token
-  const currentRole = userStore.userInfo.role
+  // const token = userStore.token
+  const currentRole = userStore.userInfo?.role
 
   if (to.meta.isHide) {
     next()
@@ -441,12 +441,13 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.meta.roles) {
-    if (!token || !currentRole) {
+    if (!currentRole) {
       next('/login')
       return
     }
+    // !token ||
 
-    if (!to.meta.roles.includes(currentRole)) {
+    if (!to.meta.roles.includes(currentRole.toLowerCase())) {
       next('/403')
       return
     }

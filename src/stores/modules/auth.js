@@ -83,7 +83,7 @@ export const useAuthStore = defineStore('kunlun-auth', {
   actions: {
     async getAuthMenuList() {
       const userStore = useUserStore()
-      const currentRole = userStore.userInfo.role
+      const currentRole = userStore.userInfo?.role
 
       if (!currentRole) {
         this.authMenuList = []
@@ -95,7 +95,7 @@ export const useAuthStore = defineStore('kunlun-auth', {
 
       const processRoute = (route, parentPath = '') => {
         // 过滤出有角色权限的路由
-        if (route.meta && route.meta.roles && !route.meta.roles.includes(currentRole)) {
+        if (route.meta && route.meta.roles && !route.meta.roles.includes(currentRole.toLowerCase())) {
           return null
         }
 

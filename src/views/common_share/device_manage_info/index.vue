@@ -2,11 +2,11 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
+import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getDeviceList, getBrandList, getLocationList, addDevice, deleteDevice } from '@/api/device'
+import { getDeviceList, getBrandList, getLocationList, addDevice, updateDevice, deleteDevice } from '@/api/device'
 
 const router = useRouter()
 const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
@@ -15,6 +15,7 @@ const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
+const isEdit = ref(false)
 const formRef = ref()
 const extendFields = ref([])
 
@@ -111,7 +112,7 @@ const columns = [
     enum: getLocationEnum,
   },
   { prop: 'specModel', label: '规格型号' },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ]
 
 const formData = reactive({
@@ -196,6 +197,7 @@ const handleRemoveExtendField = (index) => {
 }
 
 const handleAdd = () => {
+  isEdit.value = false
   Object.assign(formData, {
     deviceCode: '',
     deviceName: '',
@@ -211,6 +213,29 @@ const handleAdd = () => {
     stockQuantity: 1,
     unit: 'A',
     remark: '',
+  })
+  initExtendFields()
+  dialogVisible.value = true
+}
+
+const handleEdit = (row) => {
+  isEdit.value = true
+  Object.assign(formData, {
+    id: row.id,
+    deviceCode: row.deviceCode,
+    deviceName: row.deviceName,
+    manufacturer: row.manufacturer,
+    brand: row.brand,
+    specModel: row.specModel,
+    supplier: row.supplier,
+    productionDate: row.productionDate,
+    serviceLife: row.serviceLife || 10,
+    depreciationMethod: row.depreciationMethod || 'SD',
+    location: row.location,
+    locationId: row.locationId,
+    stockQuantity: row.stockQuantity || 1,
+    unit: row.unit || 'A',
+    remark: row.remark,
   })
   initExtendFields()
   dialogVisible.value = true
@@ -243,6 +268,7 @@ const handleSubmit = async () => {
         ]
 
         const submitData = {
+          id: formData.id,
           equipmentId: formData.deviceCode,
           equipmentName: formData.deviceName,
           brand: formData.brand,
@@ -259,13 +285,18 @@ const handleSubmit = async () => {
           location: locationItem ? { id: locationItem.id } : null,
         }
 
-        await addDevice(submitData)
-        ElMessage.success('新增成功')
+        if (isEdit.value) {
+          await updateDevice(submitData)
+          ElMessage.success('修改成功')
+        } else {
+          await addDevice(submitData)
+          ElMessage.success('新增成功')
+        }
         dialogVisible.value = false
         proTableRef.value?.getTableList()
       } catch (error) {
-        console.error('新增设备失败:', error)
-        ElMessage.error('新增失败')
+        console.error('操作失败:', error)
+        ElMessage.error(isEdit.value ? '修改失败' : '新增失败')
       }
     }
   })
@@ -335,39 +366,58 @@ const handleExportBatch = (selectedList) => {
 }
 
 const getTableList = async (params) => {
-  const res = await getDeviceList(params)
-  const innerData = res.data.data
-  console.log('获取设备列表信息成功', innerData)
-  const rawList = Array.isArray(innerData?.data)
-    ? innerData.data
-    : (innerData?.list ?? innerData?.records ?? [])
-  const total = innerData?.total ?? rawList.length
-  const pageNum = params?.pageNum || 1
-  const pageSize = params?.pageSize || 10
-  const startIndex = (pageNum - 1) * pageSize
-  const dataWithIndex = rawList.map((item, index) => ({
-    ...item,
-    id: item.id,
-    deviceCode: item.equipmentId || item.deviceCode,
-    deviceName: item.equipmentName || item.deviceName,
-    brand: item.brand,
-    location: item.location?.warhouseName || item.location || '',
-    specModel: item.specificationModel || item.specModel,
-    manufacturer: item.manufacturer,
-    supplier: item.supplier,
-    productionDate: item.productionDate,
-    serviceLife: item.serviceLife,
-    depreciationMethod: item.depreciationMethod,
-    stockQuantity: item.expenditureQuantity || item.stockQuantity,
-    unit: item.unit,
-    remark: item.remark,
-    index: startIndex + index + 1,
-  }))
-  return {
-    data: {
-      list: dataWithIndex,
-      total,
-    },
+  try {
+    // 构建查询参数，映射前端参数名到后端参数名
+    const locationItem = locationOptions.value.find((item) => item.value === params?.location)
+    const apiParams = {
+      equipmentId: params?.deviceCode,
+      equipmentName: params?.deviceName,
+      brand: params?.brand,
+      locationId: locationItem?.id,
+    }
+
+    const res = await getDeviceList(apiParams)
+    const innerData = res.data.data
+    console.log('获取设备列表信息成功', innerData)
+    const rawList = Array.isArray(innerData?.data)
+      ? innerData.data
+      : (innerData?.list ?? innerData?.records ?? [])
+    const total = innerData?.total ?? rawList.length
+    const pageNum = params?.pageNum || 1
+    const pageSize = params?.pageSize || 10
+    const startIndex = (pageNum - 1) * pageSize
+    const dataWithIndex = rawList.map((item, index) => ({
+      ...item,
+      id: item.id,
+      deviceCode: item.equipmentId || item.deviceCode,
+      deviceName: item.equipmentName || item.deviceName,
+      brand: item.brand,
+      location: item.location?.warhouseName || item.location || '',
+      specModel: item.specificationModel || item.specModel,
+      manufacturer: item.manufacturer,
+      supplier: item.supplier,
+      productionDate: item.productionDate,
+      serviceLife: item.serviceLife,
+      depreciationMethod: item.depreciationMethod,
+      stockQuantity: item.expenditureQuantity || item.stockQuantity,
+      unit: item.unit,
+      remark: item.remark,
+      index: startIndex + index + 1,
+    }))
+    return {
+      data: {
+        list: dataWithIndex,
+        total,
+      },
+    }
+  } catch (error) {
+    console.error('获取设备列表失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
   }
 }
 </script>
@@ -404,6 +454,7 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button
           v-if="isAdminRole"
           type="danger"
@@ -424,7 +475,7 @@ const getTableList = async (params) => {
     >
       <template #header>
         <div class="dialog-header">
-          <span class="dialog-title">新增设备</span>
+          <span class="dialog-title">{{ isEdit ? '编辑设备' : '新增设备' }}</span>
         </div>
       </template>
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">

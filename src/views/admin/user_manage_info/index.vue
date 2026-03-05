@@ -5,7 +5,16 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Edit, Delete, Download, Lock, Refresh } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
-import { getUserList, createUser, updateUserInfo, deleteUser } from '@/api/user'
+import {
+  getUserList,
+  createUser,
+  updateUserInfo,
+  deleteUser,
+  resetPassword,
+  batchFreezeUsers,
+  batchUnfreezeUsers,
+  batchDeleteUsers,
+} from '@/api/user'
 
 const router = useRouter()
 
@@ -19,7 +28,6 @@ const resetPwdForm = reactive({
   userName: '',
   newPassword: '',
   confirmPassword: '',
-  isRandom: false,
 })
 
 const roleOptions = ref([
@@ -29,9 +37,8 @@ const roleOptions = ref([
 ])
 
 const statusOptions = ref([
-  { label: '启用', value: 'Active' },
-  { label: '禁用', value: 'Inactive' },
-  { label: '已删除', value: 'Deleted' },
+  { label: '正常', value: 'Active' },
+  { label: '已冻结', value: 'Frozen' },
 ])
 
 const columns = reactive([
@@ -87,7 +94,7 @@ const validatePhone = (rule, value, callback) => {
 
 const validateEmail = (rule, value, callback) => {
   if (!value) {
-    callback(new Error('请输入邮箱'))
+    callback()
     return
   }
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -121,7 +128,7 @@ const validatePassword = (rule, value, callback) => {
 const rules = {
   userName: [{ required: true, validator: validateUserName, trigger: 'blur' }],
   phone: [{ required: true, validator: validatePhone, trigger: 'blur' }],
-  email: [{ required: true, validator: validateEmail, trigger: 'blur' }],
+  email: [{ validator: validateEmail, trigger: 'blur' }],
   role: [{ required: true, message: '请选择角色', trigger: 'change' }],
   userStatus: [{ required: true, message: '请选择用户状态', trigger: 'change' }],
   password: [{ required: true, validator: validatePassword, trigger: 'blur' }],
@@ -170,8 +177,8 @@ const handleToggleStatus = async (row) => {
     ElMessage.warning('不能冻结管理员用户')
     return
   }
-  const newStatus = row.userStatus === 'Active' ? 'Inactive' : 'Active'
-  const actionText = newStatus === 'Inactive' ? '冻结' : '解冻'
+  const newStatus = row.userStatus === 'Active' ? 'Frozen' : 'Active'
+  const actionText = newStatus === 'Frozen' ? '冻结' : '解冻'
 
   try {
     await ElMessageBox.confirm(`确定要${actionText}用户"${row.userName}"吗？`, '提示', {
@@ -179,10 +186,18 @@ const handleToggleStatus = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
+    if (newStatus === 'Frozen') {
+      await batchFreezeUsers([row.id])
+    } else {
+      await batchUnfreezeUsers([row.id])
+    }
     ElMessage.success(`${actionText}成功`)
     proTableRef.value?.getTableList()
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(`${actionText}失败:`, error)
+      ElMessage.error(error.response?.data?.message || `${actionText}失败`)
+    }
   }
 }
 
@@ -195,34 +210,21 @@ const handleResetPwd = (row) => {
   resetPwdForm.userName = row.userName
   resetPwdForm.newPassword = ''
   resetPwdForm.confirmPassword = ''
-  resetPwdForm.isRandom = false
   resetPwdDialogVisible.value = true
 }
 
-const generateRandomPassword = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let password = ''
-  for (let i = 0; i < 10; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  resetPwdForm.newPassword = password
-  resetPwdForm.confirmPassword = password
-}
-
 const handleResetPwdSubmit = async () => {
-  if (!resetPwdForm.isRandom) {
-    if (!resetPwdForm.newPassword) {
-      ElMessage.warning('请输入新密码')
-      return
-    }
-    if (resetPwdForm.newPassword.length < 6 || resetPwdForm.newPassword.length > 20) {
-      ElMessage.warning('密码长度为6-20个字符')
-      return
-    }
-    if (resetPwdForm.newPassword !== resetPwdForm.confirmPassword) {
-      ElMessage.warning('两次输入的密码不一致')
-      return
-    }
+  if (!resetPwdForm.newPassword) {
+    ElMessage.warning('请输入新密码')
+    return
+  }
+  if (resetPwdForm.newPassword.length < 6 || resetPwdForm.newPassword.length > 20) {
+    ElMessage.warning('密码长度为6-20个字符')
+    return
+  }
+  if (resetPwdForm.newPassword !== resetPwdForm.confirmPassword) {
+    ElMessage.warning('两次输入的密码不一致')
+    return
   }
 
   try {
@@ -231,10 +233,14 @@ const handleResetPwdSubmit = async () => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    ElMessage.success(`密码重置成功，新密码：${resetPwdForm.newPassword}`)
+    await resetPassword(resetPwdForm.userId, resetPwdForm.newPassword)
+    ElMessage.success('密码重置成功')
     resetPwdDialogVisible.value = false
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('重置密码失败:', error)
+      ElMessage.error(error.response?.data?.message || '重置密码失败')
+    }
   }
 }
 
@@ -244,15 +250,11 @@ const handleDelete = async (row) => {
     return
   }
   try {
-    await ElMessageBox.confirm(
-      `确定要删除用户"${row.userName}"吗？`,
-      '提示',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      },
-    )
+    await ElMessageBox.confirm(`确定要删除用户"${row.userName}"吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
     await deleteUser(row.userId)
     ElMessage.success('删除成功')
     proTableRef.value?.getTableList()
@@ -280,10 +282,15 @@ const handleBatchFreeze = async (selectedList) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
+    const ids = selectedList.map((item) => item.id)
+    await batchFreezeUsers(ids)
     ElMessage.success(`成功冻结 ${selectedList.length} 个用户`)
     proTableRef.value?.getTableList()
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量冻结失败:', error)
+      ElMessage.error(error.response?.data?.message || '批量冻结失败')
+    }
   }
 }
 
@@ -298,10 +305,15 @@ const handleBatchUnfreeze = async (selectedList) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
+    const ids = selectedList.map((item) => item.id)
+    await batchUnfreezeUsers(ids)
     ElMessage.success(`成功解冻 ${selectedList.length} 个用户`)
     proTableRef.value?.getTableList()
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量解冻失败:', error)
+      ElMessage.error(error.response?.data?.message || '批量解冻失败')
+    }
   }
 }
 
@@ -321,10 +333,15 @@ const handleBatchDelete = async (selectedList) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
+    const ids = selectedList.map((item) => item.id)
+    await batchDeleteUsers(ids)
     ElMessage.success(`成功删除 ${selectedList.length} 个用户`)
     proTableRef.value?.getTableList()
-  } catch {
-    // 用户取消
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
+      ElMessage.error(error.response?.data?.message || '批量删除失败')
+    }
   }
 }
 
@@ -399,44 +416,50 @@ const handleCancel = () => {
 }
 
 const getTableList = async (params) => {
-  const res = await getUserList()
-  const innerData = res.data.data
-  let list = Array.isArray(innerData?.data)
-    ? innerData.data
-    : (innerData?.list ?? innerData?.records ?? [])
+  try {
+    // 构建查询参数，映射前端参数名到后端参数名
+    const apiParams = {
+      userId: params?.userId,
+      userName: params?.userName,
+      phone: params?.phone,
+      role: params?.role,
+      userStatus: params?.userStatus,
+    }
 
-  if (params?.userId) {
-    list = list.filter((item) => item.userId?.includes(params.userId))
-  }
-  if (params?.userName) {
-    list = list.filter((item) => item.userName?.includes(params.userName))
-  }
-  if (params?.phone) {
-    list = list.filter((item) => item.phone?.includes(params.phone))
-  }
-  if (params?.role) {
-    list = list.filter((item) => item.role === params.role)
-  }
-  if (params?.userStatus) {
-    list = list.filter((item) => item.userStatus === params.userStatus)
-  }
+    const res = await getUserList(apiParams)
+    const innerData = res.data.data
+    let list = Array.isArray(innerData?.data)
+      ? innerData.data
+      : (innerData?.list ?? innerData?.records ?? [])
 
-  const total = list.length
-  const pageNum = params?.pageNum || 1
-  const pageSize = params?.pageSize || 10
-  const startIndex = (pageNum - 1) * pageSize
-  const endIndex = startIndex + pageSize
-  const paginatedList = list.slice(startIndex, endIndex)
-  const dataWithIndex = paginatedList.map((item, index) => ({
-    ...item,
-    index: startIndex + index + 1,
-    email: item.email || item.address,
-  }))
-  return {
-    data: {
-      list: dataWithIndex,
-      total,
-    },
+    // 过滤掉已删除的用户
+    list = list.filter((item) => item.userStatus !== 'Deleted')
+
+    const total = list.length
+    const pageNum = params?.pageNum || 1
+    const pageSize = params?.pageSize || 10
+    const startIndex = (pageNum - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedList = list.slice(startIndex, endIndex)
+    const dataWithIndex = paginatedList.map((item, index) => ({
+      ...item,
+      index: startIndex + index + 1,
+      email: item.email || item.address,
+    }))
+    return {
+      data: {
+        list: dataWithIndex,
+        total,
+      },
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
   }
 }
 </script>
@@ -507,16 +530,16 @@ const getTableList = async (params) => {
           :type="
             scope.row.userStatus === 'Active'
               ? 'success'
-              : scope.row.userStatus === 'Inactive'
+              : scope.row.userStatus === 'Frozen'
                 ? 'warning'
                 : 'danger'
           "
         >
           {{
             scope.row.userStatus === 'Active'
-              ? '启用'
-              : scope.row.userStatus === 'Inactive'
-                ? '禁用'
+              ? '正常'
+              : scope.row.userStatus === 'Frozen'
+                ? '已冻结'
                 : '已删除'
           }}
         </el-tag>
@@ -586,7 +609,7 @@ const getTableList = async (params) => {
               style="width: 100%"
             >
               <el-option label="正常" value="Active" />
-              <el-option label="冻结" value="Inactive" />
+              <el-option label="已冻结" value="Frozen" />
               <!-- <el-option label="已删除" value="Deleted" /> -->
             </el-select>
           </el-form-item>
@@ -622,12 +645,7 @@ const getTableList = async (params) => {
         <el-form-item label="用户名">
           <el-input v-model="resetPwdForm.userName" disabled />
         </el-form-item>
-        <el-form-item>
-          <el-checkbox v-model="resetPwdForm.isRandom" @change="generateRandomPassword">
-            生成随机密码
-          </el-checkbox>
-        </el-form-item>
-        <el-form-item v-if="!resetPwdForm.isRandom" label="新密码">
+        <el-form-item label="新密码">
           <el-input
             v-model="resetPwdForm.newPassword"
             type="password"
@@ -635,16 +653,13 @@ const getTableList = async (params) => {
             show-password
           />
         </el-form-item>
-        <el-form-item v-if="!resetPwdForm.isRandom" label="确认密码">
+        <el-form-item label="确认密码">
           <el-input
             v-model="resetPwdForm.confirmPassword"
             type="password"
             placeholder="请再次输入新密码"
             show-password
           />
-        </el-form-item>
-        <el-form-item v-if="resetPwdForm.isRandom" label="生成的随机密码">
-          <el-input v-model="resetPwdForm.newPassword" disabled />
         </el-form-item>
       </el-form>
 

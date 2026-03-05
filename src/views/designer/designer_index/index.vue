@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElNotification } from 'element-plus'
 import ECharts from '@/components/ECharts/index.vue'
@@ -73,42 +73,42 @@ const quickActions = ref([
   {
     id: 1,
     title: '新增物料',
-    icon: Box,
+    icon: markRaw(Box),
     color: '#409eff',
     route: '/material-manage/material-manage-info',
   },
   {
     id: 2,
     title: '新增设备',
-    icon: Cpu,
+    icon: markRaw(Cpu),
     color: '#67c23a',
     route: '/device-manage/device-manage-info',
   },
   {
     id: 3,
     title: '新增工序',
-    icon: Operation,
+    icon: markRaw(Operation),
     color: '#e6a23c',
     route: '/process-manage/process-manage-info',
   },
   {
     id: 4,
     title: '新增工艺路线',
-    icon: Guide,
+    icon: markRaw(Guide),
     color: '#f56c6c',
     route: '/process-route-manage/process-route-manage-add',
   },
   {
     id: 5,
     title: '新增BOM',
-    icon: Document,
+    icon: markRaw(Document),
     color: '#909399',
     route: '/material-manage/bom-manage',
   },
   {
     id: 6,
     title: '物料分类管理',
-    icon: DataAnalysis,
+    icon: markRaw(DataAnalysis),
     color: '#9c27b0',
     route: '/material-manage/material-category',
   },

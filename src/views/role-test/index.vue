@@ -19,7 +19,7 @@ const switchRole = (role) => {
     <el-button @click="switchRole('supervisor')">切换到主管</el-button>
     <el-button @click="switchRole('designer')">切换到设计师</el-button>
     <div class="current-role">
-      <p>当前角色：{{ userStore.userInfo.name }} ({{ userStore.userInfo.role }})</p>
+      <p>当前角色：{{ userStore.userInfo?.name }} ({{ userStore.userInfo?.role }})</p>
     </div>
   </div>
 </template>

@@ -61,8 +61,7 @@
       <template #empty>
         <div class="table-empty">
           <slot name="empty">
-            <img src="@/assets/images/notData.png" alt="notData" />
-            <div>暂无数据</div>
+            <el-empty description="暂无数据" />
           </slot>
         </div>
       </template>
@@ -84,6 +83,7 @@ import { ref, watch, provide, onMounted, unref, computed, reactive } from 'vue'
 import { useTable } from '@/hooks/useTable'
 import { useSelection } from '@/hooks/useSelection'
 import { Refresh, Operation, Search, DCaret } from '@element-plus/icons-vue'
+import { ElEmpty } from 'element-plus'
 import { generateUUID, handleProp } from '@/utils'
 import SearchForm from '@/components/SearchForm/index.vue'
 import Pagination from './components/Pagination.vue'

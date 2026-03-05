@@ -10,7 +10,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const formRef = ref()
-const currentRole = computed(() => userStore.userInfo.role || 'admin')
+const currentRole = computed(() => userStore.userInfo?.role || 'admin')
 
 const productOptions = [
   { label: '汽车零部件A', value: '汽车零部件A' },

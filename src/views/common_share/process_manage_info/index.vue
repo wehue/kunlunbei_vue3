@@ -2,7 +2,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
+import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
@@ -14,6 +14,7 @@ const router = useRouter()
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
+const isEdit = ref(false)
 const formRef = ref()
 
 const deviceOptions = [
@@ -98,7 +99,7 @@ const columns = reactive([
   { prop: 'processCode', label: '工序编号', search: { el: 'input', key: 'processCode' } },
   { prop: 'processName', label: '工序名称', search: { el: 'input', key: 'processName' } },
   { prop: 'productionStep', label: '生产步骤', minWidth: 300 },
-  { prop: 'operation', label: '操作', width: 200, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -179,7 +180,9 @@ const handleRemoveMaterial = (index) => {
 }
 
 const handleAdd = () => {
+  isEdit.value = false
   Object.assign(formData, {
+    id: null,
     processCode: generateProcessCode(),
     processName: '',
     productionStep: '',
@@ -192,30 +195,63 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
+const handleEdit = (row) => {
+  isEdit.value = true
+  Object.assign(formData, {
+    id: row.id,
+    processCode: row.processCode,
+    processName: row.processName,
+    productionStep: row.productionStep,
+    devices: JSON.parse(JSON.stringify(row.devices || [])),
+    operators: [...(row.operators || [])],
+    startTime: row.startTime,
+    endTime: row.endTime,
+    materials: JSON.parse(JSON.stringify(row.materials || [])),
+  })
+  dialogVisible.value = true
+}
+
 const handleSubmit = async () => {
   if (!formRef.value) return
 
   await formRef.value.validate((valid) => {
     if (valid) {
-      const maxId = mockData.value.reduce((max, item) => {
-        const id = parseInt(item.id)
-        return id > max ? id : max
-      }, 0)
+      if (isEdit.value) {
+        const index = mockData.value.findIndex((item) => item.id === formData.id)
+        if (index > -1) {
+          mockData.value[index] = {
+            ...mockData.value[index],
+            processName: formData.processName,
+            productionStep: formData.productionStep,
+            devices: JSON.parse(JSON.stringify(formData.devices)),
+            operators: [...formData.operators],
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            materials: JSON.parse(JSON.stringify(formData.materials)),
+          }
+        }
+        ElMessage.success('修改成功')
+      } else {
+        const maxId = mockData.value.reduce((max, item) => {
+          const id = parseInt(item.id)
+          return id > max ? id : max
+        }, 0)
 
-      const newProcess = {
-        id: maxId + 1,
-        processCode: formData.processCode,
-        processName: formData.processName,
-        productionStep: formData.productionStep,
-        devices: JSON.parse(JSON.stringify(formData.devices)),
-        operators: [...formData.operators],
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        materials: JSON.parse(JSON.stringify(formData.materials)),
+        const newProcess = {
+          id: maxId + 1,
+          processCode: formData.processCode,
+          processName: formData.processName,
+          productionStep: formData.productionStep,
+          devices: JSON.parse(JSON.stringify(formData.devices)),
+          operators: [...formData.operators],
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          materials: JSON.parse(JSON.stringify(formData.materials)),
+        }
+
+        mockData.value.push(newProcess)
+        ElMessage.success('新增成功')
       }
-
-      mockData.value.push(newProcess)
-      ElMessage.success('新增成功')
       dialogVisible.value = false
       proTableRef.value?.getTableList()
     }
@@ -349,6 +385,7 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button
           v-if="isAdminRole"
           type="danger"
@@ -369,7 +406,7 @@ const getTableList = async (params) => {
     >
       <template #header>
         <div class="dialog-header">
-          <span class="dialog-title">新增工序</span>
+          <span class="dialog-title">{{ isEdit ? '编辑工序' : '新增工序' }}</span>
         </div>
       </template>
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">

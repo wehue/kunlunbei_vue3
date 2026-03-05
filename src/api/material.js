@@ -18,8 +18,8 @@ export function updatePartCategory(data) {
 }
 
 // 获取部件（物料）列表
-export function getPartList() {
-  return instance.get('/api/part/find')
+export function getPartList(params) {
+  return instance.get('/api/part/find', { params })
 }
 
 // 获取部件（物料）详情

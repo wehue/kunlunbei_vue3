@@ -2,11 +2,11 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, View, Download, Delete } from '@element-plus/icons-vue'
+import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getPartList, getPartCategoryList, addPart , deletePart } from '@/api/material'
+import { getPartList, getPartCategoryList, addPart, updatePart, deletePart } from '@/api/material'
 import { getWarehouseList } from '@/api/warehouse'
 
 const { hasPermission, isDesignerRole, isAdminRole } = usePermission()
@@ -46,6 +46,7 @@ const router = useRouter()
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
+const isEdit = ref(false)
 const formRef = ref()
 const showAllVersions = ref(false)
 
@@ -69,14 +70,30 @@ const columns = reactive([
     label: '版本号',
     minWidth: 100,
     align: 'center',
+    search: { el: 'input', key: 'version' },
   },
   {
     prop: 'categoryName',
     label: '分类',
     minWidth: 100,
+    search: { el: 'select', key: 'category' },
+    enum: computed(() => {
+      const categories = []
+      const getCategories = (data) => {
+        data.forEach(item => {
+          if (item.children && item.children.length > 0) {
+            getCategories(item.children)
+          } else {
+            categories.push({ label: item.label, value: item.id })
+          }
+        })
+      }
+      getCategories(categoryTreeData.value)
+      return categories
+    }),
   },
   { prop: 'warhouseName', label: '仓库', minWidth: 100 },
-  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const warehouseList = ref([])
@@ -213,6 +230,7 @@ const handleCategoryChange = (value) => {
 }
 
 const handleAdd = () => {
+  isEdit.value = false
   Object.assign(formData, {
     id: '',
     materialId: '',
@@ -227,6 +245,39 @@ const handleAdd = () => {
     selectedCategoryId: null,
   })
   dialogVisible.value = true
+}
+
+const handleEdit = (row) => {
+  isEdit.value = true
+  const categoryPath = findCategoryPath(categoryTreeData.value, row.categoryId || row.category?.id)
+  Object.assign(formData, {
+    id: row.id,
+    materialId: row.materialId,
+    materialName: row.materialName || row.partName,
+    versions: row.versions || 'V1.0',
+    supplier: row.supplier,
+    specificationModel: row.specificationModel,
+    stockQuantity: row.stockQuantity,
+    unit: row.unit || 'A',
+    warehouse: row.warhouseId || row.warhouse?.id,
+    category: categoryPath,
+    selectedCategoryId: row.categoryId || row.category?.id,
+  })
+  dialogVisible.value = true
+}
+
+const findCategoryPath = (tree, targetId, path = []) => {
+  for (const node of tree) {
+    const currentPath = [...path, node.id]
+    if (node.id === targetId) {
+      return currentPath
+    }
+    if (node.children && node.children.length > 0) {
+      const result = findCategoryPath(node.children, targetId, currentPath)
+      if (result) return result
+    }
+  }
+  return null
 }
 
 const handleSubmit = async () => {
@@ -254,13 +305,18 @@ const handleSubmit = async () => {
           },
         }
 
-        await addPart(submitData)
-        ElMessage.success('新增成功')
+        if (isEdit.value) {
+          await updatePart(submitData)
+          ElMessage.success('修改成功')
+        } else {
+          await addPart(submitData)
+          ElMessage.success('新增成功')
+        }
         dialogVisible.value = false
         proTableRef.value?.getTableList()
       } catch (error) {
-        console.error('新增物料失败:', error)
-        ElMessage.error('新增失败')
+        console.error('操作失败:', error)
+        ElMessage.error(isEdit.value ? '修改失败' : '新增失败')
       }
     }
   })
@@ -337,7 +393,15 @@ const handleExportBatch = (selectedList) => {
 
 const getTableList = async (params) => {
   try {
-    const res = await getPartList()
+    // 构建查询参数
+    const queryParams = {
+      materialId: params?.materialId,
+      materialName: params?.materialName,
+      versions: params?.version,
+      categoryId: params?.category,
+    }
+    
+    const res = await getPartList(queryParams)
     console.log('获取物料信息列表成功', res)
 
     const rawList = res.data?.data?.data || res.data?.data || []
@@ -362,18 +426,6 @@ const getTableList = async (params) => {
     }))
 
     let filteredData = [...transformedList]
-
-    if (params?.materialName) {
-      filteredData = filteredData.filter((item) => item.materialName.includes(params.materialName))
-    }
-
-    if (params?.version) {
-      filteredData = filteredData.filter((item) => item.versions?.includes(params.version))
-    }
-
-    if (params?.category) {
-      filteredData = filteredData.filter((item) => item.categoryName === params.category)
-    }
 
     const pageNum = params?.pageNum || 1
     const pageSize = params?.pageSize || 10
@@ -459,6 +511,7 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
         <el-button
           v-if="isAdminRole"
           type="danger"
@@ -479,7 +532,7 @@ const getTableList = async (params) => {
     >
       <template #header>
         <div class="dialog-header">
-          <span class="dialog-title">新增物料</span>
+          <span class="dialog-title">{{ isEdit ? '编辑物料' : '新增物料' }}</span>
         </div>
       </template>
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">

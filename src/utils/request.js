@@ -1,4 +1,4 @@
-import { useUserStore } from '@/stores'
+import { useUserStore } from '@/stores/modules/user'
 import axios from 'axios'
 import router from '@/router'
 import { ElMessage } from 'element-plus'
@@ -10,11 +10,15 @@ const instance = axios.create({
   timeout: 100000,
 })
 
+// 创建 userStore 实例
+const userStore = useUserStore()
+
 instance.interceptors.request.use(
   (config) => {
-    const userStore = useUserStore()
     if (userStore.token) {
-      config.headers.Authorization = userStore.token
+      // 添加 X-AUTH-TOKEN 和 token 头
+      config.headers['X-AUTH-TOKEN'] = userStore.token
+      config.headers.token = userStore.token
     }
     return config
   },
@@ -23,6 +27,11 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
   (res) => {
+    // 检测并更新token
+    if (res.data && res.data.token) {
+      userStore.token = res.data.token
+    }
+
     const code = res.data.code
     if (code === 0 || code === 200 || Array.isArray(res.data)) {
       return res
