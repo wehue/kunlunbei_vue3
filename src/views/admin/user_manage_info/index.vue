@@ -206,7 +206,7 @@ const handleResetPwd = (row) => {
     ElMessage.warning('不能重置管理员密码')
     return
   }
-  resetPwdForm.userId = row.id
+  resetPwdForm.userId = row.userId || row.id
   resetPwdForm.userName = row.userName
   resetPwdForm.newPassword = ''
   resetPwdForm.confirmPassword = ''
@@ -235,6 +235,8 @@ const handleResetPwdSubmit = async () => {
     })
     await resetPassword(resetPwdForm.userId, resetPwdForm.newPassword)
     ElMessage.success('密码重置成功')
+    resetPwdForm.newPassword = ''
+    resetPwdForm.confirmPassword = ''
     resetPwdDialogVisible.value = false
   } catch (error) {
     if (error !== 'cancel') {
@@ -413,6 +415,12 @@ const handleSubmit = async () => {
 
 const handleCancel = () => {
   dialogVisible.value = false
+}
+
+const handleResetPwdCancel = () => {
+  resetPwdForm.newPassword = ''
+  resetPwdForm.confirmPassword = ''
+  resetPwdDialogVisible.value = false
 }
 
 const getTableList = async (params) => {
@@ -665,7 +673,7 @@ const getTableList = async (params) => {
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="resetPwdDialogVisible = false">取消</el-button>
+          <el-button @click="handleResetPwdCancel">取消</el-button>
           <el-button type="primary" @click="handleResetPwdSubmit">确定</el-button>
         </div>
       </template>

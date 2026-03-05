@@ -16,7 +16,8 @@ const keepAliveStore = useKeepAliveStore()
 const loginFormRef = ref()
 const loading = ref(false)
 const showPassword = ref(false)
-const captchaText = ref('')
+const captchaCode = ref('')
+const captchaImg = ref('')
 const captchaInput = ref('')
 
 const loginForm = reactive({
@@ -31,12 +32,36 @@ const loginRules = reactive({
 })
 
 const generateCaptcha = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  let result = ''
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = 120
+  canvas.height = 40
+
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let code = ''
   for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
+    code += chars[Math.floor(Math.random() * chars.length)]
   }
-  captchaText.value = result
+  captchaCode.value = code.toLowerCase()
+
+  ctx.fillStyle = '#f0f0f0'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  ctx.font = 'bold 24px Arial'
+  for (let i = 0; i < code.length; i++) {
+    ctx.fillStyle = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`
+    ctx.fillText(code[i], 20 + i * 25, 30)
+  }
+
+  for (let i = 0; i < 4; i++) {
+    ctx.strokeStyle = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`
+    ctx.beginPath()
+    ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height)
+    ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height)
+    ctx.stroke()
+  }
+
+  captchaImg.value = canvas.toDataURL('image/png')
 }
 
 const validatePassword = (password) => {
@@ -61,7 +86,7 @@ const login = (formEl) => {
       ElMessage.warning('请输入验证码')
       return
     }
-    if (captchaInput.value.toLowerCase() !== captchaText.value.toLowerCase()) {
+    if (captchaInput.value.toLowerCase() !== captchaCode.value) {
       ElMessage.error('验证码错误')
       generateCaptcha()
       captchaInput.value = ''
@@ -229,9 +254,12 @@ onBeforeUnmount(() => {
                   </el-icon>
                 </template>
               </el-input>
-              <div class="captcha-box" @click="generateCaptcha">
-                {{ captchaText }}
-              </div>
+              <img
+                :src="captchaImg"
+                class="captcha-img"
+                @click="generateCaptcha"
+                alt="点击刷新验证码"
+              />
             </div>
           </el-form-item>
           <el-form-item>
@@ -331,25 +359,10 @@ onBeforeUnmount(() => {
         .el-input {
           flex: 1;
         }
-        .captcha-box {
-          width: 100px;
+        .captcha-img {
           height: 40px;
-          background: #f5f5f5;
-          border: 1px solid #dcdfe6;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           cursor: pointer;
-          font-size: 18px;
-          font-weight: 600;
-          font-family: 'Courier New', monospace;
-          letter-spacing: 2px;
-          color: #409eff;
-          user-select: none;
-          &:hover {
-            background: #eee;
-          }
+          border-radius: 4px;
         }
       }
       .form-options {
