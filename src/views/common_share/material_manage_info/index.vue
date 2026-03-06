@@ -70,26 +70,37 @@ const columns = reactive([
     label: '版本号',
     minWidth: 100,
     align: 'center',
-    search: { el: 'input', key: 'version' },
+    search: { el: 'select', key: 'version' },
+    enum: computed(() => {
+      // 从物料列表中提取所有唯一的版本号
+      const versionSet = new Set()
+      allMaterialsData.value.forEach(item => {
+        if (item.versions) {
+          versionSet.add(item.versions)
+        }
+      })
+      return Array.from(versionSet).map(v => ({ label: v, value: v }))
+    }),
   },
   {
     prop: 'categoryName',
     label: '分类',
     minWidth: 100,
-    search: { el: 'select', key: 'category' },
-    enum: computed(() => {
-      const categories = []
-      const getCategories = (data) => {
-        data.forEach(item => {
-          if (item.children && item.children.length > 0) {
-            getCategories(item.children)
-          } else {
-            categories.push({ label: item.label, value: item.id })
-          }
-        })
+    search: { 
+      el: 'cascader', 
+      key: 'category',
+      props: {
+        checkStrictly: true,
+        emitPath: true,
       }
-      getCategories(categoryTreeData.value)
-      return categories
+    },
+    fieldNames: {
+      label: 'label',
+      value: 'value',
+      children: 'children'
+    },
+    enum: computed(() => {
+      return categoryTreeData.value
     }),
   },
   { prop: 'warhouseName', label: '仓库', minWidth: 100 },
@@ -99,6 +110,7 @@ const columns = reactive([
 const warehouseList = ref([])
 const categoryList = ref([])
 const categoryTreeData = ref([])
+const allMaterialsData = ref([])
 
 const transformToTree = (flatList) => {
   const maxList = []
@@ -393,13 +405,15 @@ const handleExportBatch = (selectedList) => {
 
 const getTableList = async (params) => {
   try {
+    console.log('搜索参数:', params)
     // 构建查询参数
     const queryParams = {
       materialId: params?.materialId,
       materialName: params?.materialName,
       versions: params?.version,
-      categoryId: params?.category,
+      categoryId: Array.isArray(params?.category) ? params.category[params.category.length - 1] : params?.category,
     }
+    console.log('传递给API的参数:', queryParams)
     
     const res = await getPartList(queryParams)
     console.log('获取物料信息列表成功', res)
@@ -425,6 +439,9 @@ const getTableList = async (params) => {
       master: item.master,
     }))
 
+    // 保存所有物料数据用于提取版本号
+    allMaterialsData.value = transformedList
+    
     let filteredData = [...transformedList]
 
     const pageNum = params?.pageNum || 1

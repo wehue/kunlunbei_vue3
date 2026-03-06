@@ -4,135 +4,14 @@ import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
+import { getLoginLogList, exportLoginLog } from '@/api/loginLog'
+import timeFormat from '@/utils/format_time'
 
 const proTableRef = ref()
 
 const loginStatusOptions = ref([
-  { label: '成功', value: '成功' },
-  { label: '失败', value: '失败' },
-])
-
-const mockData = ref([
-  {
-    id: 1,
-    userId: 'U001',
-    userName: '张三',
-    loginTime: '2024-01-15 08:30:25',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 2,
-    userId: 'U002',
-    userName: '李四',
-    loginTime: '2024-01-15 08:32:10',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 3,
-    userId: 'U003',
-    userName: '王五',
-    loginTime: '2024-01-15 08:35:42',
-    loginStatus: '失败',
-    failReason: '密码错误',
-  },
-  {
-    id: 4,
-    userId: 'U001',
-    userName: '张三',
-    loginTime: '2024-01-15 09:15:30',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 5,
-    userId: 'U004',
-    userName: '赵六',
-    loginTime: '2024-01-15 09:20:15',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 6,
-    userId: 'U005',
-    userName: '钱七',
-    loginTime: '2024-01-15 09:25:50',
-    loginStatus: '失败',
-    failReason: '账号不存在',
-  },
-  {
-    id: 7,
-    userId: 'U002',
-    userName: '李四',
-    loginTime: '2024-01-15 10:05:22',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 8,
-    userId: 'U006',
-    userName: '孙八',
-    loginTime: '2024-01-15 10:10:45',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 9,
-    userId: 'U003',
-    userName: '王五',
-    loginTime: '2024-01-15 10:15:33',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 10,
-    userId: 'U007',
-    userName: '周九',
-    loginTime: '2024-01-15 10:20:18',
-    loginStatus: '失败',
-    failReason: '密码错误',
-  },
-  {
-    id: 11,
-    userId: 'U001',
-    userName: '张三',
-    loginTime: '2024-01-15 11:05:40',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 12,
-    userId: 'U008',
-    userName: '吴十',
-    loginTime: '2024-01-15 11:10:55',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 13,
-    userId: 'U004',
-    userName: '赵六',
-    loginTime: '2024-01-15 14:05:12',
-    loginStatus: '成功',
-    failReason: '',
-  },
-  {
-    id: 14,
-    userId: 'U009',
-    userName: '郑十一',
-    loginTime: '2024-01-15 14:10:30',
-    loginStatus: '失败',
-    failReason: '账号被锁定',
-  },
-  {
-    id: 15,
-    userId: 'U002',
-    userName: '李四',
-    loginTime: '2024-01-15 14:15:45',
-    loginStatus: '成功',
-    failReason: '',
-  },
+  { label: '成功', value: 1 },
+  { label: '失败', value: 0 },
 ])
 
 const columns = reactive([
@@ -180,62 +59,76 @@ const handleExportBatch = (selectedList) => {
     用户ID: item.userId,
     用户名: item.userName,
     登录时间: item.loginTime,
-    登录状态: item.loginStatus,
+    登录状态: item.loginStatus === 1 ? '成功' : '失败',
     失败原因: item.failReason || '-',
   }))
   exportToExcel(exportData, `登录日志_${new Date().toLocaleDateString()}`)
   ElMessage.success(`成功导出 ${selectedList.length} 条数据`)
 }
 
-const filterData = (data, params) => {
-  let filteredData = [...data]
-
-  if (params?.userId) {
-    filteredData = filteredData.filter((item) => item.userId.includes(params.userId))
-  }
-
-  if (params?.userName) {
-    filteredData = filteredData.filter((item) => item.userName.includes(params.userName))
-  }
-
-  if (params?.loginStatus) {
-    filteredData = filteredData.filter((item) => item.loginStatus === params.loginStatus)
-  }
-
-  if (params?.dateRange && params.dateRange.length === 2) {
-    filteredData = filteredData.filter((item) => {
-      const loginDate = item.loginTime.split(' ')[0]
-      return loginDate >= params.dateRange[0] && loginDate <= params.dateRange[1]
-    })
-  }
-
-  return filteredData
-}
-
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const filteredData = filterData(mockData.value, params)
+  try {
+    // 转换日期范围参数
+    const apiParams = { ...params }
+    if (params?.dateRange && params.dateRange.length === 2) {
+      apiParams.startDate = params.dateRange[0]
+      apiParams.endDate = params.dateRange[1]
+      delete apiParams.dateRange
+    }
 
+    // 转换登录状态参数
+    if (params?.loginStatus !== undefined) {
+      apiParams.login_status = params.loginStatus
+      delete apiParams.loginStatus
+    }
+
+    const res = await getLoginLogList(apiParams)
+    console.log('获取登录日志成功', res)
+    
+    if (res.data.code === 200) {
+      // 处理返回数据，添加序号
+      const list = res.data.data.data || []
       const pageNum = params?.pageNum || 1
       const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
 
-      const dataWithIndex = paginatedData.map((item, index) => ({
+      const dataWithIndex = list.map((item, index) => ({
         ...item,
-        index: startIndex + index + 1,
+        index: (pageNum - 1) * pageSize + index + 1,
+        // 映射后端字段到前端字段
+        userId: item.user_Id?.userId || '',
+        userName: item.user_Id?.userName || '',
+        loginTime: item.login_Time
+          ? timeFormat.formatDate(item.login_Time, 'YYYY-MM-DD HH:mm:ss')
+          : '',
+        loginStatus: item.login_Status === 1 ? '成功' : '失败',
+        failReason: item.failReason || '',
       }))
 
-      resolve({
+      return {
         data: {
           list: dataWithIndex,
-          total: filteredData.length,
+          total: res.data.data.total || 0,
         },
-      })
-    }, 300)
-  })
+      }
+    } else {
+      ElMessage.error(res.data.message || '获取登录日志失败')
+      return {
+        data: {
+          list: [],
+          total: 0,
+        },
+      }
+    }
+  } catch (error) {
+    ElMessage.error('获取登录日志失败')
+    console.error('获取登录日志失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 </script>
 

@@ -6,11 +6,23 @@ import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import { getProcessList } from '@/api/process'
 
 const { hasPermission, isDesignerRole, isAdminRole } = usePermission()
 
 const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 const router = useRouter()
+
+const generateProcessCode = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hour = String(now.getHours()).padStart(2, '0')
+  const minute = String(now.getMinutes()).padStart(2, '0')
+  const second = String(now.getSeconds()).padStart(2, '0')
+  return `PROC-${year}${month}${day}${hour}${minute}${second}`
+}
 
 const proTableRef = ref()
 const dialogVisible = ref(false)
@@ -42,62 +54,21 @@ const materialOptions = [
   { label: '电子元件', value: '电子元件', id: 5 },
 ]
 
-const mockData = ref([
-  {
-    id: 1,
-    processCode: 'PROC20240001',
-    processName: '车削加工',
-    productionStep: '使用数控车床对工件进行外圆车削加工，保证尺寸精度',
-  },
-  {
-    id: 2,
-    processCode: 'PROC20240002',
-    processName: '铣削加工',
-    productionStep: '使用加工中心进行平面铣削和型腔加工',
-  },
-  {
-    id: 3,
-    processCode: 'PROC20240003',
-    processName: '钻孔工序',
-    productionStep: '使用钻床对工件进行定位钻孔',
-  },
-  {
-    id: 4,
-    processCode: 'PROC20240004',
-    processName: '磨削精加工',
-    productionStep: '使用磨床对工件表面进行精密磨削',
-  },
-  {
-    id: 5,
-    processCode: 'PROC20240005',
-    processName: '质量检测',
-    productionStep: '使用检测仪对成品进行尺寸和外观检测',
-  },
-  {
-    id: 6,
-    processCode: 'PROC20240006',
-    processName: '热处理',
-    productionStep: '对工件进行淬火处理，提高硬度',
-  },
-  {
-    id: 7,
-    processCode: 'PROC20240007',
-    processName: '表面处理',
-    productionStep: '对工件表面进行喷砂和防锈处理',
-  },
-  {
-    id: 8,
-    processCode: 'PROC20240008',
-    processName: '组装工序',
-    productionStep: '将各零部件按图纸要求进行组装',
-  },
-])
-
 const columns = reactive([
   { type: 'selection', width: 50 },
-  { prop: 'index', label: '序号', width: 60 },
-  { prop: 'processCode', label: '工序编号', search: { el: 'input', key: 'processCode' } },
-  { prop: 'processName', label: '工序名称', search: { el: 'input', key: 'processName' } },
+  { prop: 'index', label: '序号', width: 80 },
+  {
+    prop: 'processCode',
+    label: '工序编号',
+    search: { el: 'input', key: 'processCode' },
+    width: 160,
+  },
+  {
+    prop: 'processName',
+    label: '工序名称',
+    search: { el: 'input', key: 'processName' },
+    width: 160,
+  },
   { prop: 'productionStep', label: '生产步骤', minWidth: 300 },
   { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
@@ -118,14 +89,7 @@ const validateProcessName = (rule, value, callback) => {
     callback(new Error('请输入工序名称'))
     return
   }
-  const exists = mockData.value.some(
-    (item) => item.processName === value && item.id !== formData.id,
-  )
-  if (exists) {
-    callback(new Error('工序名称已存在，请使用其他名称'))
-  } else {
-    callback()
-  }
+  callback()
 }
 
 const validateProductionStep = (rule, value, callback) => {
@@ -143,16 +107,6 @@ const validateProductionStep = (rule, value, callback) => {
 const rules = {
   processName: [{ required: true, validator: validateProcessName, trigger: 'blur' }],
   productionStep: [{ required: true, validator: validateProductionStep, trigger: 'blur' }],
-}
-
-const generateProcessCode = () => {
-  const year = new Date().getFullYear()
-  const maxId = mockData.value.reduce((max, item) => {
-    const id = parseInt(item.id)
-    return id > max ? id : max
-  }, 0)
-  const newId = String(maxId + 1).padStart(4, '0')
-  return `PROC${year}${newId}`
 }
 
 const handleAddDevice = () => {
@@ -321,37 +275,49 @@ const handleExportBatch = (selectedList) => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...mockData.value]
+  try {
+    const response = await getProcessList(params)
+    console.log('获取工序列表信息成功', response)
 
-      if (params?.processCode) {
-        filteredData = filteredData.filter((item) => item.processCode.includes(params.processCode))
-      }
+    // 根据后端返回的数据结构获取工序列表数组
+    const processList = response.data.data.data
 
-      if (params?.processName) {
-        filteredData = filteredData.filter((item) => item.processName.includes(params.processName))
-      }
-
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
-
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
-
-      resolve({
+    // 检查processList是否为数组
+    if (!Array.isArray(processList)) {
+      console.error('获取工序列表失败: 数据格式错误', processList)
+      return {
         data: {
-          list: dataWithIndex,
-          total: filteredData.length,
+          list: [],
+          total: 0,
         },
-      })
-    }, 300)
-  })
+      }
+    }
+
+    // 转换数据格式，只保留需要的字段
+    const transformedData = processList.map((item, index) => ({
+      id: item.id,
+      processCode: item.workingProcedureId,
+      processName: item.workingProcedureName,
+      productionStep: item.productionSteps,
+      index: index + 1,
+    }))
+
+    return {
+      data: {
+        list: transformedData,
+        total: transformedData.length,
+      },
+    }
+  } catch (error) {
+    console.error('获取工序列表失败:', error)
+    ElMessage.error('获取工序列表失败')
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 </script>
 
@@ -385,7 +351,9 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)"
+          >编辑</el-button
+        >
         <el-button
           v-if="isAdminRole"
           type="danger"
@@ -509,7 +477,7 @@ const getTableList = async (params) => {
 
         <div class="form-section">
           <div class="section-title">
-            <span class="title-text">物料BOM</span>
+            <span class="title-text">物料</span>
             <el-button type="primary" link :icon="Plus" @click="handleAddMaterial">
               添加物料
             </el-button>

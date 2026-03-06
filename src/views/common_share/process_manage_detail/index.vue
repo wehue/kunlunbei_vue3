@@ -475,8 +475,6 @@ onMounted(() => {
               class="process-table"
             >
               <el-table-column prop="materialName" label="物料名称" />
-              <el-table-column prop="specModel" label="规格型号" />
-              <el-table-column prop="unit" label="单位" width="80" />
               <el-table-column prop="quantity" label="支出数量" width="120">
                 <template #default="scope"> {{ scope.row.quantity }} 件 </template>
               </el-table-column>

@@ -104,15 +104,10 @@ const login = (formEl) => {
       // 调用登录API
       const res = await userLogin(loginData)
       console.log('登录成功响应:', res)
-      console.log('res.data:', res.data)
 
       if (res.data.code === 200) {
         const token = res.data.data.token
         const userInfo = res.data.data.data
-
-        console.log('用户信息:', userInfo)
-        console.log('用户名:', userInfo?.userName)
-        console.log('用户角色:', userInfo?.role)
 
         if (loginForm.remember) {
           localStorage.setItem('rememberedUserName', loginForm.userName)
@@ -133,8 +128,6 @@ const login = (formEl) => {
           role: userInfo?.role,
         })
 
-        console.log('保存后的用户信息:', userStore.userInfo)
-
         tabsStore.setTabs([])
         keepAliveStore.setKeepAliveName([])
 
@@ -148,8 +141,6 @@ const login = (formEl) => {
         }
 
         const userRole = userInfo?.role
-        console.log('用户角色:', userRole)
-        console.log('跳转到:', roleHomeMap[userRole] || '/admin-index')
 
         router.push(roleHomeMap[userRole] || '/admin-index')
         ElNotification({
