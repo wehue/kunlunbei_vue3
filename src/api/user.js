@@ -54,3 +54,8 @@ export function resetPassword(userId, password) {
 export function toggleUserStatus(id, status) {
   return instance.put(`/api/user/${id}/status`, { status })
 }
+
+// 修改密码
+export function updatePassword(data) {
+  return instance.post('/api/user/updatePassword', data)
+}

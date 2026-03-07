@@ -1,0 +1,290 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" baseProfile="full" width="100%" height="100%" viewBox="0 0 1400 800">
+  <defs>
+    <!-- 主背景渐变 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 科技蓝渐变 -->
+    <linearGradient id="techBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00bfff;stop-opacity:0" />
+      <stop offset="50%" style="stop-color:#00bfff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00bfff;stop-opacity:0" />
+    </linearGradient>
+    
+    <!-- 齿轮渐变 -->
+    <radialGradient id="gearGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#c4e0ff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#00bfff;stop-opacity:0.7" />
+    </radialGradient>
+    
+    <!-- 发光效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- 齿轮路径 -->
+    <path id="gear" d="M0,-50 L10,-45 L10,-30 L25,-30 L30,-20 L45,-20 L50,0 L45,20 L30,20 L25,30 L10,30 L10,45 L0,50 L-10,45 L-10,30 L-25,30 L-30,20 L-45,20 L-50,0 L-45,-20 L-30,-20 L-25,-30 L-10,-30 L-10,-45 Z" />
+    
+    <!-- 小齿轮路径 -->
+    <path id="smallGear" d="M0,-25 L5,-22 L5,-15 L12,-15 L15,-10 L22,-10 L25,0 L22,10 L15,10 L12,15 L5,15 L5,22 L0,25 L-5,22 L-5,15 L-12,15 L-15,10 L-22,10 L-25,0 L-22,-10 L-15,-10 L-12,-15 L-5,-15 L-5,-22 Z" />
+    
+    <!-- 精细齿轮路径 -->
+    <path id="detailedGear" d="m45.6381035 30c0-2.5011482 1.4106255-4.5648193 3.2598457-4.9725227-.4546356-1.7314034-1.1349182-3.3668499-2.0171814-4.8756714-1.5958252 1.0209045-4.0536957.5597-5.8230019-1.2096081-1.76931-1.7693081-2.2304382-4.2271032-1.2095375-5.8229284-1.5088196-.882266-3.1442642-1.5625448-4.8756676-2.0171843-.4077072 1.8492222-2.4713783 3.2598486-4.9725246 3.2598486s-4.5648174-1.4106264-4.9725227-3.2598486c-1.7314014.4546394-3.366848 1.1349182-4.8756695 2.0171843 1.0209045 1.5958252.5597744 4.0536203-1.2095337 5.8229284s-4.2271786 2.2305126-5.8230028 1.2096081c-.882267 1.5088215-1.5625458 3.144268-2.0171843 4.8756714 1.8492222.4077034 3.2598486 2.4713745 3.2598486 4.9725227 0 2.5012207-1.4106264 4.564743-3.2599239 4.9724464.4546394 1.7314034 1.1349926 3.366848 2.0172596 4.8757439 1.5958242-1.0209007 4.0536947-.5597725 5.8230028 1.2095375 1.7693081 1.7693062 2.2304382 4.2271767 1.2095337 5.8230019 1.5088215.882267 3.144268 1.5625458 4.8756695 2.0171852.4077053-1.8492241 2.4713764-3.2599258 4.9725227-3.2599258s4.5648174 1.4107018 4.9725246 3.2599258c1.7314034-.4546394 3.366848-1.1349182 4.8756676-2.0171852-1.0209007-1.5958252-.5597725-4.0536957 1.2095375-5.8230019 1.7693062-1.76931 4.2271767-2.2304382 5.8230019-1.2095375.8822632-1.5088959 1.5626183-3.1443405 2.0172577-4.8757439-1.8492966-.4077033-3.259922-2.4712257-3.259922-4.9724464z" />
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)" />
+  
+  <!-- 网格背景 -->
+  <g opacity="0.12">
+    <pattern id="smallGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#00bfff" stroke-width="0.5"/>
+    </pattern>
+    <pattern id="largeGrid" width="200" height="200" patternUnits="userSpaceOnUse">
+      <rect width="200" height="200" fill="url(#smallGrid)"/>
+      <path d="M 200 0 L 0 0 0 200" fill="none" stroke="#00bfff" stroke-width="1"/>
+    </pattern>
+    <rect width="100%" height="100%" fill="url(#largeGrid)" />
+  </g>
+  
+  <!-- 背景微粒漂浮 -->
+  <g>
+    <circle cx="100" cy="200" r="3" fill="#00bfff" opacity="0.35">
+      <animate attributeName="cy" values="200;100;200" dur="12s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="300" cy="400" r="3" fill="#00bfff" opacity="0.3">
+      <animate attributeName="cy" values="400;250;400" dur="15s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="100" r="3" fill="#00bfff" opacity="0.3">
+      <animate attributeName="cy" values="100;50;100" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="900" cy="300" r="3" fill="#00bfff" opacity="0.35">
+      <animate attributeName="cy" values="300;150;300" dur="14s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1200" cy="150" r="3" fill="#00bfff" opacity="0.3">
+      <animate attributeName="cy" values="150;50;150" dur="16s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- 极细电路扫描线 -->
+  <rect x="0" y="0" width="1400" height="2" fill="#00bfff" opacity="0.15">
+    <animate attributeName="y" values="0;800;0" dur="12s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- 扫描线效果 -->
+  <g>
+    <rect x="0" y="0" width="1400" height="2" fill="url(#techBlue)" opacity="0.6">
+      <animate attributeName="y" from="-10" to="800" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.6;0.6;0" dur="6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="0" y="0" width="1400" height="1" fill="url(#techBlue)" opacity="0.4">
+      <animate attributeName="y" from="-10" to="800" dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.4;0.4;0" dur="9s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  
+  <!-- 数据流动画线条 -->
+  <g stroke="#00bfff" stroke-width="1" fill="none" opacity="0.5">
+    <path d="M-100,200 Q350,150 450,300 T850,250 T1250,350 T1500,300" stroke-dasharray="2000" stroke-dashoffset="2000">
+      <animate attributeName="stroke-dashoffset" from="2000" to="-2000" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.5;0.5;0" dur="8s" repeatCount="indefinite"/>
+    </path>
+    <path d="M-100,500 Q250,450 350,600 T750,550 T1150,650 T1500,600" stroke-dasharray="2000" stroke-dashoffset="2000">
+      <animate attributeName="stroke-dashoffset" from="2000" to="-2000" dur="10s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0.5;0.5;0" dur="10s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  
+  <!-- 电路板效果 -->
+  <g stroke="#00bfff" stroke-width="0.8" fill="none" opacity="0.3">
+    <!-- 左侧电路 -->
+    <path d="M0,100 H150 V200 H250 V150 H350"/>
+    <path d="M0,300 H100 V400 H200 V350 H300"/>
+    <path d="M0,600 H80 V700 H180 V650 H280"/>
+    
+    <!-- 右侧电路 -->
+    <path d="M1400,150 H1250 V250 H1150 V200 H1050"/>
+    <path d="M1400,400 H1300 V500 H1200 V450 H1100"/>
+    <path d="M1400,700 H1320 V800 H1220 V750 H1120"/>
+  </g>
+  
+  <!-- 电路节点 -->
+  <g fill="#00bfff" filter="url(#glow)">
+    <circle cx="150" cy="200" r="3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="250" cy="150" r="3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="3;5;3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="100" cy="400" r="3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1250" cy="250" r="3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1150" cy="200" r="3">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="3;5;3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- 齿轮组 -->
+  <g>
+    <!-- 左下角精细齿轮 -->
+    <g transform="translate(40,560) scale(3.5)">
+      <g>
+        <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 30 30"
+            to="360 30 30"
+            dur="10s"
+            repeatCount="indefinite"/>
+        <path d="m45.6381035 30c0-2.5011482 1.4106255-4.5648193 3.2598457-4.9725227-.4546356-1.7314034-1.1349182-3.3668499-2.0171814-4.8756714-1.5958252 1.0209045-4.0536957.5597-5.8230019-1.2096081-1.76931-1.7693081-2.2304382-4.2271032-1.2095375-5.8229284-1.5088196-.882266-3.1442642-1.5625448-4.8756676-2.0171843-.4077072 1.8492222-2.4713783 3.2598486-4.9725246 3.2598486s-4.5648174-1.4106264-4.9725227-3.2598486c-1.7314014.4546394-3.366848 1.1349182-4.8756695 2.0171843 1.0209045 1.5958252.5597744 4.0536203-1.2095337 5.8229284s-4.2271786 2.2305126-5.8230028 1.2096081c-.882267 1.5088215-1.5625458 3.144268-2.0171843 4.8756714 1.8492222.4077034 3.2598486 2.4713745 3.2598486 4.9725227 0 2.5012207-1.4106264 4.564743-3.2599239 4.9724464.4546394 1.7314034 1.1349926 3.366848 2.0172596 4.8757439 1.5958242-1.0209007 4.0536947-.5597725 5.8230028 1.2095375 1.7693081 1.7693062 2.2304382 4.2271767 1.2095337 5.8230019 1.5088215.882267 3.144268 1.5625458 4.8756695 2.0171852.4077053-1.8492241 2.4713764-3.2599258 4.9725227-3.2599258s4.5648174 1.4107018 4.9725246 3.2599258c1.7314034-.4546394 3.366848-1.1349182 4.8756676-2.0171852-1.0209007-1.5958252-.5597725-4.0536957 1.2095375-5.8230019 1.7693062-1.76931 4.2271767-2.2304382 5.8230019-1.2095375.8822632-1.5088959 1.5626183-3.1443405 2.0172577-4.8757439-1.8492966-.4077033-3.259922-2.4712257-3.259922-4.9724464z" fill="#c4e0ff">
+            <animate attributeName="fill" values="#c4e0ff;#00bfff;#c4e0ff" dur="3s" repeatCount="indefinite"/>
+        </path>
+        <circle cx="30" cy="30" r="8" fill="#ffffff"/>
+      </g>
+    </g>
+    
+    <!-- 右上四分之一齿轮 -->
+    <g transform="translate(1050,-105) scale(3.5)" overflow="hidden">
+      <g>
+        <animateTransform attributeName="transform" type="rotate" from="0 30 30" to="360 30 30" dur="15s" repeatCount="indefinite"/>
+        <path d="m45.6381035 30c0-2.5011482 1.4106255-4.5648193 3.2598457-4.9725227-.4546356-1.7314034-1.1349182-3.3668499-2.0171814-4.8756714-1.5958252 1.0209045-4.0536957.5597-5.8230019-1.2096081-1.76931-1.7693081-2.2304382-4.2271032-1.2095375-5.8229284-1.5088196-.882266-3.1442642-1.5625448-4.8756676-2.0171843-.4077072 1.8492222-2.4713783 3.2598486-4.9725246 3.2598486s-4.5648174-1.4106264-4.9725227-3.2598486c-1.7314014.4546394-3.366848 1.1349182-4.8756695 2.0171843 1.0209045 1.5958252.5597744 4.0536203-1.2095337 5.8229284s-4.2271786 2.2305126-5.8230028 1.2096081c-.882267 1.5088215-1.5625458 3.144268-2.0171843 4.8756714 1.8492222.4077034 3.2598486 2.4713745 3.2598486 4.9725227 0 2.5012207-1.4106264 4.564743-3.2599239 4.9724464.4546394 1.7314034 1.1349926 3.366848 2.0172596 4.8757439 1.5958242-1.0209007 4.0536947-.5597725 5.8230028 1.2095375 1.7693081 1.7693062 2.2304382 4.2271767 1.2095337 5.8230019 1.5088215.882267 3.144268 1.5625458 4.8756695 2.0171852.4077053-1.8492241 2.4713764-3.2599258 4.9725227-3.2599258s4.5648174 1.4107018 4.9725246 3.2599258c1.7314034-.4546394 3.366848-1.1349182 4.8756676-2.0171852-1.0209007-1.5958252-.5597725-4.0536957 1.2095375-5.8230019 1.7693062-1.76931 4.2271767-2.2304382 5.8230019-1.2095375.8822632-1.5088959 1.5626183-3.1443405 2.0172577-4.8757439-1.8492966-.4077033-3.259922-2.4712257-3.259922-4.9724464z" fill="#c4e0ff">
+            <animate attributeName="fill" values="#c4e0ff;#00bfff;#c4e0ff" dur="3s" repeatCount="indefinite"/>
+        </path>
+        <circle cx="30" cy="30" r="8" fill="#ffffff"/>
+      </g>
+    </g>
+    
+    <!-- 中心齿轮 -->
+    <g transform="translate(700, 400)">
+      <use href="#gear" fill="url(#gearGradient)" stroke="#00bfff" stroke-width="1" opacity="0.6">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s" repeatCount="indefinite"/>
+      </use>
+      <circle cx="0" cy="0" r="20" fill="#ffffff" stroke="#00bfff" stroke-width="1" opacity="0.8">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="0" cy="0" r="8" fill="#00bfff" opacity="0.4">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- 小齿轮装饰 -->
+    <g transform="translate(380, 380)">
+      <use href="#smallGear" fill="url(#gearGradient)" stroke="#00bfff" stroke-width="0.8" opacity="0.45">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="15s" repeatCount="indefinite"/>
+      </use>
+      <circle cx="0" cy="0" r="8" fill="#ffffff" stroke="#00bfff" stroke-width="0.5" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="15s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <g transform="translate(1020, 360)">
+      <use href="#smallGear" fill="url(#gearGradient)" stroke="#00bfff" stroke-width="0.8" opacity="0.45">
+        <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="18s" repeatCount="indefinite"/>
+      </use>
+      <circle cx="0" cy="0" r="8" fill="#ffffff" stroke="#00bfff" stroke-width="0.5" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="18s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+  
+  <!-- 中心科技圆环 -->
+  <g transform="translate(700, 400)">
+    <!-- 外圈 -->
+    <circle cx="0" cy="0" r="280" fill="none" stroke="#00bfff" stroke-width="0.5" opacity="0.15" stroke-dasharray="5,10">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="60s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="300" fill="none" stroke="#00bfff" stroke-width="0.3" opacity="0.12" stroke-dasharray="2,15">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="80s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- 中圈 -->
+    <circle cx="0" cy="0" r="220" fill="none" stroke="#00bfff" stroke-width="0.8" opacity="0.2" stroke-dasharray="20,10">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="50s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="240" fill="none" stroke="#00bfff" stroke-width="0.5" opacity="0.15">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="55s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- 内圈 -->
+    <circle cx="0" cy="0" r="160" fill="none" stroke="#00bfff" stroke-width="1" opacity="0.25">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="40s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="180" fill="none" stroke="#00bfff" stroke-width="0.5" opacity="0.2" stroke-dasharray="10,5">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="45s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- 能量粒子 -->
+  <g filter="url(#glow)">
+    <circle cx="700" cy="400" r="1.5" fill="#00bfff" opacity="0.7">
+      <animate attributeName="transform" type="translate" values="0,0; 100,-80; 150,50; -80,100; 0,0" dur="15s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.8;0.4;0.6;0.2" dur="15s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="400" r="1.5" fill="#00bfff" opacity="0.7">
+      <animate attributeName="transform" type="translate" values="0,0; -100,80; -150,-50; 80,-100; 0,0" dur="15s" begin="0.3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.8;0.4;0.6;0.2" dur="15s" begin="0.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="400" r="1.5" fill="#00bfff" opacity="0.7">
+      <animate attributeName="transform" type="translate" values="0,0; 80,100; -100,80; 50,-120; 0,0" dur="15s" begin="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.8;0.4;0.6;0.2" dur="15s" begin="0.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="400" r="1.5" fill="#00bfff" opacity="0.7">
+      <animate attributeName="transform" type="translate" values="0,0; -80,-100; 100,-80; -50,120; 0,0" dur="15s" begin="0.9s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.8;0.4;0.6;0.2" dur="15s" begin="0.9s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- 角落装饰框 -->
+  <g stroke="#00bfff" fill="none">
+    <!-- 左上角 -->
+    <path d="M0,100 L0,0 L100,0" stroke-width="2" opacity="0.5"/>
+    <path d="M0,70 L0,0 L70,0" stroke-width="1" opacity="0.3"/>
+    <path d="M0,0 L0,20 M0,0 L20,0" stroke-width="3" opacity="0.8"/>
+    
+    <!-- 右上角 -->
+    <path d="M1300,0 L1400,0 L1400,100" stroke-width="2" opacity="0.5"/>
+    <path d="M1330,0 L1400,0 L1400,70" stroke-width="1" opacity="0.3"/>
+    <path d="M1400,0 L1400,20 M1400,0 L1380,0" stroke-width="3" opacity="0.8"/>
+    
+    <!-- 左下角 -->
+    <path d="M0,700 L0,800 L100,800" stroke-width="2" opacity="0.5"/>
+    <path d="M0,730 L0,800 L70,800" stroke-width="1" opacity="0.3"/>
+    <path d="M0,800 L0,780 M0,800 L20,800" stroke-width="3" opacity="0.8"/>
+    
+    <!-- 右下角 -->
+    <path d="M1300,800 L1400,800 L1400,700" stroke-width="2" opacity="0.5"/>
+    <path d="M1330,800 L1400,800 L1400,730" stroke-width="1" opacity="0.3"/>
+    <path d="M1400,800 L1400,780 M1400,800 L1380,800" stroke-width="3" opacity="0.8"/>
+  </g>
+  
+  <!-- 数据指示灯 -->
+  <g filter="url(#glow)">
+    <circle cx="50" cy="400" r="4" fill="#22c55e">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1350" cy="400" r="4" fill="#22c55e">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="50" r="4" fill="#00bfff">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="750" r="4" fill="#00bfff">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

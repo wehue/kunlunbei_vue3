@@ -1,8 +1,11 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { User, Phone, Message, Lock, Edit, Upload, Check } from '@element-plus/icons-vue'
+import { User, Phone, Message, Lock, Upload, Check } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/modules/user'
+import { getUserDetailById, updatePassword } from '@/api/user'
+import timeFormat from '@/utils/format_time'
+import router from '@/router'
 
 const userStore = useUserStore()
 const currentRole = computed(() => userStore.userInfo?.role)
@@ -24,19 +27,7 @@ const userInfo = ref({
 
 const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png')
 
-const editPhoneDialogVisible = ref(false)
-const editEmailDialogVisible = ref(false)
 const editPasswordDialogVisible = ref(false)
-
-const phoneForm = reactive({
-  newPhone: '',
-  verifyCode: '',
-})
-
-const emailForm = reactive({
-  newEmail: '',
-  verifyCode: '',
-})
 
 const passwordForm = reactive({
   oldPassword: '',
@@ -44,34 +35,7 @@ const passwordForm = reactive({
   confirmPassword: '',
 })
 
-const phoneFormRef = ref()
-const emailFormRef = ref()
 const passwordFormRef = ref()
-
-const countdown = ref(0)
-const emailCountdown = ref(0)
-
-const phoneRules = {
-  newPhone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
-  ],
-  verifyCode: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为6位数字', trigger: 'blur' },
-  ],
-}
-
-const emailRules = {
-  newEmail: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
-  ],
-  verifyCode: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为6位数字', trigger: 'blur' },
-  ],
-}
 
 const passwordRules = {
   oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
@@ -136,18 +100,6 @@ const handleAvatarChange = (file) => {
   return false
 }
 
-const handleOpenPhoneDialog = () => {
-  phoneForm.newPhone = ''
-  phoneForm.verifyCode = ''
-  editPhoneDialogVisible.value = true
-}
-
-const handleOpenEmailDialog = () => {
-  emailForm.newEmail = ''
-  emailForm.verifyCode = ''
-  editEmailDialogVisible.value = true
-}
-
 const handleOpenPasswordDialog = () => {
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
@@ -155,65 +107,33 @@ const handleOpenPasswordDialog = () => {
   editPasswordDialogVisible.value = true
 }
 
-const sendPhoneCode = () => {
-  if (!phoneForm.newPhone || !/^1[3-9]\d{9}$/.test(phoneForm.newPhone)) {
-    ElMessage.warning('请先输入正确的手机号')
-    return
-  }
-  countdown.value = 60
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
-  ElMessage.success('验证码已发送')
-}
-
-const sendEmailCode = () => {
-  if (!emailForm.newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailForm.newEmail)) {
-    ElMessage.warning('请先输入正确的邮箱')
-    return
-  }
-  emailCountdown.value = 60
-  const timer = setInterval(() => {
-    emailCountdown.value--
-    if (emailCountdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
-  ElMessage.success('验证码已发送')
-}
-
-const handlePhoneSubmit = async () => {
-  if (!phoneFormRef.value) return
-  await phoneFormRef.value.validate((valid) => {
-    if (valid) {
-      userInfo.value.phone = phoneForm.newPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-      editPhoneDialogVisible.value = false
-      ElMessage.success('手机号修改成功')
-    }
-  })
-}
-
-const handleEmailSubmit = async () => {
-  if (!emailFormRef.value) return
-  await emailFormRef.value.validate((valid) => {
-    if (valid) {
-      const emailParts = emailForm.newEmail.split('@')
-      userInfo.value.email = emailParts[0].substring(0, 3) + '***@' + emailParts[1]
-      editEmailDialogVisible.value = false
-      ElMessage.success('邮箱修改成功')
-    }
-  })
-}
-
 const handlePasswordSubmit = async () => {
   if (!passwordFormRef.value) return
-  await passwordFormRef.value.validate((valid) => {
+  await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
-      editPasswordDialogVisible.value = false
-      ElMessage.success('密码修改成功')
+      loading.value = true
+      try {
+        const res = await updatePassword({
+          oldPassword: passwordForm.oldPassword,
+          newPassword: passwordForm.newPassword,
+        })
+        if (res.data.code === 200) {
+          editPasswordDialogVisible.value = false
+          ElMessage.success('密码修改成功，将重新登录')
+          // 强制退出登录
+          setTimeout(() => {
+            userStore.logout()
+            router.push('/login')
+          }, 1500)
+        } else {
+          ElMessage.error(res.data.message || '密码修改失败')
+        }
+      } catch (error) {
+        console.error('修改密码失败:', error)
+        ElMessage.error('密码修改失败')
+      } finally {
+        loading.value = false
+      }
     }
   })
 }
@@ -227,11 +147,55 @@ const getRoleName = (role) => {
   return roleMap[role] || role
 }
 
+const fetchUserDetail = async () => {
+  const currentUser = userStore.userInfo
+  if (currentUser && currentUser.id) {
+    loading.value = true
+    try {
+      const res = await getUserDetailById(currentUser.id)
+      console.log('获取用户详情成功:', res)
+      if (res.data.code === 200 && res.data.data.data) {
+        const userData = res.data.data.data
+        userInfo.value = {
+          userId: userData.userId || currentUser.id,
+          userName: userData.userName || currentUser.name,
+          role: userData.role || currentUser.role,
+          roleName: getRoleName(userData.role || currentUser.role),
+          registerTime: userData.createTime
+            ? timeFormat.formatDate(userData.createTime, 'YYYY-MM-DD HH:mm:ss')
+            : userInfo.value.registerTime,
+          lastLoginTime: userData.endTime
+            ? timeFormat.formatDate(userData.endTime, 'YYYY-MM-DD HH:mm:ss')
+            : userInfo.value.lastLoginTime,
+          phone: userData.phone
+            ? userData.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+            : userInfo.value.phone,
+          email: userData.email
+            ? userData.email.replace(/(^.{3})[^@]*(@.*$)/, '$1***$2')
+            : userInfo.value.email,
+          avatar: userData.avatar || userInfo.value.avatar,
+        }
+        if (userData.avatar) {
+          avatarUrl.value = userData.avatar
+        }
+      }
+    } catch (error) {
+      console.error('获取用户详情失败:', error)
+      ElMessage.error('获取用户详情失败')
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
 onMounted(() => {
   if (userStore.userInfo) {
-    userInfo.value.userName = userStore.userInfo?.userName || userInfo.value.userName
+    userInfo.value.userName =
+      userStore.userInfo?.userName || userStore.userInfo?.name || userInfo.value.userName
     userInfo.value.role = userStore.userInfo?.role || userInfo.value.role
     userInfo.value.roleName = getRoleName(userInfo.value.role)
+    // 获取用户详细信息
+    fetchUserDetail()
   }
 })
 </script>
@@ -337,9 +301,6 @@ onMounted(() => {
               </div>
               <div class="info-value">
                 <span>{{ userInfo.phone || '未绑定' }}</span>
-                <el-button type="primary" link :icon="Edit" @click="handleOpenPhoneDialog">
-                  {{ userInfo.phone ? '修改' : '绑定' }}
-                </el-button>
               </div>
             </div>
             <div class="info-row">
@@ -349,9 +310,6 @@ onMounted(() => {
               </div>
               <div class="info-value">
                 <span>{{ userInfo.email || '未绑定' }}</span>
-                <el-button type="primary" link :icon="Edit" @click="handleOpenEmailDialog">
-                  {{ userInfo.email ? '修改' : '绑定' }}
-                </el-button>
               </div>
             </div>
           </div>
@@ -380,58 +338,6 @@ onMounted(() => {
         </div>
       </div>
     </div>
-
-    <el-dialog
-      v-model="editPhoneDialogVisible"
-      title="修改手机号"
-      width="450px"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <el-form ref="phoneFormRef" :model="phoneForm" :rules="phoneRules" label-width="100px">
-        <el-form-item label="新手机号" prop="newPhone">
-          <el-input v-model="phoneForm.newPhone" placeholder="请输入新手机号" maxlength="11" />
-        </el-form-item>
-        <el-form-item label="验证码" prop="verifyCode">
-          <div class="verify-code-input">
-            <el-input v-model="phoneForm.verifyCode" placeholder="请输入验证码" maxlength="6" />
-            <el-button type="primary" :disabled="countdown > 0" @click="sendPhoneCode">
-              {{ countdown > 0 ? `${countdown}s后重发` : '获取验证码' }}
-            </el-button>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editPhoneDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handlePhoneSubmit">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog
-      v-model="editEmailDialogVisible"
-      title="修改邮箱"
-      width="450px"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <el-form ref="emailFormRef" :model="emailForm" :rules="emailRules" label-width="100px">
-        <el-form-item label="新邮箱" prop="newEmail">
-          <el-input v-model="emailForm.newEmail" placeholder="请输入新邮箱" />
-        </el-form-item>
-        <el-form-item label="验证码" prop="verifyCode">
-          <div class="verify-code-input">
-            <el-input v-model="emailForm.verifyCode" placeholder="请输入验证码" maxlength="6" />
-            <el-button type="primary" :disabled="emailCountdown > 0" @click="sendEmailCode">
-              {{ emailCountdown > 0 ? `${emailCountdown}s后重发` : '获取验证码' }}
-            </el-button>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editEmailDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleEmailSubmit">确定</el-button>
-      </template>
-    </el-dialog>
 
     <el-dialog
       v-model="editPasswordDialogVisible"

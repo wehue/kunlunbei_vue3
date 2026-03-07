@@ -143,9 +143,9 @@ const getTableList = async (params) => {
   const apiParams = {
     productionStaffId: params?.productionStaffId,
     productionStaffName: params?.productionStaffName,
-    departmentId: params?.departmentName
+    departmentId: params?.departmentName,
   }
-  
+
   const res = await getProductionStaffList(apiParams)
   console.log('操作人员列表信息', res)
   const innerData = res.data.data
@@ -186,7 +186,7 @@ const fetchDeptOptions = async () => {
 
     const data = res.data?.data?.data || []
     deptOptions.value = data.map((item) => ({
-      label: item.workingProcedureName,
+      label: item.departmentName,
       value: String(item.id),
     }))
   } catch (error) {

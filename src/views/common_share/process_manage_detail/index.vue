@@ -211,22 +211,12 @@ const handleAddMaterial = () => {
   formData.materials.push({
     id: Date.now(),
     materialName: '',
-    specModel: '',
-    unit: '件',
     quantity: 1,
   })
 }
 
 const handleRemoveMaterial = (index) => {
   formData.materials.splice(index, 1)
-}
-
-const handleMaterialChange = (val, index) => {
-  const material = materialOptions.value.find((m) => m.value === val)
-  if (material) {
-    formData.materials[index].specModel = material.specModel
-    formData.materials[index].unit = material.unit
-  }
 }
 
 const handleExport = () => {
@@ -499,7 +489,6 @@ onMounted(() => {
                 v-model="material.materialName"
                 placeholder="请选择物料"
                 style="width: 200px"
-                @change="(val) => handleMaterialChange(val, index)"
               >
                 <el-option
                   v-for="item in materialOptions"
@@ -508,13 +497,6 @@ onMounted(() => {
                   :value="item.value"
                 />
               </el-select>
-              <el-input
-                v-model="material.specModel"
-                disabled
-                placeholder="规格型号"
-                style="width: 150px"
-              />
-              <el-input v-model="material.unit" disabled placeholder="单位" style="width: 80px" />
               <el-input-number
                 v-model="material.quantity"
                 :min="1"
