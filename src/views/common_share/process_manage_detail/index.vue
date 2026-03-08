@@ -8,6 +8,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { getDeviceList } from '@/api/device'
 import { getProductionStaffList } from '@/api/productionStaff'
 import { getPartList } from '@/api/material'
+import { getProcessDetail, updateProcess } from '@/api/process'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,14 +49,18 @@ const getUnitLabel = (value) => {
   return option ? option.label : value
 }
 
-// 计算可用的设备选项（过滤掉已选择的）
-const availableDeviceOptions = (selectedDeviceIds) => {
-  return deviceOptions.value.filter((option) => !selectedDeviceIds.includes(option.value))
+// 计算可用的设备选项（过滤掉已选择的，保留当前编辑项）
+const availableDeviceOptions = (selectedDeviceIds, currentDeviceId = null) => {
+  return deviceOptions.value.filter((option) => {
+    return option.value === currentDeviceId || !selectedDeviceIds.includes(option.value)
+  })
 }
 
-// 计算可用的物料选项（过滤掉已选择的）
-const availableMaterialOptions = (selectedMaterialIds) => {
-  return materialOptions.value.filter((option) => !selectedMaterialIds.includes(option.value))
+// 计算可用的物料选项（过滤掉已选择的，保留当前编辑项）
+const availableMaterialOptions = (selectedMaterialIds, currentMaterialId = null) => {
+  return materialOptions.value.filter((option) => {
+    return option.value === currentMaterialId || !selectedMaterialIds.includes(option.value)
+  })
 }
 
 // 获取设备列表
@@ -167,113 +172,148 @@ const fetchOperatorList = async () => {
   }
 }
 
-const mockProcessData = {
-  1: {
-    id: 1,
-    processCode: 'PROC20240001',
-    processName: '车削加工',
-    productionStep:
-      '使用数控车床对工件进行外圆车削加工，保证尺寸精度。首先装夹工件，然后选择合适的刀具，设定切削参数，进行粗加工和精加工。',
-    devices: [
-      { id: 1, deviceName: '数控车床', quantity: 2 },
-      { id: 2, deviceName: '检测仪', quantity: 1 },
-    ],
-    operators: ['张三', '李四'],
-    startTime: '2024-01-15 08:00:00',
-    endTime: '2024-01-15 17:00:00',
-    materials: [
-      { id: 1, materialName: '碳钢板材', specModel: 'Q235B-10mm', unit: '件', quantity: 50 },
-      { id: 2, materialName: '铝合金板', specModel: '6061-T6-5mm', unit: '件', quantity: 20 },
-    ],
-  },
-  2: {
-    id: 2,
-    processCode: 'PROC20240002',
-    processName: '铣削加工',
-    productionStep: '使用加工中心进行平面铣削和型腔加工',
-    devices: [{ id: 1, deviceName: '加工中心', quantity: 1 }],
-    operators: ['王五'],
-    startTime: '2024-01-16 09:00:00',
-    endTime: '2024-01-16 18:00:00',
-    materials: [
-      { id: 1, materialName: '铝合金板', specModel: '6061-T6-5mm', unit: '件', quantity: 30 },
-    ],
-  },
-  3: {
-    id: 3,
-    processCode: 'PROC20240003',
-    processName: '钻孔工序',
-    productionStep: '使用钻床对工件进行定位钻孔',
-    devices: [{ id: 1, deviceName: '钻床', quantity: 1 }],
-    operators: ['赵六'],
-    startTime: '',
-    endTime: '',
-    materials: [],
-  },
-  4: {
-    id: 4,
-    processCode: 'PROC20240004',
-    processName: '磨削精加工',
-    productionStep: '使用磨床对工件表面进行精密磨削',
-    devices: [{ id: 1, deviceName: '磨床', quantity: 1 }],
-    operators: ['钱七', '张三'],
-    startTime: '2024-01-17 08:30:00',
-    endTime: '',
-    materials: [
-      { id: 1, materialName: '黄铜棒材', specModel: 'H62-Φ30', unit: '件', quantity: 15 },
-    ],
-  },
-  5: {
-    id: 5,
-    processCode: 'PROC20240005',
-    processName: '质量检测',
-    productionStep: '使用检测仪对成品进行尺寸和外观检测',
-    devices: [{ id: 1, deviceName: '检测仪', quantity: 2 }],
-    operators: ['李四', '王五'],
-    startTime: '',
-    endTime: '',
-    materials: [],
-  },
-}
-
-const loadProcessData = () => {
+const loadProcessData = async () => {
   loading.value = true
-  setTimeout(() => {
+  try {
     const id = route.params.id
-    const data = mockProcessData[id] || mockProcessData[1]
-    processData.value = { ...data }
+    console.log('请求工序详情，路由参数ID:', id)
+    const response = await getProcessDetail({ workingProcedureId: id })
+    console.log('API返回的完整响应:', response)
 
-    // 转换设备数据结构，确保兼容新的表单
-    const convertedDevices = (data.devices || []).map((device) => ({
-      id: device.id || Date.now(),
-      deviceId: device.deviceId || device.deviceName, // 兼容旧数据
-      deviceName: device.deviceName, // 保留旧字段以兼容显示
-      quantity: device.quantity,
-      unit: device.unit || '',
+    let responseData = response.data
+    console.log('response.data:', responseData)
+
+    if (responseData && responseData.data) {
+      responseData = responseData.data
+      console.log('responseData.data:', responseData)
+    }
+
+    let data = responseData.data || responseData
+    let parts = responseData.parts || []
+
+    console.log('工序详情数据 data:', data)
+    console.log('物料数据 parts:', parts)
+
+    if (!data) {
+      console.error('工序详情数据为空')
+      ElMessage.error('获取工序详情失败：数据为空')
+      loading.value = false
+      return
+    }
+
+    // 处理操作人员名称
+    let operatorName = ''
+    if (data.operator) {
+      operatorName = data.operator.productionStaffName || data.operator.name
+      // 如果没有名称，根据ID查找
+      if (!operatorName && data.operator.id) {
+        const operatorOption = operatorOptions.value.find(
+          (option) => option.value === data.operator.id,
+        )
+        if (operatorOption) {
+          operatorName = operatorOption.label
+        }
+      }
+    }
+
+    processData.value = {
+      id: data.id, // 使用数字类型的 id
+      processCode: data.workingProcedureId,
+      processName: data.workingProcedureName,
+      productionStep: data.productionSteps,
+      startTime: data.beginTime
+        ? data.beginTime.split('T')[0] + ' ' + data.beginTime.split('T')[1].split('.')[0]
+        : '',
+      endTime: data.endTime
+        ? data.endTime.split('T')[0] + ' ' + data.endTime.split('T')[1].split('.')[0]
+        : '',
+      operators: operatorName ? [operatorName] : [],
+      devices: [],
+      materials: [],
+    }
+
+    console.log('production_TestingEquipment:', data.production_TestingEquipment)
+    const convertedDevices = (data.production_TestingEquipment || []).map((device, index) => ({
+      id: index + 1,
+      deviceId: device.equipmentId,
+      deviceName: device.equipmentName,
+      quantity: device.expenditureQuantity,
+      unit: device.unit,
     }))
 
-    // 转换物料数据结构，确保兼容新的表单
-    const convertedMaterials = (data.materials || []).map((material) => ({
-      id: material.id || Date.now(),
-      materialId: material.materialId || material.materialName, // 兼容旧数据
-      materialName: material.materialName, // 保留旧字段以兼容显示
-      specModel: material.specModel,
-      quantity: material.quantity,
-      unit: material.unit || '',
+    console.log('description (物料):', data.description)
+    let materialsArray = []
+    if (data.description) {
+      try {
+        materialsArray = JSON.parse(data.description)
+        console.log('解析后的物料数组:', materialsArray)
+      } catch (e) {
+        console.error('解析物料数据失败:', e)
+        materialsArray = parts
+      }
+    } else if (parts && parts.length > 0) {
+      materialsArray = parts
+      console.log('使用parts作为物料数据:', materialsArray)
+    }
+
+    const convertedMaterials = materialsArray.map((material, index) => ({
+      id: index + 1,
+      materialId: material.materialId || material.id,
+      materialName: material.materialName || material.partName,
+      quantity: material.expenditureQuantity || material.quantity,
+      unit: material.unit,
     }))
+
+    processData.value.devices = convertedDevices
+    processData.value.materials = convertedMaterials
+
+    console.log('最终的processData:', processData.value)
+
+    // 处理设备数据，确保有deviceName
+    const processedDevices = convertedDevices.map((device) => {
+      const deviceOption = deviceOptions.value.find((option) => option.value === device.deviceId)
+      if (deviceOption && !device.deviceName) {
+        device.deviceName = deviceOption.label
+      }
+      return device
+    })
+
+    // 处理物料数据，确保有materialName
+    const processedMaterials = convertedMaterials.map((material) => {
+      const materialOption = materialOptions.value.find(
+        (option) => option.value === material.materialId,
+      )
+      if (materialOption && !material.materialName) {
+        material.materialName = materialOption.label
+      }
+      return material
+    })
 
     Object.assign(formData, {
-      processCode: data.processCode,
-      processName: data.processName,
-      productionStep: data.productionStep,
-      devices: convertedDevices,
-      operatorId: data.operators && data.operators.length > 0 ? data.operators[0] : '',
-      startTime: data.startTime || '',
-      endTime: data.endTime || '',
-      materials: convertedMaterials,
+      processCode: data.workingProcedureId,
+      processName: data.workingProcedureName,
+      productionStep: data.productionSteps,
+      devices: processedDevices,
+      operatorId: data.operator ? data.operator.id : '',
+      startTime: data.beginTime
+        ? data.beginTime.split('T')[0] + ' ' + data.beginTime.split('T')[1].split('.')[0]
+        : '',
+      endTime: data.endTime
+        ? data.endTime.split('T')[0] + ' ' + data.endTime.split('T')[1].split('.')[0]
+        : '',
+      materials: processedMaterials,
     })
+
+    // 处理processData中的设备和物料名称
+    processData.value.devices = processedDevices
+    processData.value.materials = processedMaterials
+
     loading.value = false
-  }, 300)
+  } catch (error) {
+    console.error('获取工序详情失败:', error)
+    ElMessage.error('获取工序详情失败')
+    loading.value = false
+  }
 }
 
 const handleEdit = () => {
@@ -288,42 +328,113 @@ const handleCancel = () => {
   })
     .then(() => {
       isEdit.value = false
-      Object.assign(formData, {
-        processCode: processData.value.processCode,
-        processName: processData.value.processName,
-        productionStep: processData.value.productionStep,
-        devices: JSON.parse(JSON.stringify(processData.value.devices || [])),
-        operatorId:
-          processData.value.operators && processData.value.operators.length > 0
-            ? processData.value.operators[0]
-            : '',
-        startTime: processData.value.startTime || '',
-        endTime: processData.value.endTime || '',
-        materials: JSON.parse(JSON.stringify(processData.value.materials || [])),
-      })
+      // 重新加载工序详情，确保数据正确
+      loadProcessData()
     })
     .catch(() => {})
+}
+
+// 转换时间格式为后端期望的格式
+const formatTimeForBackend = (timeString) => {
+  if (!timeString) return null
+  const date = new Date(timeString)
+  return date.toISOString()
 }
 
 const handleSave = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      Object.assign(processData.value, {
-        processCode: formData.processCode,
-        processName: formData.processName,
-        productionStep: formData.productionStep,
-        devices: JSON.parse(JSON.stringify(formData.devices)),
-        operators: formData.operatorId ? [formData.operatorId] : [],
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        materials: JSON.parse(JSON.stringify(formData.materials)),
-      })
-      mockProcessData[processData.value.id] = { ...processData.value }
+      // 转换时间格式
+      const formattedStartTime = formatTimeForBackend(formData.startTime)
+      const formattedEndTime = formatTimeForBackend(formData.endTime)
 
-      ElMessage.success('保存成功')
-      isEdit.value = false
+      // 准备提交数据
+      const submitData = {
+        id: processData.value.id,
+        workingProcedureId: formData.processCode,
+        workingProcedureName: formData.processName,
+        productionSteps: formData.productionStep,
+        operator: {
+          id: formData.operatorId,
+        },
+        beginTime: formattedStartTime,
+        endTime: formattedEndTime,
+        production_TestingEquipment: formData.devices.map((device) => ({
+          equipmentName: device.deviceName || '',
+          equipmentId: device.deviceId,
+          expenditureQuantity: device.quantity.toString(),
+          unit: device.unit,
+        })),
+        theMaterials: formData.materials.map((material) => ({
+          materialName: material.materialName || '',
+          materialId: material.materialId,
+          expenditureQuantity: material.quantity.toString(),
+          unit: material.unit,
+        })),
+      }
+
+      console.log('提交的数据:', submitData)
+
+      try {
+        // 调用更新工序API
+        const response = await updateProcess(submitData)
+        console.log('更新工序API响应:', response)
+        if (response.status === 200) {
+          // 处理操作人员名称
+          let operatorName = ''
+          if (formData.operatorId) {
+            const operatorOption = operatorOptions.value.find(
+              (option) => option.value === formData.operatorId,
+            )
+            if (operatorOption) {
+              operatorName = operatorOption.label
+            }
+          }
+
+          // 处理设备名称
+          const processedDevices = formData.devices.map((device) => {
+            const deviceOption = deviceOptions.value.find(
+              (option) => option.value === device.deviceId,
+            )
+            if (deviceOption && !device.deviceName) {
+              device.deviceName = deviceOption.label
+            }
+            return device
+          })
+
+          // 处理物料名称
+          const processedMaterials = formData.materials.map((material) => {
+            const materialOption = materialOptions.value.find(
+              (option) => option.value === material.materialId,
+            )
+            if (materialOption && !material.materialName) {
+              material.materialName = materialOption.label
+            }
+            return material
+          })
+
+          Object.assign(processData.value, {
+            processCode: formData.processCode,
+            processName: formData.processName,
+            productionStep: formData.productionStep,
+            devices: processedDevices,
+            operators: operatorName ? [operatorName] : [],
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            materials: processedMaterials,
+          })
+
+          ElMessage.success('保存成功')
+          isEdit.value = false
+        } else {
+          ElMessage.error('保存失败: ' + (response.data?.message || '未知错误'))
+        }
+      } catch (error) {
+        console.error('提交失败:', error)
+        ElMessage.error('提交失败，请稍后重试')
+      }
     }
   })
 }
@@ -390,11 +501,11 @@ const rules = {
   productionStep: [{ required: true, message: '请输入生产步骤', trigger: 'blur' }],
 }
 
-onMounted(() => {
-  fetchDeviceList()
-  fetchOperatorList()
-  fetchMaterialList()
-  loadProcessData()
+onMounted(async () => {
+  // 先加载所有需要的列表数据
+  await Promise.all([fetchDeviceList(), fetchOperatorList(), fetchMaterialList()])
+  // 然后加载工序详情
+  await loadProcessData()
 })
 </script>
 
@@ -483,7 +594,7 @@ onMounted(() => {
           <div class="table-container">
             <el-table :data="processData.devices" border style="width: 100%" class="process-table">
               <el-table-column prop="deviceName" label="设备名称" />
-              <el-table-column prop="quantity" label="支出数量" width="580">
+              <el-table-column prop="quantity" label="使用数量" width="580">
                 <template #default="scope">
                   {{ scope.row.quantity }} {{ getUnitLabel(scope.row.unit) || '台/套' }}
                 </template>
@@ -505,9 +616,10 @@ onMounted(() => {
                 style="width: 180px"
                 @change="
                   (value) => {
-                    const selectedDevice = deviceOptions.value.find((item) => item.value === value)
+                    const selectedDevice = deviceOptions.find((item) => item.value === value)
                     if (selectedDevice) {
                       device.unit = selectedDevice.unit
+                      device.deviceName = selectedDevice.label
                     }
                   }
                 "
@@ -515,6 +627,7 @@ onMounted(() => {
                 <el-option
                   v-for="item in availableDeviceOptions(
                     formData.devices.filter((d) => d.deviceId).map((d) => d.deviceId),
+                    device.deviceId,
                   )"
                   :key="item.id"
                   :label="item.label"
@@ -580,7 +693,7 @@ onMounted(() => {
                   style="width: 100%"
                 >
                   <el-option
-                    v-for="item in operatorOptions.value"
+                    v-for="item in operatorOptions"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
@@ -627,7 +740,7 @@ onMounted(() => {
               class="process-table"
             >
               <el-table-column prop="materialName" label="物料名称" />
-              <el-table-column prop="quantity" label="支出数量" width="580">
+              <el-table-column prop="quantity" label="使用数量" width="580">
                 <template #default="scope">
                   {{ scope.row.quantity }} {{ getUnitLabel(scope.row.unit) || '件' }}
                 </template>
@@ -656,11 +769,10 @@ onMounted(() => {
                 style="width: 180px"
                 @change="
                   (value) => {
-                    const selectedMaterial = materialOptions.value.find(
-                      (item) => item.value === value,
-                    )
+                    const selectedMaterial = materialOptions.find((item) => item.value === value)
                     if (selectedMaterial) {
                       material.unit = selectedMaterial.unit
+                      material.materialName = selectedMaterial.label
                     }
                   }
                 "
@@ -668,6 +780,7 @@ onMounted(() => {
                 <el-option
                   v-for="item in availableMaterialOptions(
                     formData.materials.filter((m) => m.materialId).map((m) => m.materialId),
+                    material.materialId,
                   )"
                   :key="item.id"
                   :label="item.label"

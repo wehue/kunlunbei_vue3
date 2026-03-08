@@ -72,6 +72,7 @@ declare module 'vue' {
     ElUpload: typeof import('element-plus/es')['ElUpload']
     Grid: typeof import('./src/components/Grid/index.vue')['default']
     GridItem: typeof import('./src/components/Grid/components/GridItem.vue')['default']
+    MaterialCategoryChart: typeof import('./src/components/MaterialCategoryChart/index.vue')['default']
     Pagination: typeof import('./src/components/ProTable/components/Pagination.vue')['default']
     ProTable: typeof import('./src/components/ProTable/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

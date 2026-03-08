@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, markRaw } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessage } from 'element-plus'
 import ECharts from '@/components/ECharts/index.vue'
 import {
   Box,
@@ -19,16 +19,17 @@ import {
   RefreshRight,
 } from '@element-plus/icons-vue'
 import { useMessageStore } from '@/stores/modules/message'
+import { getDesignerConsole1, getDesignerConsole2 } from '@/api/user'
 
 const router = useRouter()
 const messageStore = useMessageStore()
 const loading = ref(false)
 
 const overviewData = ref({
-  materialTotal: 1256,
-  equipmentTotal: 89,
-  processTotal: 342,
-  routeTotal: 156,
+  materialTotal: 0,
+  equipmentTotal: 0,
+  processTotal: 0,
+  routeTotal: 0,
 })
 
 const trendData = ref({
@@ -38,36 +39,8 @@ const trendData = ref({
   newMaterials: [25, 32, 18, 28, 35, 22, 30],
 })
 
-const todoList = ref([
-  {
-    id: 1,
-    title: '审核驳回的工艺路线需重新提交',
-    type: 'urgent',
-    time: '2024-01-15 10:30',
-    route: '/process-route-manage/process-route-manage-info',
-  },
-  {
-    id: 2,
-    title: '新增物料信息待完善',
-    type: 'normal',
-    time: '2024-01-15 09:20',
-    route: '/material-manage/material-manage-info',
-  },
-  {
-    id: 3,
-    title: 'BOM清单版本需要更新',
-    type: 'normal',
-    time: '2024-01-14 16:45',
-    route: '/material-manage/bom-manage',
-  },
-  {
-    id: 4,
-    title: '工艺路线PR003待提交审核',
-    type: 'pending',
-    time: '2024-01-14 14:00',
-    route: '/process-route-manage/process-route-manage-info',
-  },
-])
+const todoList = ref([])
+const totalRemindCount = ref(0)
 
 const quickActions = ref([
   {
@@ -405,15 +378,69 @@ const getTodoTypeLabel = (type) => {
   return map[type] || ''
 }
 
-const fetchData = () => {
+const fetchData = async () => {
   loading.value = true
-  setTimeout(() => {
+  try {
+    // 获取卡片数据
+    const cardResponse = await getDesignerConsole1()
+    console.log('获取设计师控制台数据成功', cardResponse)
+
+    if (cardResponse.data && cardResponse.data.code === 200) {
+      const data = cardResponse.data.data
+      overviewData.value = {
+        materialTotal: data['物料数量'] || 0,
+        equipmentTotal: data['设备数量'] || 0,
+        processTotal: data['工序数量'] || 0,
+        routeTotal: data['工艺路线数量'] || 0,
+      }
+
+      // 数字动画效果
+      animateNumber(overviewData.value, 'materialTotal', overviewData.value.materialTotal)
+      animateNumber(overviewData.value, 'equipmentTotal', overviewData.value.equipmentTotal)
+      animateNumber(overviewData.value, 'processTotal', overviewData.value.processTotal)
+      animateNumber(overviewData.value, 'routeTotal', overviewData.value.routeTotal)
+    }
+
+    // 获取待办事项数据
+    const todoResponse = await getDesignerConsole2()
+    console.log('获取设计师待办事项数据成功', todoResponse)
+
+    if (todoResponse.data && todoResponse.data.code === 200) {
+      const todoData = todoResponse.data.data
+      totalRemindCount.value = todoData.totalRemindCount || 0
+
+      // 转换待办事项数据格式
+      const newTodoList = []
+      let id = 1
+
+      todoData.timeoutRemindList.forEach((group) => {
+        group.list.forEach((item) => {
+          // 根据分组名称确定待办事项类型
+          let type = 'normal'
+          if (group.groupName === '待提交审核') {
+            type = 'pending'
+          } else if (group.groupName === '被驳回') {
+            type = 'urgent'
+          }
+
+          newTodoList.push({
+            id: id++,
+            title: item.remindContent,
+            type: type,
+            time: item.time,
+            route: '/process-route-manage/process-route-manage-info', // 默认路由，可根据实际情况调整
+          })
+        })
+      })
+
+      todoList.value = newTodoList
+    }
+  } catch (error) {
+    console.error('数据加载失败:', error)
+    ElMessage.error('数据加载失败')
+  } finally {
     loading.value = false
-    animateNumber(overviewData.value, 'materialTotal', 1256)
-    animateNumber(overviewData.value, 'equipmentTotal', 89)
-    animateNumber(overviewData.value, 'processTotal', 342)
-    animateNumber(overviewData.value, 'routeTotal', 156)
-  }, 300)
+  }
 }
 
 onMounted(() => {
@@ -532,7 +559,7 @@ onUnmounted(() => {
             <el-icon><Bell /></el-icon>
             <span>待办事项</span>
           </div>
-          <el-badge :value="todoList.length" type="primary" />
+          <el-badge :value="totalRemindCount" type="primary" />
         </div>
         <div class="todo-list">
           <div

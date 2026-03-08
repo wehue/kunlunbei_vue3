@@ -6,7 +6,7 @@ import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getProcessList, createProcess, updateProcess } from '@/api/process'
+import { getProcessList, createProcess, updateProcess, deleteProcess } from '@/api/process'
 import { getDeviceList } from '@/api/device'
 import { getProductionStaffList } from '@/api/productionStaff'
 import { getPartList } from '@/api/material'
@@ -50,14 +50,18 @@ const getUnitLabel = (value) => {
   return option ? option.label : value
 }
 
-// 计算可用的设备选项（过滤掉已选择的）
-const availableDeviceOptions = (selectedDeviceIds) => {
-  return deviceOptions.value.filter((option) => !selectedDeviceIds.includes(option.value))
+// 计算可用的设备选项（过滤掉已选择的，保留当前编辑项）
+const availableDeviceOptions = (selectedDeviceIds, currentDeviceId = null) => {
+  return deviceOptions.value.filter((option) => {
+    return option.value === currentDeviceId || !selectedDeviceIds.includes(option.value)
+  })
 }
 
-// 计算可用的物料选项（过滤掉已选择的）
-const availableMaterialOptions = (selectedMaterialIds) => {
-  return materialOptions.value.filter((option) => !selectedMaterialIds.includes(option.value))
+// 计算可用的物料选项（过滤掉已选择的，保留当前编辑项）
+const availableMaterialOptions = (selectedMaterialIds, currentMaterialId = null) => {
+  return materialOptions.value.filter((option) => {
+    return option.value === currentMaterialId || !selectedMaterialIds.includes(option.value)
+  })
 }
 
 // 获取设备列表
@@ -367,7 +371,7 @@ const handleCancel = () => {
 }
 
 const handleView = (row) => {
-  router.push(`/process-manage/process-manage-detail/${row.id}`)
+  router.push(`/process-manage/process-manage-detail/${row.processCode}`)
 }
 
 const handleDelete = async (row) => {
@@ -377,12 +381,15 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const index = mockData.value.findIndex((item) => item.id === row.id)
-    if (index > -1) {
-      mockData.value.splice(index, 1)
+    // 调用删除工序API
+    const response = await deleteProcess({ workingProcedureId: row.processCode })
+    console.log('删除工序API响应:', response)
+    if (response.status === 200) {
+      ElMessage.success('删除成功')
+      proTableRef.value?.getTableList()
+    } else {
+      ElMessage.error('删除失败: ' + (response.data?.message || '未知错误'))
     }
-    ElMessage.success('删除成功')
-    proTableRef.value?.getTableList()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除工序失败:', error)
@@ -443,14 +450,47 @@ const getTableList = async (params) => {
       }
     }
 
-    // 转换数据格式，只保留需要的字段
-    const transformedData = processList.map((item, index) => ({
-      id: item.id,
-      processCode: item.workingProcedureId,
-      processName: item.workingProcedureName,
-      productionStep: item.productionSteps,
-      index: index + 1,
-    }))
+    // 转换数据格式，保留所有需要的字段
+    const transformedData = processList.map((item, index) => {
+      let materials = []
+      if (item.description) {
+        try {
+          materials = JSON.parse(item.description).map((material, matIndex) => ({
+            id: Date.now() + index + matIndex,
+            materialId: material.materialId,
+            materialName: material.materialName,
+            quantity: material.expenditureQuantity,
+            unit: material.unit,
+          }))
+        } catch (e) {
+          console.error('解析物料数据失败:', e)
+        }
+      }
+
+      return {
+        id: item.id,
+        processCode: item.workingProcedureId,
+        processName: item.workingProcedureName,
+        productionStep: item.productionSteps,
+        operatorId: item.operator?.id,
+        startTime: item.beginTime
+          ? item.beginTime.split('T')[0] + ' ' + item.beginTime.split('T')[1].split('.')[0]
+          : '',
+        endTime: item.endTime
+          ? item.endTime.split('T')[0] + ' ' + item.endTime.split('T')[1].split('.')[0]
+          : '',
+        devices:
+          item.production_TestingEquipment?.map((device) => ({
+            id: Date.now() + index,
+            deviceId: device.equipmentId,
+            deviceName: device.equipmentName,
+            quantity: device.expenditureQuantity,
+            unit: device.unit,
+          })) || [],
+        materials: materials,
+        index: index + 1,
+      }
+    })
 
     return {
       data: {
@@ -569,6 +609,7 @@ const getTableList = async (params) => {
                     const selectedDevice = deviceOptions.find((item) => item.value === value)
                     if (selectedDevice) {
                       device.unit = selectedDevice.unit
+                      device.deviceName = selectedDevice.label
                     }
                   }
                 "
@@ -576,6 +617,7 @@ const getTableList = async (params) => {
                 <el-option
                   v-for="item in availableDeviceOptions(
                     formData.devices.filter((d) => d.deviceId).map((d) => d.deviceId),
+                    device.deviceId,
                   )"
                   :key="item.id"
                   :label="item.label"
@@ -664,6 +706,7 @@ const getTableList = async (params) => {
                     const selectedMaterial = materialOptions.find((item) => item.value === value)
                     if (selectedMaterial) {
                       material.unit = selectedMaterial.unit
+                      material.materialName = selectedMaterial.label
                     }
                   }
                 "
@@ -671,6 +714,7 @@ const getTableList = async (params) => {
                 <el-option
                   v-for="item in availableMaterialOptions(
                     formData.materials.filter((m) => m.materialId).map((m) => m.materialId),
+                    material.materialId,
                   )"
                   :key="item.id"
                   :label="item.label"

@@ -9,100 +9,39 @@ import {
   DocumentChecked,
   RefreshRight,
   TrendCharts,
+  Timer,
+  TrophyBase,
+  Warning,
+  Clock,
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { getSupervisorConsole1, getSupervisorConsole2, getSupervisorConsole3,getSupervisorConsole4  } from '@/api/user'
 
 const loading = ref(false)
 const refreshInterval = ref(null)
-const timeGranularity = ref('day')
 
 const overviewData = ref({
-  equipmentTotal: 89,
-  materialTotal: 1256,
-  routeTotal: 156,
-  processTotal: 342,
+  equipmentTotal: 0,
+  materialTotal: 0,
+  routeTotal: 0,
+  processTotal: 0,
 })
 
 const supervisorData = ref({
-  pendingApproval: 23,
-  rejectedNotResubmit: 8,
+  pendingApproval: 0,
+  rejectedNotResubmit: 0,
 })
 
-const generate30DaysData = () => {
-  const dates = []
-  const submitData = []
-  const passData = []
-  const rejectData = []
-
-  const today = new Date()
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i)
-    dates.push(`${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')}`)
-    submitData.push(Math.floor(Math.random() * 20) + 10)
-    passData.push(Math.floor(Math.random() * 15) + 5)
-    rejectData.push(Math.floor(Math.random() * 8) + 1)
-  }
-
-  return { dates, submitData, passData, rejectData }
-}
-
-const generateWeekData = () => {
-  const weeks = ['第1周', '第2周', '第3周', '第4周']
-  const submitData = [85, 92, 78, 105]
-  const passData = [65, 72, 58, 82]
-  const rejectData = [12, 15, 10, 18]
-
-  return { dates: weeks, submitData, passData, rejectData }
-}
-
-const trendData = ref(generate30DaysData())
-
-const efficiencyData = ref({
-  avgApprovalTime: 2.5,
-  passRate: 87.6,
-  onTimeRate: 92.3,
-  weeklyTrend: [
-    { week: '第1周', avgTime: 3.2, passRate: 82 },
-    { week: '第2周', avgTime: 2.8, passRate: 85 },
-    { week: '第3周', avgTime: 2.5, passRate: 88 },
-    { week: '第4周', avgTime: 2.3, passRate: 90 },
-  ],
+const trendData = ref({
+  dates: [],
+  submitData: [],
+  passData: [],
+  rejectData: [],
 })
 
-const designerRanking = ref([
-  { rank: 1, name: '张三', dept: '设计一部', submitCount: 45, passRate: 96, avgTime: 1.8 },
-  { rank: 2, name: '李四', dept: '设计二部', submitCount: 42, passRate: 94, avgTime: 2.0 },
-  { rank: 3, name: '王五', dept: '设计一部', submitCount: 38, passRate: 92, avgTime: 2.2 },
-  { rank: 4, name: '赵六', dept: '设计三部', submitCount: 35, passRate: 91, avgTime: 2.4 },
-  { rank: 5, name: '钱七', dept: '设计二部', submitCount: 32, passRate: 88, avgTime: 2.6 },
-])
+const designerRanking = ref([])
 
-const overdueWarnings = ref([
-  {
-    id: 1,
-    routeName: '电机组装工艺路线V2.1',
-    designer: '张三',
-    submitTime: '2024-01-10 09:30',
-    overdueHours: 72,
-    status: 'urgent',
-  },
-  {
-    id: 2,
-    routeName: '控制器测试流程V1.0',
-    designer: '李四',
-    submitTime: '2024-01-11 14:20',
-    overdueHours: 48,
-    status: 'warning',
-  },
-  {
-    id: 3,
-    routeName: '传感器校准工序V3.0',
-    designer: '王五',
-    submitTime: '2024-01-12 11:00',
-    overdueHours: 24,
-    status: 'notice',
-  },
-])
+const overdueWarnings = ref([])
 
 const chartOption = computed(() => ({
   tooltip: {
@@ -132,7 +71,7 @@ const chartOption = computed(() => ({
     data: trendData.value.dates,
     axisLabel: {
       color: '#666',
-      rotate: timeGranularity.value === 'day' ? 45 : 0,
+      rotate: 45,
       fontSize: 11,
     },
     axisLine: { lineStyle: { color: '#ddd' } },
@@ -208,100 +147,174 @@ const chartOption = computed(() => ({
   ],
 }))
 
-const efficiencyChartOption = computed(() => ({
-  tooltip: {
-    trigger: 'axis',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#eee',
-    borderWidth: 1,
-    textStyle: { color: '#333' },
-  },
-  legend: {
-    data: ['平均审批时长(小时)', '通过率(%)'],
-    top: 10,
-    textStyle: { color: '#666' },
-  },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
-    top: 60,
-    containLabel: true,
-  },
-  xAxis: {
-    type: 'category',
-    data: efficiencyData.value.weeklyTrend.map((item) => item.week),
-    axisLabel: { color: '#666' },
-    axisLine: { lineStyle: { color: '#ddd' } },
-  },
-  yAxis: [
-    {
-      type: 'value',
-      name: '时长(小时)',
-      axisLabel: { color: '#666' },
-      axisLine: { show: true, lineStyle: { color: '#ddd' } },
-      splitLine: { lineStyle: { color: '#f0f0f0' } },
-    },
-    {
-      type: 'value',
-      name: '通过率(%)',
-      min: 0,
-      max: 100,
-      axisLabel: { color: '#666' },
-      axisLine: { show: true, lineStyle: { color: '#ddd' } },
-      splitLine: { show: false },
-    },
-  ],
-  series: [
-    {
-      name: '平均审批时长(小时)',
-      type: 'bar',
-      barWidth: '40%',
-      itemStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: '#409eff' },
-            { offset: 1, color: '#79bbff' },
-          ],
-        },
-        borderRadius: [4, 4, 0, 0],
-      },
-      data: efficiencyData.value.weeklyTrend.map((item) => item.avgTime),
-    },
-    {
-      name: '通过率(%)',
-      type: 'line',
-      yAxisIndex: 1,
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: { width: 3, color: '#67c23a' },
-      itemStyle: { color: '#67c23a', borderWidth: 2, borderColor: '#fff' },
-      data: efficiencyData.value.weeklyTrend.map((item) => item.passRate),
-    },
-  ],
-}))
-
-const handleGranularityChange = (type) => {
-  timeGranularity.value = type
-  if (type === 'day') {
-    trendData.value = generate30DaysData()
-  } else {
-    trendData.value = generateWeekData()
-  }
-}
-
 const fetchData = async () => {
   loading.value = true
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // 获取卡片数据
+    const cardResponse = await getSupervisorConsole1()
+    console.log('获取主管控制台数据成功', cardResponse)
+
+    if (cardResponse.data && cardResponse.data.code === 200) {
+      const data = cardResponse.data.data
+      overviewData.value = {
+        materialTotal: data['物料数量'] || 0,
+        equipmentTotal: data['设备数量'] || 0,
+        processTotal: data['工序数量'] || 0,
+        routeTotal: data['工艺路线数量'] || 0,
+      }
+
+      supervisorData.value = {
+        pendingApproval: data['待办审批数'] || 0,
+        rejectedNotResubmit: data['驳回未重提数'] || 0,
+      }
+
+      // 数字动画效果
+      animateNumber(overviewData.value, 'equipmentTotal', overviewData.value.equipmentTotal)
+      animateNumber(overviewData.value, 'materialTotal', overviewData.value.materialTotal)
+      animateNumber(overviewData.value, 'routeTotal', overviewData.value.routeTotal)
+      animateNumber(overviewData.value, 'processTotal', overviewData.value.processTotal)
+      animateNumber(supervisorData.value, 'pendingApproval', supervisorData.value.pendingApproval)
+      animateNumber(
+        supervisorData.value,
+        'rejectedNotResubmit',
+        supervisorData.value.rejectedNotResubmit,
+      )
+    }
+
+    // 获取工艺路线数据统计
+    const trendResponse = await getSupervisorConsole2()
+    console.log('获取主管工艺路线数据统计成功', trendResponse)
+
+    if (trendResponse.data && trendResponse.data.code === 200) {
+      const trendDataResponse = trendResponse.data.data
+      const routeStats = trendDataResponse['近30天工艺路线数据统计']
+
+      if (routeStats) {
+        // 获取所有日期并排序
+        const rejectData = routeStats['驳回数'] || {}
+        const submitData = routeStats['提交数'] || {}
+        const passData = routeStats['通过数'] || {}
+
+        // 获取所有唯一的日期
+        const allDates = new Set()
+        Object.keys(rejectData).forEach((date) => allDates.add(date))
+        Object.keys(submitData).forEach((date) => allDates.add(date))
+        Object.keys(passData).forEach((date) => allDates.add(date))
+
+        // 转换为数组并按日期排序
+        const sortedDates = Array.from(allDates).sort((dateA, dateB) => {
+          return new Date(dateA) - new Date(dateB)
+        })
+
+        // 准备数据
+        const dates = []
+        const submitDataArray = []
+        const passDataArray = []
+        const rejectDataArray = []
+
+        // 填充数据
+        sortedDates.forEach((date) => {
+          // 将日期格式从 YYYY-MM-DD 转换为 MM-DD
+          const [year, month, day] = date.split('-')
+          dates.push(`${month}-${day}`)
+          submitDataArray.push(submitData[date] || 0)
+          passDataArray.push(passData[date] || 0)
+          rejectDataArray.push(rejectData[date] || 0)
+        })
+
+        // 更新趋势数据
+        trendData.value = {
+          dates: dates,
+          submitData: submitDataArray,
+          passData: passDataArray,
+          rejectData: rejectDataArray,
+        }
+      }
+    }
+
+    // 获取设计师绩效排名
+    const rankingResponse = await getSupervisorConsole3()
+    console.log('获取设计师绩效排名成功', rankingResponse)
+
+    if (rankingResponse.data && rankingResponse.data.code === 200) {
+      const rankingData = rankingResponse.data.data.data
+
+      if (rankingData && Array.isArray(rankingData)) {
+        // 转换数据格式并按提交数排序
+        const newRanking = rankingData
+          .map((item, index) => ({
+            rank: index + 1,
+            name: item.applicantName,
+            dept: '', // API 响应中没有部门信息，暂时留空
+            submitCount: item.totalSubmit || 0,
+            passRate: parseFloat(item.passRate) || 0,
+          }))
+          .sort((a, b) => b.submitCount - a.submitCount)
+
+        designerRanking.value = newRanking
+      }
+    }
+
+    // 获取审批超时预警
+    const warningResponse = await getSupervisorConsole4()
+    console.log('获取审批超时预警成功', warningResponse)
+
+    if (warningResponse.data && warningResponse.data.code === 200) {
+      const warningData = warningResponse.data.data
+      const timeoutGroups = warningData.timeoutGroups
+
+      if (timeoutGroups) {
+        const newWarnings = []
+        let id = 1
+
+        // 处理超时72小时的数据
+        if (timeoutGroups.timeout72Hours && Array.isArray(timeoutGroups.timeout72Hours)) {
+          timeoutGroups.timeout72Hours.forEach((item) => {
+            newWarnings.push({
+              id: id++,
+              routeName: item.routeName || '未知工艺路线',
+              designer: item.designerName || '未知设计师',
+              submitTime: item.submitTime || '',
+              overdueHours: 72,
+              status: 'urgent',
+            })
+          })
+        }
+
+        // 处理超时48小时的数据
+        if (timeoutGroups.timeout48Hours && Array.isArray(timeoutGroups.timeout48Hours)) {
+          timeoutGroups.timeout48Hours.forEach((item) => {
+            newWarnings.push({
+              id: id++,
+              routeName: item.routeName || '未知工艺路线',
+              designer: item.designerName || '未知设计师',
+              submitTime: item.submitTime || '',
+              overdueHours: 48,
+              status: 'warning',
+            })
+          })
+        }
+
+        // 处理超时24小时的数据
+        if (timeoutGroups.timeout24Hours && Array.isArray(timeoutGroups.timeout24Hours)) {
+          timeoutGroups.timeout24Hours.forEach((item) => {
+            newWarnings.push({
+              id: id++,
+              routeName: item.routeName || '未知工艺路线',
+              designer: item.designerName || '未知设计师',
+              submitTime: item.submitTime || '',
+              overdueHours: 24,
+              status: 'notice',
+            })
+          })
+        }
+
+        overdueWarnings.value = newWarnings
+      }
+    }
   } catch (error) {
     console.error('数据加载失败:', error)
+    ElMessage.error('数据加载失败')
   } finally {
     loading.value = false
   }
@@ -343,12 +356,6 @@ const animateNumber = (target, key, end, duration = 1000) => {
 onMounted(() => {
   fetchData()
   setupAutoRefresh()
-  animateNumber(overviewData.value, 'equipmentTotal', 89)
-  animateNumber(overviewData.value, 'materialTotal', 1256)
-  animateNumber(overviewData.value, 'routeTotal', 156)
-  animateNumber(overviewData.value, 'processTotal', 342)
-  animateNumber(supervisorData.value, 'pendingApproval', 23)
-  animateNumber(supervisorData.value, 'rejectedNotResubmit', 8)
 })
 
 onUnmounted(() => {
@@ -450,12 +457,6 @@ onUnmounted(() => {
           <el-icon><TrendCharts /></el-icon>
           <span>近30天工艺路线数据统计</span>
         </div>
-        <div class="section-controls">
-          <el-radio-group v-model="timeGranularity" size="small" @change="handleGranularityChange">
-            <el-radio-button value="day">按日</el-radio-button>
-            <el-radio-button value="week">按周</el-radio-button>
-          </el-radio-group>
-        </div>
       </div>
       <div class="chart-container">
         <ECharts :option="chartOption" />
@@ -463,32 +464,6 @@ onUnmounted(() => {
     </div>
 
     <div class="charts-row">
-      <div class="chart-section efficiency-chart">
-        <div class="section-header">
-          <div class="section-title">
-            <el-icon><Timer /></el-icon>
-            <span>审核效率统计</span>
-          </div>
-        </div>
-        <div class="efficiency-stats">
-          <div class="stat-item">
-            <div class="stat-value">{{ efficiencyData.avgApprovalTime }}h</div>
-            <div class="stat-label">平均审批时长</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ efficiencyData.passRate }}%</div>
-            <div class="stat-label">审批通过率</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">{{ efficiencyData.onTimeRate }}%</div>
-            <div class="stat-label">按时处理率</div>
-          </div>
-        </div>
-        <div class="chart-container" style="height: 280px">
-          <ECharts :option="efficiencyChartOption" />
-        </div>
-      </div>
-
       <div class="chart-section ranking-chart">
         <div class="section-header">
           <div class="section-title">
@@ -516,10 +491,6 @@ onUnmounted(() => {
               <div class="stat">
                 <span class="stat-num">{{ item.passRate }}%</span>
                 <span class="stat-text">通过率</span>
-              </div>
-              <div class="stat">
-                <span class="stat-num">{{ item.avgTime }}h</span>
-                <span class="stat-text">平均时长</span>
               </div>
             </div>
           </div>
@@ -755,34 +726,11 @@ onUnmounted(() => {
 
   .charts-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin-top: 24px;
 
     .chart-section {
-      .efficiency-stats {
-        display: flex;
-        justify-content: space-around;
-        padding: 16px 20px;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-        .stat-item {
-          text-align: center;
-          .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #11998e;
-            font-family: 'DIN', sans-serif;
-          }
-          .stat-label {
-            font-size: 12px;
-            color: #909399;
-            margin-top: 4px;
-          }
-        }
-      }
-    }
-
-    .ranking-chart {
       .ranking-list {
         padding: 16px;
         .ranking-item {
@@ -854,9 +802,7 @@ onUnmounted(() => {
           }
         }
       }
-    }
 
-    .warning-chart {
       .warning-list {
         padding: 16px;
         .warning-item {

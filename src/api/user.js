@@ -74,3 +74,33 @@ export function getAdminConsole2() {
 export function uploadAvatar(data) {
   return instance.post('/api/user/uploadAvatar', data)
 }
+
+// 获取设计师首页卡片数据
+export function getDesignerConsole1() {
+  return instance.get('/api/user/designerConsole1')
+}
+
+// 获取设计师首页待办事项
+export function getDesignerConsole2() {
+  return instance.get('/api/user/designerConsole2')
+}
+
+// 获取主管首页卡片数据
+export function getSupervisorConsole1() {
+  return instance.get('/api/user/supervisorConsole1')
+}
+
+// 获取主管首页工艺路线数据统计
+export function getSupervisorConsole2() {
+  return instance.get('/api/user/supervisorConsole2')
+}
+
+// 获取设计师绩效排名
+export function getSupervisorConsole3() {
+  return instance.get('/api/user/supervisorConsole3')
+}
+
+// 获取审批超时预警
+export function getSupervisorConsole4() {
+  return instance.get('/api/user/supervisorConsole4')
+}
