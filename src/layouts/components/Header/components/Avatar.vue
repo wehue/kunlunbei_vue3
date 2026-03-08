@@ -1,7 +1,7 @@
 <template>
   <el-dropdown trigger="click">
     <div class="avatar">
-      <img src="@/assets/images/avatar.gif" alt="avatar" />
+      <img :src="avatarUrl" alt="avatar" />
     </div>
     <template #dropdown>
       <el-dropdown-menu>
@@ -14,11 +14,16 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/modules/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const avatarUrl = computed(() => {
+  return userStore.userInfo?.avatar || '@/assets/images/avatar.gif'
+})
 
 const goToProfile = () => {
   router.push('/personal-center')
@@ -30,8 +35,7 @@ const logout = () => {
     cancelButtonText: '取消',
     type: 'warning',
   }).then(async () => {
-    userStore.setToken('')
-    userStore.setUserInfo(null)
+    userStore.logout()
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
     router.replace('/login')

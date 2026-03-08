@@ -10,6 +10,7 @@ export const useUserStore = defineStore(
       id: '',
       name: '',
       role: '',
+      avatar: '',
     })
 
     const roleHomeMap = {
@@ -27,7 +28,7 @@ export const useUserStore = defineStore(
     }
 
     const setUserInfo = (info) => {
-      userInfo.value = info || { id: '', name: '', role: '' }
+      userInfo.value = info || { id: '', name: '', role: '', avatar: '' }
       if (info?.role) {
         const authStore = useAuthStore()
         authStore.getAuthMenuList()
@@ -40,6 +41,7 @@ export const useUserStore = defineStore(
         id: '',
         name: '',
         role: '',
+        avatar: '',
       }
       const authStore = useAuthStore()
       authStore.setAuthMenuList([])

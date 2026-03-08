@@ -69,3 +69,8 @@ export function getAdminConsole1() {
 export function getAdminConsole2() {
   return instance.get('/api/user/adminConsole2')
 }
+
+// 上传头像
+export function uploadAvatar(data) {
+  return instance.post('/api/user/uploadAvatar', data)
+}

@@ -1,9 +1,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { User, Phone, Message, Lock, Upload, Check } from '@element-plus/icons-vue'
+import { User, Phone, Message, Lock, Upload, Check, Edit } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/modules/user'
-import { getUserDetailById, updatePassword } from '@/api/user'
+import { getUserDetailById, updatePassword, uploadAvatar } from '@/api/user'
 import timeFormat from '@/utils/format_time'
 import router from '@/router'
 
@@ -73,13 +73,15 @@ const passwordRules = {
   ],
 }
 
-const handleAvatarChange = (file) => {
-  const isJpgOrPng = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png'
+const handleAvatarChange = async (uploadFile) => {
+  const file = uploadFile.raw || uploadFile
+  
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
     ElMessage.error('只能上传 JPG/PNG 格式的图片')
     return false
   }
-  const isLt5M = file.raw.size / 1024 / 1024 < 5
+  const isLt5M = file.size / 1024 / 1024 < 5
   if (!isLt5M) {
     ElMessage.error('图片大小不能超过 5MB')
     return false
@@ -89,13 +91,46 @@ const handleAvatarChange = (file) => {
   reader.onload = (e) => {
     avatarUrl.value = e.target.result
   }
-  reader.readAsDataURL(file.raw)
+  reader.readAsDataURL(file)
 
   avatarUploading.value = true
-  setTimeout(() => {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('userId', userStore.userInfo?.id || userInfo.value.userId || '300')
+    
+    const res = await uploadAvatar(formData)
+    console.log('头像上传完整响应:', res)
+    console.log('响应数据:', res.data)
+    
+    if (res.data && res.data.code === 200) {
+      const newAvatarUrl = res.data.data?.avatarUrl || res.data.avatarUrl
+      if (newAvatarUrl) {
+        console.log('新头像URL:', newAvatarUrl)
+        avatarUrl.value = newAvatarUrl
+        if (userStore.userInfo) {
+          console.log('更新用户存储前:', userStore.userInfo)
+          userStore.setUserInfo({
+            ...userStore.userInfo,
+            avatar: newAvatarUrl
+          })
+          console.log('更新用户存储后:', userStore.userInfo)
+        }
+        ElMessage.success('头像上传成功')
+      } else {
+        console.log('响应中没有avatarUrl字段')
+        ElMessage.error('头像上传失败：未返回头像地址')
+      }
+    } else {
+      console.log('响应code不是200:', res.data)
+      ElMessage.error(res.data?.message || '头像上传失败')
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    ElMessage.error('头像上传失败')
+  } finally {
     avatarUploading.value = false
-    ElMessage.success('头像上传成功')
-  }, 1000)
+  }
 
   return false
 }
@@ -177,6 +212,13 @@ const fetchUserDetail = async () => {
         }
         if (userData.avatar) {
           avatarUrl.value = userData.avatar
+          // 更新用户存储中的头像
+          if (userStore.userInfo) {
+            userStore.setUserInfo({
+              ...userStore.userInfo,
+              avatar: userData.avatar
+            })
+          }
         }
       }
     } catch (error) {
@@ -194,6 +236,10 @@ onMounted(() => {
       userStore.userInfo?.userName || userStore.userInfo?.name || userInfo.value.userName
     userInfo.value.role = userStore.userInfo?.role || userInfo.value.role
     userInfo.value.roleName = getRoleName(userInfo.value.role)
+    // 从用户存储中获取头像
+    if (userStore.userInfo.avatar) {
+      avatarUrl.value = userStore.userInfo.avatar
+    }
     // 获取用户详细信息
     fetchUserDetail()
   }

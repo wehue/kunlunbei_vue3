@@ -6,7 +6,7 @@ import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getProcessList } from '@/api/process'
+import { getProcessList, createProcess, updateProcess } from '@/api/process'
 import { getDeviceList } from '@/api/device'
 import { getProductionStaffList } from '@/api/productionStaff'
 import { getPartList } from '@/api/material'
@@ -289,49 +289,75 @@ const handleEdit = (row) => {
   dialogVisible.value = true
 }
 
+// 转换时间格式为后端期望的格式
+const formatTimeForBackend = (timeString) => {
+  if (!timeString) return null
+  const date = new Date(timeString)
+  return date.toISOString()
+}
+
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (isEdit.value) {
-        const index = mockData.value.findIndex((item) => item.id === formData.id)
-        if (index > -1) {
-          mockData.value[index] = {
-            ...mockData.value[index],
-            processName: formData.processName,
-            productionStep: formData.productionStep,
-            devices: JSON.parse(JSON.stringify(formData.devices)),
-            operators: [...formData.operators],
-            startTime: formData.startTime,
-            endTime: formData.endTime,
-            materials: JSON.parse(JSON.stringify(formData.materials)),
+      // 转换时间格式
+      const formattedStartTime = formatTimeForBackend(formData.startTime)
+      const formattedEndTime = formatTimeForBackend(formData.endTime)
+
+      // 准备提交数据
+      const submitData = {
+        id: isEdit.value ? formData.id : Date.now().toString(),
+        workingProcedureId: formData.processCode,
+        workingProcedureName: formData.processName,
+        productionSteps: formData.productionStep,
+        operator: {
+          id: formData.operatorId,
+        },
+        beginTime: formattedStartTime,
+        endTime: formattedEndTime,
+        production_TestingEquipment: formData.devices.map((device) => ({
+          equipmentName: device.deviceName || '',
+          equipmentId: device.deviceId,
+          expenditureQuantity: device.quantity.toString(),
+          unit: device.unit,
+        })),
+        theMaterials: formData.materials.map((material) => ({
+          materialName: material.materialName || '',
+          materialId: material.materialId,
+          expenditureQuantity: material.quantity.toString(),
+          unit: material.unit,
+        })),
+      }
+
+      console.log('提交的数据:', submitData)
+
+      try {
+        if (isEdit.value) {
+          // 调用更新工序API
+          const response = await updateProcess(submitData)
+          console.log('更新工序API响应:', response)
+          if (response.status === 200) {
+            ElMessage.success('修改成功')
+          } else {
+            ElMessage.error('修改失败: ' + (response.data?.message || '未知错误'))
+          }
+        } else {
+          // 调用创建工序API
+          const response = await createProcess(submitData)
+          console.log('创建工序API响应:', response)
+          if (response.status === 200) {
+            ElMessage.success('新增成功')
+          } else {
+            ElMessage.error('新增失败: ' + (response.data?.message || '未知错误'))
           }
         }
-        ElMessage.success('修改成功')
-      } else {
-        const maxId = mockData.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
-
-        const newProcess = {
-          id: maxId + 1,
-          processCode: formData.processCode,
-          processName: formData.processName,
-          productionStep: formData.productionStep,
-          devices: JSON.parse(JSON.stringify(formData.devices)),
-          operators: [...formData.operators],
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          materials: JSON.parse(JSON.stringify(formData.materials)),
-        }
-
-        mockData.value.push(newProcess)
-        ElMessage.success('新增成功')
+        dialogVisible.value = false
+        proTableRef.value?.getTableList()
+      } catch (error) {
+        console.error('提交失败:', error)
+        ElMessage.error('提交失败，请稍后重试')
       }
-      dialogVisible.value = false
-      proTableRef.value?.getTableList()
     }
   })
 }
@@ -577,7 +603,7 @@ const getTableList = async (params) => {
 
         <div class="form-section">
           <div class="section-title">
-            <span class="title-text">操作人员</span>
+            <span class="title-text">操作人员与时间</span>
           </div>
           <div class="form-grid">
             <el-form-item label="选择操作人员">
