@@ -6,6 +6,7 @@ import { useUserStore } from '@/stores/modules/user'
 import { getUserDetailById, updatePassword, uploadAvatar } from '@/api/user'
 import timeFormat from '@/utils/format_time'
 import router from '@/router'
+import defaultAvatar from '@/assets/images/avatar.gif'
 
 const userStore = useUserStore()
 const currentRole = computed(() => userStore.userInfo?.role)
@@ -25,7 +26,7 @@ const userInfo = ref({
   avatar: '',
 })
 
-const avatarUrl = ref('https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png')
+const avatarUrl = ref(defaultAvatar)
 
 const editPasswordDialogVisible = ref(false)
 

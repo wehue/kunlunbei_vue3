@@ -17,12 +17,13 @@ import { useRouter } from 'vue-router'
 import { computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/modules/user'
+import defaultAvatar from '@/assets/images/avatar.gif'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const avatarUrl = computed(() => {
-  return userStore.userInfo?.avatar || '@/assets/images/avatar.gif'
+  return userStore.userInfo?.avatar || defaultAvatar
 })
 
 const goToProfile = () => {
