@@ -19,7 +19,7 @@ export function hasRole(roles) {
   }
 
   if (Array.isArray(roles)) {
-    return roles.map(r => r.toLowerCase()).includes(normalizedCurrentRole)
+    return roles.map((r) => r.toLowerCase()).includes(normalizedCurrentRole)
   }
 
   return false

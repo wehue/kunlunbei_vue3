@@ -812,12 +812,7 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button
-          v-if="canManage"
-          type="warning"
-          link
-          :icon="Edit"
-          @click="handleEdit(scope.row)"
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)"
           >修改</el-button
         >
         <el-button

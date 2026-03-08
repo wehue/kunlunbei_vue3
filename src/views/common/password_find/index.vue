@@ -245,8 +245,8 @@ const resetForm = () => {
   min-height: 550px;
   background-color: #eeeeee;
   background-image: url('@/assets/images/login_bg.svg');
-   background-size: 100% 100%;
- background-size: 100% 100%;
+  background-size: 100% 100%;
+  background-size: 100% 100%;
   background-size: cover;
   .find-box {
     position: relative;

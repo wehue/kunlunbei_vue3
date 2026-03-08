@@ -119,7 +119,8 @@ const loadDeviceData = async () => {
       depreciationMethod: data.depreciationMethod || '',
       depreciationMethodLabel: getDepreciationLabel(data.depreciationMethod),
       location: data.location?.warhouseName || data.location || '',
-      stockQuantity: data.expenditureQuantity || data.stockQuantity || 0,
+      stockQuantity: data.equipmentQuantity || data.stockQuantity || 0,
+      expenditureQuantity: data.expenditureQuantity || 0,
       unit: data.unit || '',
       unitLabel: getUnitLabel(data.unit),
       technicalParams: getExtAttrValue('TechnicalParameterInfo'),
@@ -195,7 +196,8 @@ const handleSave = async () => {
           manufacturer: formData.manufacturer,
           remark: formData.remark,
           supplier: formData.supplier,
-          expenditureQuantity: formData.stockQuantity,
+          equipmentQuantity: formData.stockQuantity,
+          expenditureQuantity: formData.expenditureQuantity,
           depreciationMethod: formData.depreciationMethod,
         }
 

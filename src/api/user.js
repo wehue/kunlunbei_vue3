@@ -59,3 +59,13 @@ export function toggleUserStatus(id, status) {
 export function updatePassword(data) {
   return instance.post('/api/user/updatePassword', data)
 }
+
+// 获取管理员首页卡片数据
+export function getAdminConsole1() {
+  return instance.get('/api/user/adminConsole1')
+}
+
+// 获取管理员首页用户登录人次趋势
+export function getAdminConsole2() {
+  return instance.get('/api/user/adminConsole2')
+}

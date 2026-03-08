@@ -74,30 +74,30 @@ const columns = reactive([
     enum: computed(() => {
       // 从物料列表中提取所有唯一的版本号
       const versionSet = new Set()
-      allMaterialsData.value.forEach(item => {
+      allMaterialsData.value.forEach((item) => {
         if (item.versions) {
           versionSet.add(item.versions)
         }
       })
-      return Array.from(versionSet).map(v => ({ label: v, value: v }))
+      return Array.from(versionSet).map((v) => ({ label: v, value: v }))
     }),
   },
   {
     prop: 'categoryName',
     label: '分类',
     minWidth: 100,
-    search: { 
-      el: 'cascader', 
+    search: {
+      el: 'cascader',
       key: 'category',
       props: {
         checkStrictly: true,
         emitPath: true,
-      }
+      },
     },
     fieldNames: {
       label: 'label',
       value: 'value',
-      children: 'children'
+      children: 'children',
     },
     enum: computed(() => {
       return categoryTreeData.value
@@ -411,10 +411,12 @@ const getTableList = async (params) => {
       materialId: params?.materialId,
       materialName: params?.materialName,
       versions: params?.version,
-      categoryId: Array.isArray(params?.category) ? params.category[params.category.length - 1] : params?.category,
+      categoryId: Array.isArray(params?.category)
+        ? params.category[params.category.length - 1]
+        : params?.category,
     }
     console.log('传递给API的参数:', queryParams)
-    
+
     const res = await getPartList(queryParams)
     console.log('获取物料信息列表成功', res)
 
@@ -441,7 +443,7 @@ const getTableList = async (params) => {
 
     // 保存所有物料数据用于提取版本号
     allMaterialsData.value = transformedList
-    
+
     let filteredData = [...transformedList]
 
     const pageNum = params?.pageNum || 1
@@ -528,7 +530,9 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)"
+          >编辑</el-button
+        >
         <el-button
           v-if="isAdminRole"
           type="danger"

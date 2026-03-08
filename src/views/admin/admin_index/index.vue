@@ -16,18 +16,11 @@ import {
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
+import { getAdminConsole1, getAdminConsole2 } from '@/api/user'
 
 const loading = ref(false)
 const loginTimeRange = ref('7days')
-const activeTimeType = ref('hour')
-
-const overviewData = ref({
-  materialCount: 1256,
-  equipmentCount: 89,
-  processCount: 342,
-  routeCount: 156,
-  userCount: 45,
-})
+const overviewData = ref({})
 
 const loginAnomalies = ref([
   {
@@ -86,20 +79,7 @@ const generateLoginData = (days) => {
   return { dates, loginCounts }
 }
 
-const generateActiveTimeData = (type) => {
-  if (type === 'hour') {
-    const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`)
-    const counts = hours.map(() => Math.floor(Math.random() * 30) + 5)
-    return { labels: hours, counts }
-  } else {
-    const periods = ['凌晨(0-6点)', '上午(6-12点)', '下午(12-18点)', '晚上(18-24点)']
-    const counts = [15, 85, 120, 65]
-    return { labels: periods, counts }
-  }
-}
-
 const loginTrendData = ref(generateLoginData(7))
-const activeTimeData = ref(generateActiveTimeData('hour'))
 
 const loginChartOption = computed(() => ({
   tooltip: {
@@ -226,58 +206,50 @@ const activeTimeChartOption = computed(() => ({
     borderWidth: 1,
     textStyle: { color: '#333' },
   },
-  legend: {
-    data: ['活跃用户数'],
-    top: 10,
-    textStyle: { color: '#666' },
-  },
-  grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
-    top: 60,
-    containLabel: true,
-  },
-  xAxis: {
-    type: 'category',
-    data: activeTimeData.value.labels,
-    axisLabel: {
-      color: '#666',
-      rotate: activeTimeType.value === 'hour' ? 45 : 0,
-      fontSize: 11,
-    },
-    axisLine: { lineStyle: { color: '#ddd' } },
-  },
-  yAxis: {
-    type: 'value',
-    name: '用户数',
-    axisLabel: { color: '#666' },
-    axisLine: { show: true, lineStyle: { color: '#ddd' } },
-    splitLine: { lineStyle: { color: '#f0f0f0' } },
-  },
   series: [
     {
-      name: '活跃用户数',
+      name: '操作次数',
       type: 'bar',
-      barWidth: '60%',
+      barWidth: '50%',
       itemStyle: {
         color: {
           type: 'linear',
           x: 0,
           y: 0,
-          x2: 0,
-          y2: 1,
+          x2: 1,
+          y2: 0,
           colorStops: [
-            { offset: 0, color: '#e6a23c' },
-            { offset: 1, color: '#eebe77' },
+            { offset: 0, color: '#667eea' },
+            { offset: 1, color: '#764ba2' },
           ],
         },
-        borderRadius: [4, 4, 0, 0],
+        borderRadius: [0, 6, 6, 0],
       },
-      data: activeTimeData.value.counts,
+      data: operationStats.value.topOperations.map((item) => item.count).reverse(),
     },
   ],
 }))
+
+const handleLoginTimeRangeChange = (range) => {
+  loginTimeRange.value = range
+  // 如果已经有数据，根据选择的时间范围截取数据
+  if (loginTrendData.value.dates.length > 0) {
+    if (range === '7days' && loginTrendData.value.dates.length >= 7) {
+      // 截取最近7天的数据
+      const startIndex = loginTrendData.value.dates.length - 7
+      loginTrendData.value = {
+        dates: loginTrendData.value.dates.slice(startIndex),
+        loginCounts: loginTrendData.value.loginCounts.slice(startIndex),
+      }
+    } else if (range === '30days') {
+      // 使用完整的30天数据
+      fetchData()
+    }
+  } else {
+    // 如果没有数据，重新获取
+    fetchData()
+  }
+}
 
 const operationChartOption = computed(() => ({
   tooltip: {
@@ -330,16 +302,6 @@ const operationChartOption = computed(() => ({
   ],
 }))
 
-const handleLoginTimeRangeChange = (range) => {
-  loginTimeRange.value = range
-  loginTrendData.value = generateLoginData(range === '7days' ? 7 : 30)
-}
-
-const handleActiveTimeTypeChange = (type) => {
-  activeTimeType.value = type
-  activeTimeData.value = generateActiveTimeData(type)
-}
-
 const exportToExcel = (data, fileName) => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -356,21 +318,70 @@ const handleExportLoginData = () => {
   ElMessage.success('导出成功')
 }
 
-const handleExportActiveData = () => {
-  const exportData = activeTimeData.value.labels.map((label, index) => ({
-    时段: label,
-    活跃用户数: activeTimeData.value.counts[index],
-  }))
-  exportToExcel(exportData, `用户活跃时段_${new Date().toLocaleDateString()}`)
-  ElMessage.success('导出成功')
-}
-
 const fetchData = async () => {
   loading.value = true
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // 获取卡片数据
+    const cardDataResponse = await getAdminConsole1()
+    console.log('获取卡片数据成功', cardDataResponse)
+
+    if (cardDataResponse.data && cardDataResponse.data.code === 200) {
+      const data = cardDataResponse.data.data
+      overviewData.value = {
+        userCount: data['用户数量'] || 0,
+        materialCount: data['物料数量'] || 0,
+        equipmentCount: data['设备数量'] || 0,
+        processCount: data['工序数量'] || 0,
+        routeCount: data['工艺路线数量'] || 0,
+      }
+    }
+
+    // 获取登录趋势数据
+    const loginDataResponse = await getAdminConsole2()
+    console.log('获取登录趋势数据成功', loginDataResponse)
+    if (loginDataResponse.data && loginDataResponse.data.code === 200) {
+      const loginTrend = loginDataResponse.data.data['近30天登录人次趋势']
+      if (loginTrend) {
+        const dates = Object.keys(loginTrend)
+        const loginCounts = Object.values(loginTrend)
+        // 确保loginCounts是数字数组
+        const numericLoginCounts = loginCounts.map((count) => Number(count))
+        // 确保数据不为空
+        if (dates.length > 0 && numericLoginCounts.length > 0) {
+          let processedDates = dates.map((date) => {
+            const [year, month, day] = date.split('-')
+            return `${month}-${day}`
+          })
+          let processedLoginCounts = numericLoginCounts
+
+          // 根据当前选择的时间范围截取数据
+          if (loginTimeRange.value === '7days' && dates.length >= 7) {
+            const startIndex = dates.length - 7
+            processedDates = processedDates.slice(startIndex)
+            processedLoginCounts = processedLoginCounts.slice(startIndex)
+          }
+
+          loginTrendData.value = {
+            dates: processedDates,
+            loginCounts: processedLoginCounts,
+          }
+        } else {
+          // 如果数据为空，使用默认数据
+          loginTrendData.value = generateLoginData(7)
+        }
+      } else {
+        // 如果登录趋势数据不存在，使用默认数据
+        loginTrendData.value = generateLoginData(7)
+        console.log('使用默认登录趋势数据:', loginTrendData.value)
+      }
+    } else {
+      // 如果API返回失败，使用默认数据
+      loginTrendData.value = generateLoginData(7)
+      console.log('使用默认登录趋势数据:', loginTrendData.value)
+    }
   } catch (error) {
     console.error('数据加载失败:', error)
+    ElMessage.error('数据加载失败')
   } finally {
     loading.value = false
   }
@@ -391,11 +402,6 @@ const animateNumber = (target, key, end, duration = 1000) => {
 
 onMounted(() => {
   fetchData()
-  animateNumber(overviewData.value, 'materialCount', 1256)
-  animateNumber(overviewData.value, 'equipmentCount', 89)
-  animateNumber(overviewData.value, 'processCount', 342)
-  animateNumber(overviewData.value, 'routeCount', 156)
-  animateNumber(overviewData.value, 'userCount', 45)
 })
 </script>
 
@@ -500,32 +506,6 @@ onMounted(() => {
         </div>
         <div class="chart-container">
           <ECharts :option="loginChartOption" />
-        </div>
-      </div>
-
-      <div class="chart-section active-chart">
-        <div class="section-header">
-          <div class="section-title">
-            <el-icon><TrendCharts /></el-icon>
-            <span>用户活跃时段分布</span>
-          </div>
-          <div class="section-subtitle">各时段活跃用户数量统计</div>
-          <div class="section-controls">
-            <el-radio-group
-              v-model="activeTimeType"
-              size="small"
-              @change="handleActiveTimeTypeChange"
-            >
-              <el-radio-button value="hour">按时</el-radio-button>
-              <el-radio-button value="period">按时段</el-radio-button>
-            </el-radio-group>
-            <el-button type="success" size="small" :icon="Download" @click="handleExportActiveData"
-              >导出</el-button
-            >
-          </div>
-        </div>
-        <div class="chart-container">
-          <ECharts :option="activeTimeChartOption" />
         </div>
       </div>
     </div>
@@ -772,7 +752,7 @@ onMounted(() => {
 
   .charts-row {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 20px;
     margin-bottom: 24px;
 

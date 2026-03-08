@@ -6,7 +6,14 @@ import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getDeviceList, getBrandList, getLocationList, addDevice, updateDevice, deleteDevice } from '@/api/device'
+import {
+  getDeviceList,
+  getBrandList,
+  getLocationList,
+  addDevice,
+  updateDevice,
+  deleteDevice,
+} from '@/api/device'
 
 const router = useRouter()
 const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
@@ -128,6 +135,7 @@ const formData = reactive({
   location: '',
   locationId: '',
   stockQuantity: 1,
+  expenditureQuantity: 0,
   unit: 'A',
   remark: '',
 })
@@ -211,6 +219,7 @@ const handleAdd = () => {
     location: '',
     locationId: '',
     stockQuantity: 1,
+    expenditureQuantity: 0,
     unit: 'A',
     remark: '',
   })
@@ -234,6 +243,7 @@ const handleEdit = (row) => {
     location: row.location,
     locationId: row.locationId,
     stockQuantity: row.stockQuantity || 1,
+    expenditureQuantity: row.expenditureQuantity || 0,
     unit: row.unit || 'A',
     remark: row.remark,
   })
@@ -279,7 +289,8 @@ const handleSubmit = async () => {
           manufacturer: formData.manufacturer,
           remark: formData.remark,
           supplier: formData.supplier,
-          expenditureQuantity: String(formData.stockQuantity),
+          equipmentQuantity: String(formData.stockQuantity),
+          expenditureQuantity: String(formData.expenditureQuantity),
           depreciationMethod: formData.depreciationMethod,
           extAttrs,
           location: locationItem ? { id: locationItem.id } : null,
@@ -399,7 +410,8 @@ const getTableList = async (params) => {
       productionDate: item.productionDate,
       serviceLife: item.serviceLife,
       depreciationMethod: item.depreciationMethod,
-      stockQuantity: item.expenditureQuantity || item.stockQuantity,
+      stockQuantity: item.equipmentQuantity || item.stockQuantity,
+      expenditureQuantity: item.expenditureQuantity || 0,
       unit: item.unit,
       remark: item.remark,
       index: startIndex + index + 1,
@@ -454,7 +466,9 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+        <el-button v-if="canManage" type="warning" link :icon="Edit" @click="handleEdit(scope.row)"
+          >编辑</el-button
+        >
         <el-button
           v-if="isAdminRole"
           type="danger"

@@ -95,7 +95,11 @@ export const useAuthStore = defineStore('kunlun-auth', {
 
       const processRoute = (route, parentPath = '') => {
         // 过滤出有角色权限的路由
-        if (route.meta && route.meta.roles && !route.meta.roles.includes(currentRole.toLowerCase())) {
+        if (
+          route.meta &&
+          route.meta.roles &&
+          !route.meta.roles.includes(currentRole.toLowerCase())
+        ) {
           return null
         }
 

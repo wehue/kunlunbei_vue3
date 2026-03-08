@@ -31,7 +31,7 @@ instance.interceptors.response.use(
     if (res.data && res.data.token) {
       userStore.token = res.data.token
     }
-    
+
     const code = res.data.code
     if (code === 0 || code === 200 || Array.isArray(res.data)) {
       return res
