@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { View, Check, Delete, Refresh } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import { useMessageStore } from '@/stores/modules/message'
+import { getMessageList, deleteMessages, markAllMessagesAsRead } from '@/api/message'
 
 const router = useRouter()
 const messageStore = useMessageStore()
@@ -16,29 +17,35 @@ const selectedList = ref([])
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
-  { prop: 'title', label: '消息标题', minWidth: 180 },
-  { prop: 'summary', label: '消息摘要', minWidth: 280 },
-  { prop: 'auditStatus', label: '审核状态', width: 100 },
-  { prop: 'sendTime', label: '发送时间', minWidth: 160 },
-  { prop: 'operation', label: '操作', width: 100, fixed: 'right' },
+  { prop: 'noticeId', label: '消息ID', minWidth: 80 },
+  { prop: 'workingPlanName', label: '消息标题', minWidth: 180 },
+  { prop: 'noticeStatus', label: '审核状态', width: 160 },
+  { prop: 'createTime', label: '接收时间', minWidth: 160 },
+  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
 ])
 
-const unreadCount = computed(() => messageStore.unreadCount)
-const messages = computed(() => messageStore.messages)
+const allMessages = ref([])
+
+const unreadCount = computed(() => {
+  return allMessages.value.filter((item) => !item.isRead).length
+})
+
+const messages = computed(() => allMessages.value)
 
 const handleFilterChange = (type) => {
   filterType.value = type
   proTableRef.value?.getTableList()
 }
 
-const handleView = (row) => {
-  messageStore.markAsRead(row.id)
-  router.push(`/message-manage/message-detail/${row.id}`)
-}
-
-const handleMarkAsRead = (row) => {
-  messageStore.markAsRead(row.id)
-  ElMessage.success('已标记为已读')
+const handleView = async (row) => {
+  try {
+    // 调用获取消息列表接口并传参 READ=read 来标记已读
+    await getMessageList({ READ: 'read' })
+    messageStore.markAsRead(row.noticeId)
+    router.push(`/message-manage/message-detail/${row.noticeId}`)
+  } catch (error) {
+    ElMessage.error('标记已读失败')
+  }
 }
 
 const handleDeleteSelected = async () => {
@@ -56,18 +63,28 @@ const handleDeleteSelected = async () => {
         type: 'warning',
       },
     )
-    const deleteIds = selectedList.value.map((item) => item.id)
+    const deleteIds = selectedList.value.map((item) => item.noticeId)
+    await deleteMessages(deleteIds)
     messageStore.deleteMessages(deleteIds)
     ElMessage.success('删除成功')
     proTableRef.value?.getTableList()
-  } catch {
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
     // 用户取消
   }
 }
 
-const handleMarkAllAsRead = () => {
-  messageStore.markAllAsRead()
-  ElMessage.success('已将所有消息标记为已读')
+const handleMarkAllAsRead = async () => {
+  try {
+    await markAllMessagesAsRead()
+    messageStore.markAllAsRead()
+    ElMessage.success('已将所有消息标记为已读')
+    proTableRef.value?.getTableList()
+  } catch (error) {
+    ElMessage.error('标记全部已读失败')
+  }
 }
 
 const handleRefresh = () => {
@@ -75,55 +92,106 @@ const handleRefresh = () => {
   proTableRef.value?.getTableList()
 }
 
-const filterData = (data) => {
-  let filteredData = [...data]
-
-  if (filterType.value === 'unread') {
-    filteredData = filteredData.filter((item) => !item.isRead)
-  } else if (filterType.value === 'read') {
-    filteredData = filteredData.filter((item) => item.isRead)
-  }
-
-  filteredData.sort((a, b) => new Date(b.sendTime) - new Date(a.sendTime))
-
-  return filteredData
-}
-
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const filteredData = filterData(messages.value)
+  try {
+    const response = await getMessageList(params)
+    console.log('获取消息列表成功', response)
 
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
+    // 确保 list 是一个数组，根据实际返回结构获取数据
+    const list = Array.isArray(response.data.data?.data) ? response.data.data.data : []
+    const total = list.length
 
-      const dataWithIndex = paginatedData.map((item, index) => ({
+    // 状态枚举映射
+    const statusMap = {
+      W: '待提交',
+      F: '审核中',
+      T: '已通过',
+      Y: '已驳回',
+    }
+
+    // 添加序号和转换数据结构
+    const dataWithIndex = list.map((item, index) => {
+      // 获取状态值并转换
+      const statusValue = item.noticeTitle?.status || ''
+      const statusText = statusMap[statusValue] || statusValue || '未知状态'
+
+      return {
         ...item,
-        index: startIndex + index + 1,
-      }))
+        index: ((params?.pageNum || 1) - 1) * (params?.pageSize || 10) + index + 1,
+        // 映射字段
+        noticeId: item.noticeId,
+        isRead: item.description === '已读',
+        workingPlanName:
+          item.noticeTitle?.workingPlanName ||
+          item.noticeTitle?.name ||
+          item.noticeTitle?.title ||
+          '消息通知',
+        noticeStatus: statusText,
+        createTime: item.createTime || '',
+      }
+    })
 
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+    // 存储转换后的消息数据用于计算数量
+    allMessages.value = dataWithIndex
+
+    // 根据 filterType 进行筛选
+    let filteredData = [...dataWithIndex]
+    if (filterType.value === 'unread') {
+      filteredData = filteredData.filter((item) => !item.isRead)
+    } else if (filterType.value === 'read') {
+      filteredData = filteredData.filter((item) => item.isRead)
+    }
+
+    // 直接返回数据，符合 useTable hook 的期望
+    const result = {
+      data: {
+        list: filteredData,
+        total: filteredData.length,
+      },
+    }
+    return result
+  } catch (error) {
+    console.error('获取消息列表失败:', error)
+    ElMessage.error('获取消息列表失败')
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 
 const getAuditStatusType = (status) => {
   switch (status) {
+    case 'T':
     case '已通过':
       return 'success'
+    case 'Y':
     case '已驳回':
       return 'danger'
+    case 'F':
+    case '审核中':
+      return 'warning'
+    case 'W':
+    case '待提交':
+      return 'info'
     default:
       return 'info'
   }
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 
 const handleSelectionChange = (selection) => {
@@ -164,28 +232,28 @@ const handleSelectionChange = (selection) => {
       :search-config="{ show: false }"
       @selection-change="handleSelectionChange"
     >
-      <template #title="scope">
+      <template #workingPlanName="scope">
         <div class="message-title" :class="{ unread: !scope.row.isRead }">
           <span class="unread-dot" v-if="!scope.row.isRead"></span>
-          {{ scope.row.title }}
+          {{ scope.row.workingPlanName }}
         </div>
       </template>
 
-      <template #summary="scope">
-        <div class="message-summary" :class="{ unread: !scope.row.isRead }">
-          {{ scope.row.summary }}
+      <template #noticeId="scope">
+        <div class="message-id" :class="{ unread: !scope.row.isRead }">
+          {{ scope.row.noticeId }}
         </div>
       </template>
 
-      <template #auditStatus="scope">
-        <el-tag :type="getAuditStatusType(scope.row.auditStatus)" size="default">
-          {{ scope.row.auditStatus }}
+      <template #noticeStatus="scope">
+        <el-tag :type="getAuditStatusType(scope.row.noticeStatus)" size="default">
+          {{ scope.row.noticeStatus }}
         </el-tag>
       </template>
 
-      <template #sendTime="scope">
+      <template #createTime="scope">
         <div class="send-time" :class="{ unread: !scope.row.isRead }">
-          {{ scope.row.sendTime }}
+          {{ formatDate(scope.row.createTime) }}
         </div>
       </template>
 
@@ -193,14 +261,6 @@ const handleSelectionChange = (selection) => {
         <div class="operation-buttons">
           <el-button type="primary" link :icon="View" @click="handleView(scope.row)"
             >查看详情</el-button
-          >
-          <el-button
-            v-if="!scope.row.isRead"
-            type="success"
-            link
-            :icon="Check"
-            @click="handleMarkAsRead(scope.row)"
-            >标为已读</el-button
           >
         </div>
       </template>
@@ -260,6 +320,7 @@ const handleSelectionChange = (selection) => {
   .message-title {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     font-size: 14px;
     color: #606266;
@@ -278,12 +339,9 @@ const handleSelectionChange = (selection) => {
     }
   }
 
-  .message-summary {
+  .message-id {
     font-size: 13px;
     color: #909399;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 
     &.unread {
       color: #606266;
@@ -303,6 +361,7 @@ const handleSelectionChange = (selection) => {
     display: flex;
     gap: 8px;
     flex-wrap: nowrap;
+    justify-content: center;
   }
 
   :deep(.el-table__row) {
