@@ -1477,14 +1477,7 @@ watch(
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="工艺描述" style="grid-column: span 2">
-                <el-input
-                  v-model="formData.description"
-                  type="textarea"
-                  :rows="2"
-                  placeholder="请输入工艺描述"
-                />
-              </el-form-item>
+
               <el-form-item label="版本">
                 <el-input v-model="formData.version" disabled placeholder="修改后自动生成新版本" />
               </el-form-item>
@@ -1495,6 +1488,14 @@ watch(
                 >
                   <template #append>分钟</template>
                 </el-input>
+              </el-form-item>
+              <el-form-item label="工艺描述" style="grid-column: span 2">
+                <el-input
+                  v-model="formData.description"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="请输入工艺描述"
+                />
               </el-form-item>
             </div>
           </el-form>
@@ -2389,6 +2390,42 @@ watch(
           }
         }
 
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .process-layout {
+          flex-direction: column;
+          height: auto;
+
+          .steps-panel {
+            width: 100%;
+            height: 300px;
+            border-right: none;
+            border-bottom: 1px solid #ebeef5;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .process-route-detail-container {
+    .detail-content {
+      .section-card {
+        .form-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .process-route-detail-container {
+    .detail-content {
+      .section-card {
         .form-grid {
           grid-template-columns: 1fr;
         }

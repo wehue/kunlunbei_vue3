@@ -20,6 +20,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useMessageStore } from '@/stores/modules/message'
 import { getDesignerConsole1, getDesignerConsole2 } from '@/api/user'
+import { getPartCategoryList } from '@/api/material'
 
 const router = useRouter()
 const messageStore = useMessageStore()
@@ -381,10 +382,15 @@ const getTodoTypeLabel = (type) => {
 const fetchData = async () => {
   loading.value = true
   try {
-    // 获取卡片数据
-    const cardResponse = await getDesignerConsole1()
-    console.log('获取设计师控制台数据成功', cardResponse)
+    // 并行获取所有数据
+    const [cardResponse, todoResponse, categoryResponse] = await Promise.all([
+      getDesignerConsole1(),
+      getDesignerConsole2(),
+      getPartCategoryList(),
+    ])
 
+    // 获取卡片数据
+    console.log('获取设计师控制台数据成功', cardResponse)
     if (cardResponse.data && cardResponse.data.code === 200) {
       const data = cardResponse.data.data
       overviewData.value = {
@@ -402,9 +408,7 @@ const fetchData = async () => {
     }
 
     // 获取待办事项数据
-    const todoResponse = await getDesignerConsole2()
     console.log('获取设计师待办事项数据成功', todoResponse)
-
     if (todoResponse.data && todoResponse.data.code === 200) {
       const todoData = todoResponse.data.data
       totalRemindCount.value = todoData.totalRemindCount || 0
@@ -434,6 +438,80 @@ const fetchData = async () => {
       })
 
       todoList.value = newTodoList
+    }
+
+    // 获取物料分类数据
+    console.log('获取物料分类数据成功', categoryResponse)
+    let categoryList = []
+    if (categoryResponse.data && Array.isArray(categoryResponse.data)) {
+      categoryList = categoryResponse.data
+    } else if (
+      categoryResponse.data &&
+      categoryResponse.data.data &&
+      Array.isArray(categoryResponse.data.data)
+    ) {
+      categoryList = categoryResponse.data.data
+    } else if (
+      categoryResponse.data &&
+      categoryResponse.data.data &&
+      categoryResponse.data.data.data &&
+      Array.isArray(categoryResponse.data.data.data)
+    ) {
+      categoryList = categoryResponse.data.data.data
+    }
+
+    // 统计每个 Max 分类的子级数量
+    const maxList = []
+    const midMap = new Map()
+    const minMap = new Map()
+
+    categoryList.forEach((item) => {
+      if (item.level === 'Max') {
+        maxList.push({
+          id: item.categoryId,
+          label: item.categoryName,
+          children: [],
+        })
+      } else if (item.level === 'Mid') {
+        const parentId = Math.floor(parseInt(item.categoryId) / 100) * 100
+        if (!midMap.has(String(parentId))) {
+          midMap.set(String(parentId), [])
+        }
+        midMap.get(String(parentId)).push({
+          id: item.categoryId,
+          label: item.categoryName,
+          children: [],
+        })
+      } else if (item.level === 'Min') {
+        const parentId = item.categoryId.substring(0, 3)
+        if (!minMap.has(parentId)) {
+          minMap.set(parentId, [])
+        }
+        minMap.get(parentId).push({
+          id: item.categoryId,
+          label: item.categoryName,
+        })
+      }
+    })
+
+    // 构建树形结构并统计数量
+    const categoryData = []
+    maxList.forEach((maxNode) => {
+      const midChildren = midMap.get(String(maxNode.id)) || []
+      let totalCount = 0
+      midChildren.forEach((midNode) => {
+        const minChildren = minMap.get(String(midNode.id)) || []
+        totalCount += 1 + minChildren.length
+      })
+      categoryData.push({
+        name: maxNode.label,
+        value: totalCount,
+      })
+    })
+
+    // 更新物料分类数据
+    if (categoryData.length > 0) {
+      materialCategoryData.value = categoryData
     }
   } catch (error) {
     console.error('数据加载失败:', error)

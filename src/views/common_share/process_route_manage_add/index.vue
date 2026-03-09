@@ -751,7 +751,7 @@ const handleCancel = () => {
           </div>
           <div class="form-grid">
             <el-form-item label="工艺编号">
-              <el-input v-model="formData.routeCode" disabled placeholder="系统自动生成" />
+              <el-input v-model="formData.routeCode" placeholder="请输入工艺编号" />
             </el-form-item>
             <el-form-item label="工艺名称" prop="routeName">
               <el-input v-model="formData.routeName" placeholder="请输入工艺名称" />
