@@ -275,24 +275,16 @@ const handleSave = async () => {
         formData.location !== materialData.value.location
 
       if (hasChanges) {
-        const maxId = allMaterials.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
-
+        // 计算新版本号
         const currentMaxVersion = Math.max(
           ...materialVersions.value.map((m) => parseFloat(m.version.replace('V', ''))),
         )
         const newVersion = `V${(currentMaxVersion + 1).toFixed(1)}`
 
-        allMaterials.value.forEach((m) => {
-          if (m.baseId === materialData.value.baseId) {
-            m.isCurrent = false
-          }
-        })
-
+        // 由于我们没有 allMaterials 数组，这里应该调用 API 来创建新版本
+        // 暂时先模拟保存成功的逻辑
         const newMaterial = {
-          id: maxId + 1,
+          id: materialData.value.id + 1, // 临时 ID，实际应该由 API 返回
           materialCode: formData.materialCode,
           materialName: formData.materialName,
           version: newVersion,
@@ -305,17 +297,12 @@ const handleSave = async () => {
           baseId: materialData.value.baseId,
         }
 
-        allMaterials.value.push(newMaterial)
         materialData.value = { ...newMaterial }
         currentVersionId.value = newMaterial.id
 
         ElMessage.success(`保存成功，已生成新版本 ${newVersion}`)
       } else {
-        const material = allMaterials.value.find((m) => m.id === materialData.value.id)
-        if (material) {
-          material.materialName = formData.materialName
-          material.stockQuantity = formData.stockQuantity
-        }
+        // 直接更新当前物料数据
         materialData.value = { ...materialData.value, ...formData }
         ElMessage.success('保存成功')
       }

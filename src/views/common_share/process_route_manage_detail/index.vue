@@ -18,6 +18,11 @@ import {
 import * as XLSX from 'xlsx'
 import draggable from 'vuedraggable'
 import { usePermission } from '@/hooks/usePermission'
+import { getProductFind } from '@/api/product'
+import { getProcessList } from '@/api/process'
+import { getDeviceDetailByEquipmentId } from '@/api/device'
+import { getProductionStaffDetail } from '@/api/productionStaff'
+import { getPartDetail } from '@/api/material'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,552 +48,101 @@ const auditForm = reactive({
   reason: '',
 })
 
-const productOptions = [
-  { label: '汽车零部件A', value: '汽车零部件A' },
-  { label: '电子设备B', value: '电子设备B' },
-  { label: '管道组件C', value: '管道组件C' },
-  { label: '机械零件D', value: '机械零件D' },
-]
+const productOptions = ref([])
+const existingProcesses = ref([])
 
-const existingProcesses = [
-  {
-    id: 1,
-    processCode: 'PRC001',
-    processName: '车削加工',
-    description: '对工件进行车削加工处理',
-    devices: [
-      {
-        id: 1,
-        deviceCode: 'DEV001',
-        deviceName: '数控车床A',
-        manufacturer: '西门子工业自动化有限公司',
-        brand: '西门子',
-        specModel: 'CNC-800',
-        supplier: '北京华工设备贸易有限公司',
-        productionDate: '2022-03-15',
-        serviceLife: 15,
-        depreciationMethod: '直线法',
-        location: '一车间',
-        stockQuantity: 5,
-        unit: '台',
-      },
-      {
-        id: 2,
-        deviceCode: 'DEV002',
-        deviceName: '数控车床B',
-        manufacturer: '三菱电机自动化有限公司',
-        brand: '三菱',
-        specModel: 'MC-500',
-        supplier: '上海精密机械有限公司',
-        productionDate: '2021-06-20',
-        serviceLife: 12,
-        depreciationMethod: '年数总和法',
-        location: '一车间',
-        stockQuantity: 3,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 1,
-        employeeCode: 'EMP20240001',
-        employeeName: '张三',
-        deptName: '技术部',
-        position: '工程师',
-      },
-      {
-        id: 2,
-        employeeCode: 'EMP20240002',
-        employeeName: '李四',
-        deptName: '生产部',
-        position: '操作工',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT001',
-        materialName: '碳钢圆棒',
-        specModel: 'Q235B-Φ50',
-        stockQuantity: 100,
-        supplier: '宝钢集团',
-        version: 'V1.0',
-        category: '金属材料',
-        location: '原料仓A区',
-      },
-      childMaterials: [
-        {
-          materialCode: 'MAT002',
-          materialName: '切削液',
-          specModel: '标准型',
-          quantity: 5,
-          unit: '升',
-          stockQuantity: 500,
-          supplier: '中石化润滑油公司',
-          version: 'V2.0',
-          category: '辅料',
-          location: '辅料仓',
+const loadProducts = async () => {
+  try {
+    const res = await getProductFind()
+    let products = res.data?.data?.data || res.data?.data || []
+    if (!Array.isArray(products)) {
+      products = []
+    }
+    productOptions.value = products.map((item) => ({
+      label: item.productName,
+      value: item.productName,
+    }))
+  } catch (error) {
+    console.error('获取产品列表失败:', error)
+    ElMessage.error('获取产品列表失败')
+  }
+}
+
+const loadProcesses = async () => {
+  try {
+    const res = await getProcessList()
+    let processes = res.data?.data?.data || res.data?.data || []
+    if (!Array.isArray(processes)) {
+      processes = []
+    }
+
+    existingProcesses.value = processes.map((item) => {
+      // 解析物料数据
+      let childMaterials = []
+      if (item.description) {
+        try {
+          childMaterials = JSON.parse(item.description)
+        } catch (e) {
+          console.error('解析物料数据失败:', e)
+        }
+      }
+
+      // 转换设备数据格式
+      const devices = (item.production_TestingEquipment || []).map((device) => ({
+        equipmentId: device.equipmentId || '',
+        deviceCode: device.equipmentId || '',
+        deviceName: device.equipmentName || '',
+        manufacturer: device.manufacturer || '',
+        brand: device.brand || '',
+        specModel: device.specModel || '',
+        supplier: device.supplier || '',
+        productionDate: device.productionDate || '',
+        serviceLife: device.serviceLife || '',
+        depreciationMethod: device.depreciationMethod || '',
+        location: device.location || '',
+        stockQuantity: device.stockQuantity || '',
+        unit: device.unit || '',
+      }))
+
+      // 转换操作人员数据格式
+      const operators = item.operator
+        ? [
+            {
+              id: item.operator.id || '',
+              employeeCode: item.operator.productionStaffId || item.operator.employeeCode || '',
+              employeeName: item.operator.productionStaffName || item.operator.name || '',
+              deptName: item.operator.deptName || item.operator.department || '',
+              position: item.operator.position || item.operator.role || '',
+            },
+          ]
+        : []
+
+      return {
+        id: item.id,
+        processCode: item.workingProcedureId,
+        processName: item.workingProcedureName,
+        description: item.productionSteps,
+        devices: devices,
+        operators: operators,
+        bom: {
+          parentMaterial: null,
+          childMaterials: childMaterials,
         },
-        {
-          materialCode: 'MAT003',
-          materialName: '刀具',
-          specModel: 'CNMG120408',
-          quantity: 2,
-          unit: '把',
-          stockQuantity: 200,
-          supplier: '株洲钻石切削刀具股份有限公司',
-          version: 'V1.0',
-          category: '工具',
-          location: '工具仓',
-        },
-      ],
-    },
-  },
-  {
-    id: 2,
-    processCode: 'PRC002',
-    processName: '铣削加工',
-    description: '对工件进行铣削加工处理',
-    devices: [
-      {
-        id: 3,
-        deviceCode: 'DEV003',
-        deviceName: '数控铣床A',
-        manufacturer: '欧姆龙自动化中心',
-        brand: '欧姆龙',
-        specModel: 'MX-300',
-        supplier: '广州机电设备有限公司',
-        productionDate: '2023-01-10',
-        serviceLife: 10,
-        depreciationMethod: '直线法',
-        location: '二车间',
-        stockQuantity: 8,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 3,
-        employeeCode: 'EMP20240003',
-        employeeName: '王五',
-        deptName: '质量部',
-        position: '质检员',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT004',
-        materialName: '铝合金板',
-        specModel: '6061-T6-10mm',
-        stockQuantity: 50,
-        supplier: '南山铝业',
-        version: 'V1.0',
-        category: '金属材料',
-        location: '原料仓B区',
-      },
-      childMaterials: [
-        {
-          materialCode: 'MAT002',
-          materialName: '切削液',
-          specModel: '标准型',
-          quantity: 3,
-          unit: '升',
-          stockQuantity: 500,
-          supplier: '中石化润滑油公司',
-          version: 'V2.0',
-          category: '辅料',
-          location: '辅料仓',
-        },
-        {
-          materialCode: 'MAT005',
-          materialName: '铣刀',
-          specModel: 'Φ20端铣刀',
-          quantity: 1,
-          unit: '把',
-          stockQuantity: 150,
-          supplier: '株洲钻石切削刀具股份有限公司',
-          version: 'V1.0',
-          category: '工具',
-          location: '工具仓',
-        },
-      ],
-    },
-  },
-  {
-    id: 3,
-    processCode: 'PRC003',
-    processName: '钻孔工序',
-    description: '对工件进行钻孔加工',
-    devices: [
-      {
-        id: 4,
-        deviceCode: 'DEV004',
-        deviceName: '钻床A',
-        manufacturer: '西门子工业自动化有限公司',
-        brand: '西门子',
-        specModel: 'DRILL-200',
-        supplier: '北京华工设备贸易有限公司',
-        productionDate: '2022-05-10',
-        serviceLife: 12,
-        depreciationMethod: '直线法',
-        location: '一车间',
-        stockQuantity: 10,
-        unit: '台',
-      },
-      {
-        id: 5,
-        deviceCode: 'DEV005',
-        deviceName: '钻床B',
-        manufacturer: '三菱电机自动化有限公司',
-        brand: '三菱',
-        specModel: 'DRILL-300',
-        supplier: '上海精密机械有限公司',
-        productionDate: '2020-08-15',
-        serviceLife: 15,
-        depreciationMethod: '年数总和法',
-        location: '一车间',
-        stockQuantity: 6,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 4,
-        employeeCode: 'EMP20240004',
-        employeeName: '赵六',
-        deptName: '采购部',
-        position: '采购员',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT006',
-        materialName: '钢板',
-        specModel: 'Q345B-20mm',
-        stockQuantity: 80,
-        supplier: '武钢集团',
-        version: 'V1.0',
-        category: '金属材料',
-        location: '原料仓A区',
-      },
-      childMaterials: [
-        {
-          materialCode: 'MAT007',
-          materialName: '钻头',
-          specModel: 'Φ10标准钻头',
-          quantity: 3,
-          unit: '支',
-          stockQuantity: 300,
-          supplier: '株洲钻石切削刀具股份有限公司',
-          version: 'V1.0',
-          category: '工具',
-          location: '工具仓',
-        },
-      ],
-    },
-  },
-  {
-    id: 4,
-    processCode: 'PRC004',
-    processName: '磨削精加工',
-    description: '对工件表面进行精密磨削',
-    devices: [
-      {
-        id: 6,
-        deviceCode: 'DEV006',
-        deviceName: '精密磨床',
-        manufacturer: '西门子工业自动化有限公司',
-        brand: '西门子',
-        specModel: 'GRIND-600',
-        supplier: '北京华工设备贸易有限公司',
-        productionDate: '2021-12-01',
-        serviceLife: 18,
-        depreciationMethod: '直线法',
-        location: '三车间',
-        stockQuantity: 2,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 5,
-        employeeCode: 'EMP20240005',
-        employeeName: '孙七',
-        deptName: '销售部',
-        position: '销售员',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT008',
-        materialName: '精密轴',
-        specModel: 'GCr15-Φ30',
-        stockQuantity: 30,
-        supplier: '东北特钢',
-        version: 'V1.0',
-        category: '金属材料',
-        location: '原料仓C区',
-      },
-      childMaterials: [
-        {
-          materialCode: 'MAT009',
-          materialName: '砂轮',
-          specModel: 'WA60K',
-          quantity: 1,
-          unit: '个',
-          stockQuantity: 50,
-          supplier: '白鸽磨料磨具有限公司',
-          version: 'V1.0',
-          category: '耗材',
-          location: '耗材仓',
-        },
-        {
-          materialCode: 'MAT010',
-          materialName: '冷却液',
-          specModel: '磨削专用',
-          quantity: 2,
-          unit: '升',
-          stockQuantity: 200,
-          supplier: '中石化润滑油公司',
-          version: 'V1.0',
-          category: '辅料',
-          location: '辅料仓',
-        },
-      ],
-    },
-  },
-  {
-    id: 5,
-    processCode: 'PRC005',
-    processName: '质量检测',
-    description: '对产品进行质量检验',
-    devices: [
-      {
-        id: 7,
-        deviceCode: 'DEV007',
-        deviceName: '三坐标测量仪',
-        manufacturer: 'ABB自动化有限公司',
-        brand: 'ABB',
-        specModel: 'CMM-1000',
-        supplier: '深圳精密仪器有限公司',
-        productionDate: '2020-03-20',
-        serviceLife: 20,
-        depreciationMethod: '直线法',
-        location: '质检中心',
-        stockQuantity: 1,
-        unit: '台',
-      },
-      {
-        id: 8,
-        deviceCode: 'DEV008',
-        deviceName: '硬度计',
-        manufacturer: '施耐德电气有限公司',
-        brand: '施耐德',
-        specModel: 'HARD-500',
-        supplier: '广州机电设备有限公司',
-        productionDate: '2022-09-15',
-        serviceLife: 15,
-        depreciationMethod: '年数总和法',
-        location: '质检中心',
-        stockQuantity: 3,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 6,
-        employeeCode: 'EMP20240006',
-        employeeName: '周八',
-        deptName: '财务部',
-        position: '会计',
-      },
-      {
-        id: 7,
-        employeeCode: 'EMP20240007',
-        employeeName: '吴九',
-        deptName: '人力资源部',
-        position: '人事专员',
-      },
-    ],
-    bom: {
-      parentMaterial: null,
-      childMaterials: [],
-    },
-  },
-  {
-    id: 6,
-    processCode: 'PRC006',
-    processName: '热处理',
-    description: '对工件进行热处理工艺',
-    devices: [
-      {
-        id: 9,
-        deviceCode: 'DEV009',
-        deviceName: '热处理炉A',
-        manufacturer: '西门子工业自动化有限公司',
-        brand: '西门子',
-        specModel: 'HEAT-1200',
-        supplier: '北京华工设备贸易有限公司',
-        productionDate: '2019-11-05',
-        serviceLife: 25,
-        depreciationMethod: '直线法',
-        location: '热处理车间',
-        stockQuantity: 2,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 8,
-        employeeCode: 'EMP20240008',
-        employeeName: '郑十',
-        deptName: '技术部',
-        position: '技术员',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT011',
-        materialName: '待处理件',
-        specModel: '标准件',
-        category: '半成品',
-        unit: '件',
-        stock: 200,
-      },
-      childMaterials: [],
-    },
-  },
-  {
-    id: 7,
-    processCode: 'PRC007',
-    processName: '表面处理',
-    description: '对工件表面进行处理',
-    devices: [
-      {
-        id: 10,
-        deviceCode: 'DEV010',
-        deviceName: '电镀设备',
-        manufacturer: '三菱电机自动化有限公司',
-        brand: '三菱',
-        specModel: 'ELECTRO-800',
-        supplier: '上海精密机械有限公司',
-        productionDate: '2021-04-20',
-        serviceLife: 15,
-        depreciationMethod: '年数总和法',
-        location: '表面处理车间',
-        stockQuantity: 1,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 9,
-        employeeCode: 'EMP20240009',
-        employeeName: '钱十一',
-        deptName: '生产部',
-        position: '主管',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT012',
-        materialName: '待处理件',
-        specModel: '标准件',
-        category: '半成品',
-        unit: '件',
-        stock: 150,
-      },
-      childMaterials: [
-        {
-          materialCode: 'MAT013',
-          materialName: '电镀液',
-          specModel: '镀锌液',
-          quantity: 10,
-          unit: '升',
-        },
-      ],
-    },
-  },
-  {
-    id: 8,
-    processCode: 'PRC008',
-    processName: '组装工序',
-    description: '产品组装装配',
-    devices: [
-      {
-        id: 11,
-        deviceCode: 'DEV011',
-        deviceName: '组装台A',
-        manufacturer: '欧姆龙自动化中心',
-        brand: '欧姆龙',
-        specModel: 'ASSEMBLE-500',
-        supplier: '广州机电设备有限公司',
-        productionDate: '2023-02-10',
-        serviceLife: 10,
-        depreciationMethod: '直线法',
-        location: '组装车间',
-        stockQuantity: 5,
-        unit: '台',
-      },
-      {
-        id: 12,
-        deviceCode: 'DEV012',
-        deviceName: '组装台B',
-        manufacturer: '西门子工业自动化有限公司',
-        brand: '西门子',
-        specModel: 'ASSEMBLE-600',
-        supplier: '北京华工设备贸易有限公司',
-        productionDate: '2022-08-20',
-        serviceLife: 12,
-        depreciationMethod: '年数总和法',
-        location: '组装车间',
-        stockQuantity: 4,
-        unit: '台',
-      },
-    ],
-    operators: [
-      {
-        id: 10,
-        employeeCode: 'EMP20240010',
-        employeeName: '孙十二',
-        deptName: '技术部',
-        position: '经理',
-      },
-      {
-        id: 11,
-        employeeCode: 'EMP20240011',
-        employeeName: '李十三',
-        deptName: '质量部',
-        position: '质检员',
-      },
-    ],
-    bom: {
-      parentMaterial: {
-        materialCode: 'MAT014',
-        materialName: '组装套件',
-        specModel: '标准套件',
-        category: '半成品',
-        unit: '套',
-        stock: 60,
-      },
-      childMaterials: [
-        {
-          materialCode: 'MAT015',
-          materialName: '螺丝',
-          specModel: 'M8×20',
-          quantity: 20,
-          unit: '个',
-        },
-        {
-          materialCode: 'MAT016',
-          materialName: '密封圈',
-          specModel: 'Φ25',
-          quantity: 4,
-          unit: '个',
-        },
-      ],
-    },
-  },
-]
+      }
+    })
+  } catch (error) {
+    console.error('获取工序列表失败:', error)
+    ElMessage.error('获取工序列表失败')
+  }
+}
+
+onMounted(() => {
+  loadRouteData()
+  loadProducts()
+  loadProcesses()
+})
+
+// 原有的硬编码数据已替换为从API获取
 
 const allRouteData = ref([
   {
@@ -1285,27 +839,117 @@ const handleOpenProcessSelect = () => {
   processSelectDialogVisible.value = true
 }
 
-const handleSelectProcess = (process) => {
+const handleSelectProcess = async (process) => {
   const exists = formData.processSteps.some((s) => s.processId === process.id)
   if (exists) {
     ElMessage.warning('该工序已添加')
     return
   }
 
-  const newStep = {
-    id: Date.now(),
-    processId: process.id,
-    processCode: process.processCode,
-    stepName: process.processName,
-    description: process.description,
-    devices: JSON.parse(JSON.stringify(process.devices || [])),
-    operators: JSON.parse(JSON.stringify(process.operators || [])),
-    bom: JSON.parse(JSON.stringify(process.bom || { parentMaterial: null, childMaterials: [] })),
+  try {
+    // 深拷贝原始数据
+    const newStep = {
+      id: Date.now(),
+      processId: process.id,
+      processCode: process.processCode,
+      stepName: process.processName,
+      description: process.description,
+      devices: JSON.parse(JSON.stringify(process.devices || [])),
+      operators: JSON.parse(JSON.stringify(process.operators || [])),
+      bom: JSON.parse(JSON.stringify(process.bom || { parentMaterial: null, childMaterials: [] })),
+    }
+
+    // 获取设备详细信息
+    if (newStep.devices && newStep.devices.length > 0) {
+      for (let i = 0; i < newStep.devices.length; i++) {
+        const device = newStep.devices[i]
+        if (device.equipmentId) {
+          try {
+            const res = await getDeviceDetailByEquipmentId(device.equipmentId)
+            const deviceDetail = res.data?.data || {}
+            // 更新设备详情
+            newStep.devices[i] = {
+              ...device,
+              deviceCode: deviceDetail.equipmentId || device.deviceCode || '',
+              deviceName: deviceDetail.equipmentName || device.deviceName || '',
+              manufacturer: deviceDetail.manufacturer || device.manufacturer || '',
+              brand: deviceDetail.brand || device.brand || '',
+              specModel: deviceDetail.specModel || device.specModel || '',
+              supplier: deviceDetail.supplier || device.supplier || '',
+              productionDate: deviceDetail.productionDate || device.productionDate || '',
+              serviceLife: deviceDetail.serviceLife || device.serviceLife || '',
+              depreciationMethod:
+                deviceDetail.depreciationMethod || device.depreciationMethod || '',
+              location: deviceDetail.location || device.location || '',
+              stockQuantity: deviceDetail.stockQuantity || device.stockQuantity || '',
+              unit: deviceDetail.unit || device.unit || '',
+            }
+          } catch (error) {
+            console.error('获取设备详情失败:', error)
+          }
+        }
+      }
+    }
+
+    // 获取操作人员详细信息
+    if (newStep.operators && newStep.operators.length > 0) {
+      for (let i = 0; i < newStep.operators.length; i++) {
+        const operator = newStep.operators[i]
+        if (operator.id) {
+          try {
+            const res = await getProductionStaffDetail(operator.id)
+            const operatorDetail = res.data?.data || {}
+            // 更新操作人员详情
+            newStep.operators[i] = {
+              ...operator,
+              employeeCode: operatorDetail.productionStaffId || operator.employeeCode || '',
+              employeeName: operatorDetail.productionStaffName || operator.employeeName || '',
+              deptName:
+                operatorDetail.departmentName || operatorDetail.deptName || operator.deptName || '',
+              position: operatorDetail.position || operator.position || '',
+            }
+          } catch (error) {
+            console.error('获取操作人员详情失败:', error)
+          }
+        }
+      }
+    }
+
+    // 获取物料详细信息
+    if (newStep.bom?.childMaterials && newStep.bom.childMaterials.length > 0) {
+      for (let i = 0; i < newStep.bom.childMaterials.length; i++) {
+        const material = newStep.bom.childMaterials[i]
+        if (material.id) {
+          try {
+            const res = await getPartDetail(material.id)
+            const materialDetail = res.data?.data || {}
+            // 更新物料详情
+            newStep.bom.childMaterials[i] = {
+              ...material,
+              materialCode: materialDetail.id || material.materialCode || '',
+              materialName: materialDetail.partName || material.materialName || '',
+              specModel: materialDetail.specModel || material.specModel || '',
+              stockQuantity: materialDetail.stockQuantity || material.stockQuantity || '',
+              supplier: materialDetail.supplier || material.supplier || '',
+              version: materialDetail.version || material.version || '',
+              category: materialDetail.category || material.category || '',
+              location: materialDetail.location || material.location || '',
+            }
+          } catch (error) {
+            console.error('获取物料详情失败:', error)
+          }
+        }
+      }
+    }
+
+    formData.processSteps.push(newStep)
+    selectedStepId.value = newStep.id
+    processSelectDialogVisible.value = false
+    ElMessage.success(`已添加工序：${process.processName}`)
+  } catch (error) {
+    console.error('处理工序选择失败:', error)
+    ElMessage.error('处理工序数据失败')
   }
-  formData.processSteps.push(newStep)
-  selectedStepId.value = newStep.id
-  processSelectDialogVisible.value = false
-  ElMessage.success(`已添加工序：${process.processName}`)
 }
 
 const handleRemoveStep = (index) => {

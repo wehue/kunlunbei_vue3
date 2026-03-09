@@ -262,6 +262,7 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   isEdit.value = true
   const categoryPath = findCategoryPath(categoryTreeData.value, row.categoryId || row.category?.id)
+  const warehouseId = row.warhouseId || row.warhouse?.id
   Object.assign(formData, {
     id: row.id,
     materialId: row.materialId,
@@ -271,7 +272,7 @@ const handleEdit = (row) => {
     specificationModel: row.specificationModel,
     stockQuantity: row.stockQuantity,
     unit: row.unit || 'A',
-    warehouse: row.warhouseId || row.warhouse?.id,
+    warehouse: warehouseId ? { id: warehouseId } : null,
     category: categoryPath,
     selectedCategoryId: row.categoryId || row.category?.id,
   })
@@ -428,6 +429,8 @@ const getTableList = async (params) => {
       materialName: item.partName || item.materialName,
       versions: item.versions || item.version,
       specificationModel: item.specificationModel || item.specModel || '',
+      supplier: item.supplier || '',
+      stockQuantity: item.stockQuantity || null,
       warhouseId: item.warhouse?.id || item.warhouseId || item.warhouse,
       warhouseName:
         warehouseMap.value.get(item.warhouse?.id || item.warhouseId || item.warhouse) ||

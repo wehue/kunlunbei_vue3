@@ -2,39 +2,78 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { useMessageStore } from '@/stores/modules/message'
+import { getMessageList } from '@/api/message'
 
 const route = useRoute()
 const router = useRouter()
-const messageStore = useMessageStore()
 
 const loading = ref(false)
+const messageData = ref({})
 
 const messageId = computed(() => route.params.id)
-const messageData = computed(() => {
-  const msg = messageStore.messages.find((m) => m.id === Number(messageId.value))
-  return msg || {}
-})
 
-const loadMessageData = () => {
+const loadMessageData = async () => {
   loading.value = true
-  setTimeout(() => {
+  try {
+    const response = await getMessageList()
+    const messages = Array.isArray(response.data.data?.data) ? response.data.data.data : []
+    // 查找当前消息
+    const msg = messages.find((m) => m.noticeId === messageId.value)
+    if (msg) {
+      messageData.value = msg
+    }
+  } catch (error) {
+    console.error('获取消息详情失败:', error)
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const handleBack = () => {
   router.push('/message-manage/message-info')
 }
 
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const getAuditStatusText = (status) => {
+  switch (status) {
+    case 'T':
+      return '已通过'
+    case 'Y':
+      return '已驳回'
+    case 'F':
+      return '审核中'
+    case 'W':
+      return '待提交'
+    default:
+      return status
+  }
+}
+
 const getAuditStatusType = (status) => {
   switch (status) {
+    case 'T':
     case '已通过':
       return 'success'
+    case 'Y':
     case '已驳回':
       return 'danger'
-    case '待审核':
+    case 'F':
+    case '审核中':
       return 'warning'
+    case 'W':
+    case '待提交':
+      return 'info'
     default:
       return 'info'
   }
@@ -51,13 +90,16 @@ onMounted(() => {
       <div class="header-left">
         <el-button :icon="ArrowLeft" @click="handleBack">返回</el-button>
         <div class="title-area">
-          <h2 class="page-title">工艺路线审核结果通知</h2>
+          <h2 class="page-title">{{ messageData.noticeTitle?.name || '工艺路线审核结果通知' }}</h2>
           <span class="page-subtitle">消息详情</span>
         </div>
       </div>
       <div class="header-right">
-        <el-tag :type="getAuditStatusType(messageData.auditStatus)" size="large">
-          {{ messageData.auditStatus }}
+        <el-tag
+          :type="getAuditStatusType(messageData.noticeTitle?.status || messageData.description)"
+          size="large"
+        >
+          {{ getAuditStatusText(messageData.noticeTitle?.status || messageData.description) }}
         </el-tag>
       </div>
     </div>
@@ -69,29 +111,27 @@ onMounted(() => {
         </div>
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-label">消息编码</div>
+            <div class="info-label">消息ID</div>
             <div class="info-value">
-              <el-tag size="default">{{ messageData.messageCode }}</el-tag>
+              <el-tag size="default">{{ messageData.noticeId }}</el-tag>
             </div>
           </div>
           <div class="info-item">
             <div class="info-label">审核状态</div>
             <div class="info-value">
-              <el-tag :type="getAuditStatusType(messageData.auditStatus)" size="default">
-                {{ messageData.auditStatus }}
+              <el-tag
+                :type="
+                  getAuditStatusType(messageData.noticeTitle?.status || messageData.description)
+                "
+                size="default"
+              >
+                {{ getAuditStatusText(messageData.noticeTitle?.status || messageData.description) }}
               </el-tag>
             </div>
           </div>
           <div class="info-item">
-            <div class="info-label">操作类型</div>
-            <div class="info-value">
-              <el-tag
-                :type="messageData.operationType === '新增' ? 'success' : 'warning'"
-                size="default"
-              >
-                {{ messageData.operationType }}申请
-              </el-tag>
-            </div>
+            <div class="info-label">创建时间</div>
+            <div class="info-value">{{ formatDate(messageData.createTime) }}</div>
           </div>
         </div>
       </div>
@@ -102,12 +142,51 @@ onMounted(() => {
         </div>
         <div class="info-grid">
           <div class="info-item">
-            <div class="info-label">工艺编码</div>
-            <div class="info-value">{{ messageData.processCode }}</div>
+            <div class="info-label">工艺编号</div>
+            <div class="info-value">{{ messageData.processCode || '-' }}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">工艺路线名称</div>
-            <div class="info-value">{{ messageData.processName }}</div>
+            <div class="info-label">工艺名称</div>
+            <div class="info-value">
+              {{ messageData.processName || messageData.noticeTitle?.workingPlanName || '-' }}
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">所属产品</div>
+            <div class="info-value">{{ messageData.productName || '-' }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">工艺描述</div>
+            <div class="info-value">{{ messageData.description || '-' }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">版本</div>
+            <div class="info-value">{{ messageData.version || 'V1.0' }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">审核状态</div>
+            <div class="info-value">
+              <el-tag
+                :type="
+                  getAuditStatusType(messageData.noticeTitle?.status || messageData.description)
+                "
+                size="default"
+              >
+                {{ getAuditStatusText(messageData.noticeTitle?.status || messageData.description) }}
+              </el-tag>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">工艺总时长</div>
+            <div class="info-value">{{ messageData.totalTime || '-' }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">创建时间</div>
+            <div class="info-value">{{ formatDate(messageData.createTime) || '-' }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">操作时间</div>
+            <div class="info-value">{{ formatDate(messageData.lastUpdateTime) || '-' }}</div>
           </div>
         </div>
       </div>
@@ -119,11 +198,11 @@ onMounted(() => {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">申请人</div>
-            <div class="info-value">{{ messageData.applicant }}</div>
+            <div class="info-value">{{ messageData.creator || '-' }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">提交时间</div>
-            <div class="info-value">{{ messageData.submitTime }}</div>
+            <div class="info-value">{{ formatDate(messageData.createTime) || '-' }}</div>
           </div>
         </div>
       </div>
@@ -135,25 +214,36 @@ onMounted(() => {
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">审核人</div>
-            <div class="info-value">{{ messageData.auditor }}</div>
+            <div class="info-value">{{ messageData.modifier || '-' }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">审核时间</div>
-            <div class="info-value">{{ messageData.auditTime }}</div>
+            <div class="info-value">{{ formatDate(messageData.lastUpdateTime) || '-' }}</div>
           </div>
           <div class="info-item">
             <div class="info-label">审核结果</div>
             <div class="info-value">
-              <el-tag :type="getAuditStatusType(messageData.auditStatus)" size="default">
-                {{ messageData.auditStatus }}
+              <el-tag
+                :type="
+                  getAuditStatusType(messageData.noticeTitle?.status || messageData.description)
+                "
+                size="default"
+              >
+                {{ getAuditStatusText(messageData.noticeTitle?.status || messageData.description) }}
               </el-tag>
             </div>
           </div>
         </div>
-        <div v-if="messageData.auditStatus === '已驳回'" class="reject-reason-section">
+        <div
+          v-if="
+            (messageData.noticeTitle?.status || messageData.description) === 'Y' ||
+            (messageData.noticeTitle?.status || messageData.description) === '已驳回'
+          "
+          class="reject-reason-section"
+        >
           <div class="reject-label">驳回原因</div>
           <div class="reject-content">
-            <pre class="content-pre">{{ messageData.rejectReason }}</pre>
+            <pre class="content-pre">{{ messageData.rejectReason || '暂无驳回原因' }}</pre>
           </div>
         </div>
       </div>

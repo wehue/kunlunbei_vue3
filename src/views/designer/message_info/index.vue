@@ -17,7 +17,7 @@ const selectedList = ref([])
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
-  { prop: 'noticeId', label: '消息ID', minWidth: 80 },
+  { prop: 'noticeId', label: '消息编码', minWidth: 80 },
   { prop: 'workingPlanName', label: '消息标题', minWidth: 180 },
   { prop: 'noticeStatus', label: '审核状态', width: 160 },
   { prop: 'createTime', label: '接收时间', minWidth: 160 },
@@ -63,8 +63,13 @@ const handleDeleteSelected = async () => {
         type: 'warning',
       },
     )
+
+    // 逐个删除消息
+    for (const item of selectedList.value) {
+      await deleteMessages(item.noticeId)
+    }
+
     const deleteIds = selectedList.value.map((item) => item.noticeId)
-    await deleteMessages(deleteIds)
     messageStore.deleteMessages(deleteIds)
     ElMessage.success('删除成功')
     proTableRef.value?.getTableList()
@@ -127,7 +132,7 @@ const getTableList = async (params) => {
           item.noticeTitle?.title ||
           '消息通知',
         noticeStatus: statusText,
-        createTime: item.createTime || '',
+        createTime: formatDate(item.createTime) || '',
       }
     })
 
@@ -184,14 +189,13 @@ const getAuditStatusType = (status) => {
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 const handleSelectionChange = (selection) => {
@@ -235,6 +239,7 @@ const handleSelectionChange = (selection) => {
       <template #workingPlanName="scope">
         <div class="message-title" :class="{ unread: !scope.row.isRead }">
           <span class="unread-dot" v-if="!scope.row.isRead"></span>
+          审核工艺路线：
           {{ scope.row.workingPlanName }}
         </div>
       </template>

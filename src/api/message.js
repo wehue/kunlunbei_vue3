@@ -6,8 +6,8 @@ export function getMessageList(params) {
 }
 
 // 删除消息
-export function deleteMessages(noticeIds) {
-  return instance.delete('/api/message/delete', { data: { noticeIds } })
+export function deleteMessages(noticeId) {
+  return instance.put('/api/notice/delete', {}, { params: { noticeId } })
 }
 
 // 标记全部消息已读并获取消息列表
