@@ -14,6 +14,7 @@ import {
   updateDevice,
   deleteDevice,
 } from '@/api/device'
+import { getPartList } from '@/api/material'
 
 const router = useRouter()
 const { isDesignerRole, isAdminRole, hasPermission } = usePermission()
@@ -25,6 +26,11 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref()
 const extendFields = ref([])
+const materialDialogVisible = ref(false)
+const materialList = ref([])
+const selectedMaterials = ref([])
+const currentSparePartsField = ref(null)
+const materialTableRef = ref()
 
 const brandOptions = ref([])
 const locationOptions = ref([])
@@ -62,9 +68,28 @@ const fetchLocationOptions = async () => {
   }
 }
 
+const fetchMaterialList = async () => {
+  try {
+    const res = await getPartList()
+    console.log('获取物料列表成功', res)
+    const data = res.data?.data?.data || []
+    materialList.value = data.map((item) => ({
+      id: item.id,
+      partId: item.partId || item.id,
+      partName: item.partName || item.name || item.materialName || '未命名物料',
+      specificationModel: item.specificationModel || item.specModel || '无',
+      category: item.category?.categoryName || item.categoryName || item.category || '未分类',
+      stockQuantity: item.stockQuantity || item.quantity || 0,
+    }))
+  } catch (error) {
+    console.error('获取物料列表失败:', error)
+  }
+}
+
 onMounted(() => {
   fetchBrandOptions()
   fetchLocationOptions()
+  fetchMaterialList()
 })
 
 const depreciationOptions = [
@@ -264,6 +289,8 @@ const handleSubmit = async () => {
         )?.value
         const sparePartsValue = extendFields.value.find((f) => f.key === 'spareParts')?.value
 
+        console.log('备品备件值:', sparePartsValue)
+
         const extAttrs = [
           {
             name: 'TechnicalParameterInfo',
@@ -276,6 +303,8 @@ const handleSubmit = async () => {
             value: sparePartsValue ? sparePartsValue : null,
           },
         ]
+
+        console.log('extAttrs:', extAttrs)
 
         const submitData = {
           id: formData.id,
@@ -296,6 +325,8 @@ const handleSubmit = async () => {
           location: locationItem ? { id: locationItem.id } : null,
         }
 
+        console.log('提交数据:', submitData)
+
         if (isEdit.value) {
           await updateDevice(submitData)
           ElMessage.success('修改成功')
@@ -315,6 +346,61 @@ const handleSubmit = async () => {
 
 const handleCancel = () => {
   dialogVisible.value = false
+}
+
+const handleOpenMaterialDialog = (field) => {
+  currentSparePartsField.value = field
+  // 解析现有的备品备件数据
+  try {
+    if (field.value) {
+      const existingParts = typeof field.value === 'string' ? JSON.parse(field.value) : field.value
+      if (Array.isArray(existingParts)) {
+        selectedMaterials.value = existingParts
+      } else {
+        selectedMaterials.value = []
+      }
+    } else {
+      selectedMaterials.value = []
+    }
+  } catch (e) {
+    console.error('解析备品备件数据失败:', e)
+    selectedMaterials.value = []
+  }
+  console.log('初始化选中的物料:', selectedMaterials.value)
+  materialDialogVisible.value = true
+}
+
+const handleSelectionChange = (selection) => {
+  selectedMaterials.value = selection
+  console.log('选中的物料:', selection)
+}
+
+const handleConfirmMaterialSelection = () => {
+  if (currentSparePartsField.value && selectedMaterials.value.length > 0) {
+    console.log('选中的物料行:', selectedMaterials.value)
+
+    const sparePartsData = selectedMaterials.value.map((item) => ({
+      id: item.id,
+      partId: item.partId,
+      materialCode: item.partId,
+      materialName: item.partName,
+      specModel: item.specificationModel,
+      category: item.category,
+      stockQuantity: item.stockQuantity,
+    }))
+
+    console.log('生成的备品备件数据:', sparePartsData)
+
+    currentSparePartsField.value.value = JSON.stringify(sparePartsData, null, 2)
+    ElMessage.success(`已选择 ${sparePartsData.length} 个物料作为备品备件`)
+  }
+  materialDialogVisible.value = false
+  currentSparePartsField.value = null
+}
+
+const handleCancelMaterialSelection = () => {
+  materialDialogVisible.value = false
+  currentSparePartsField.value = null
 }
 
 const handleView = (row) => {
@@ -499,7 +585,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="设备编码">
-              <el-input v-model="formData.deviceCode" />
+              <el-input v-model="formData.deviceCode" placeholder="请输入设备编码" />
             </el-form-item>
             <el-form-item label="设备名称" prop="deviceName">
               <el-input v-model="formData.deviceName" placeholder="请输入设备名称" />
@@ -508,14 +594,7 @@ const getTableList = async (params) => {
               <el-input v-model="formData.manufacturer" placeholder="请输入生产厂家" />
             </el-form-item>
             <el-form-item label="品牌" prop="brand">
-              <el-select v-model="formData.brand" placeholder="请选择品牌" style="width: 100%">
-                <el-option
-                  v-for="item in brandOptions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
+              <el-input v-model="formData.brand" placeholder="请输入品牌" />
             </el-form-item>
             <el-form-item label="规格型号" prop="specModel">
               <el-input v-model="formData.specModel" placeholder="请输入规格型号" />
@@ -610,7 +689,18 @@ const getTableList = async (params) => {
                   class="field-label-input"
                   placeholder="请输入字段名称"
                 />
-                <span v-else class="field-label">{{ field.label }}</span>
+                <div v-else class="field-label-with-actions">
+                  <span class="field-label">{{ field.label }}</span>
+                  <el-button
+                    v-if="field.key === 'spareParts'"
+                    type="primary"
+                    link
+                    size="small"
+                    @click="handleOpenMaterialDialog(field)"
+                  >
+                    选择物料
+                  </el-button>
+                </div>
                 <el-button
                   v-if="field.isNew"
                   type="danger"
@@ -621,7 +711,35 @@ const getTableList = async (params) => {
                   删除
                 </el-button>
               </div>
-              <el-input v-model="field.value" type="textarea" :rows="3" placeholder="请输入内容" />
+              <div v-if="field.key === 'spareParts' && field.value">
+                <div class="spare-parts-preview">
+                  <el-table
+                    :data="JSON.parse(field.value)"
+                    border
+                    size="small"
+                    style="margin-bottom: 10px"
+                  >
+                    <el-table-column prop="materialCode" label="物料编号" width="200" />
+                    <el-table-column prop="materialName" label="物料名称" width="195" />
+                    <el-table-column prop="specModel" label="规格型号" width="190" />
+                    <el-table-column prop="stockQuantity" label="库存数量" width="190" />
+                  </el-table>
+                  <el-input
+                    v-model="field.value"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="请输入内容"
+                    style="display: none"
+                  />
+                </div>
+              </div>
+              <el-input
+                v-else
+                v-model="field.value"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入内容"
+              />
             </div>
           </div>
         </div>
@@ -631,6 +749,62 @@ const getTableList = async (params) => {
         <div class="dialog-footer">
           <el-button @click="handleCancel">取消</el-button>
           <el-button type="primary" @click="handleSubmit">确定</el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 物料选择对话框 -->
+    <el-dialog
+      v-model="materialDialogVisible"
+      title="选择物料作为备品备件"
+      width="1000px"
+      :close-on-click-modal="false"
+      custom-class="material-dialog"
+    >
+      <div class="material-selection-container">
+        <el-table
+          ref="materialTableRef"
+          :data="materialList"
+          style="width: 100%"
+          border
+          stripe
+          size="medium"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="60" />
+          <el-table-column prop="partId" label="物料编号" width="150">
+            <template #default="{ row }">
+              <el-tag size="small" type="info">{{ row.partId || row.id }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="partName" label="物料名称" width="200">
+            <template #default="{ row }">
+              <span class="material-name">{{ row.partName || '未命名物料' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="specificationModel" label="规格型号" width="180">
+            <template #default="{ row }">
+              <span>{{ row.specificationModel || '无' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="category" label="分类" width="130">
+            <template #default="{ row }">
+              <el-tag size="small" type="success">{{ row.category || '未分类' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="stockQuantity" label="库存数量" width="120">
+            <template #default="{ row }">
+              <span :class="{ 'low-stock': row.stockQuantity === 0 }">{{
+                row.stockQuantity || 0
+              }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleCancelMaterialSelection">取消</el-button>
+          <el-button type="primary" @click="handleConfirmMaterialSelection">确定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -794,6 +968,12 @@ const getTableList = async (params) => {
             font-weight: 400;
           }
 
+          .field-label-with-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
           .field-label-input {
             flex: 1;
             margin-right: 10px;
@@ -831,6 +1011,172 @@ const getTableList = async (params) => {
       font-size: 16px;
       padding: 10px 20px;
     }
+  }
+
+  .material-dialog {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+
+    .el-dialog__header {
+      background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+      padding: 20px 24px;
+      border-bottom: none;
+
+      .el-dialog__title {
+        font-size: 20px;
+        font-weight: 600;
+        color: white;
+      }
+
+      .el-dialog__headerbtn .el-icon {
+        color: white;
+        font-size: 20px;
+
+        &:hover {
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+
+    .el-dialog__body {
+      padding: 30px 24px;
+      background-color: #fafafa;
+    }
+
+    .el-dialog__footer {
+      padding: 20px 24px;
+      border-top: 1px solid #ebeef5;
+      background-color: white;
+
+      .el-button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 6px;
+        font-weight: 500;
+
+        &.el-button--primary {
+          background-color: #409eff;
+          border-color: #409eff;
+          min-width: 100px;
+
+          &:hover {
+            background-color: #66b1ff;
+            border-color: #66b1ff;
+          }
+        }
+
+        &.el-button--default {
+          min-width: 100px;
+
+          &:hover {
+            color: #409eff;
+            border-color: #c6e2ff;
+            background-color: #ecf5ff;
+          }
+        }
+      }
+    }
+  }
+
+  .material-selection-container {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    :deep(.el-table) {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      border: none;
+
+      .el-table__header-wrapper {
+        background-color: #f5f7fa;
+
+        th {
+          background-color: #f5f7fa !important;
+          font-weight: 600;
+          color: #303133;
+          font-size: 15px;
+          padding: 16px 0;
+          border-bottom: 2px solid #409eff;
+          text-align: center;
+        }
+      }
+
+      .el-table__body-wrapper {
+        &::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: #c0c4cc;
+          border-radius: 5px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: #f5f7fa;
+        }
+
+        tr {
+          height: 60px;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: #ecf5ff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+          }
+
+          td {
+            font-size: 14px;
+            color: #303133;
+            border-bottom: 1px solid #ebeef5;
+            padding: 16px 0;
+            text-align: center;
+          }
+        }
+
+        tr.el-table__row--striped {
+          background-color: #fafafa;
+
+          &:hover {
+            background-color: #ecf5ff !important;
+          }
+        }
+      }
+
+      .el-table-column--selection {
+        width: 60px;
+
+        .cell {
+          padding-left: 20px;
+        }
+      }
+
+      .el-checkbox__input.is-checked .el-checkbox__inner {
+        background-color: #409eff;
+        border-color: #409eff;
+      }
+
+      .el-checkbox__input.is-focus .el-checkbox__inner {
+        border-color: #409eff;
+      }
+    }
+  }
+
+  .material-name {
+    font-weight: 500;
+    color: #303133;
+  }
+
+  .low-stock {
+    color: #f56c6c;
+    font-weight: 500;
   }
 }
 

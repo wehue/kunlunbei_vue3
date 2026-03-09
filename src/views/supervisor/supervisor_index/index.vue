@@ -15,7 +15,12 @@ import {
   Clock,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getSupervisorConsole1, getSupervisorConsole2, getSupervisorConsole3,getSupervisorConsole4  } from '@/api/user'
+import {
+  getSupervisorConsole1,
+  getSupervisorConsole2,
+  getSupervisorConsole3,
+  getSupervisorConsole4,
+} from '@/api/user'
 
 const loading = ref(false)
 const refreshInterval = ref(null)

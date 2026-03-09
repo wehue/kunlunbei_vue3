@@ -5,9 +5,11 @@ export function getProductionStaffList(params) {
   return instance.get('/api/productionStaff/find', { params })
 }
 
-// 获取操作人员详情（根据ID）
-export function getProductionStaffDetail(id) {
-  return instance.get(`/api/productionStaff/${id}`)
+// 获取操作人员详情（根据productionStaffId）
+export function getProductionStaffDetail(productionStaffId) {
+  return instance.get('/api/productionStaff/findByProductionStaffId', {
+    params: { productionStaffId },
+  })
 }
 
 // 添加操作人员

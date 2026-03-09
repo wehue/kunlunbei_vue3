@@ -36,6 +36,37 @@ const loadProducts = async () => {
   }
 }
 
+const depreciationOptions = [
+  { label: '直线折旧', value: 'SD' },
+  { label: '快速折旧', value: 'AD' },
+]
+
+const unitOptions = [
+  { label: '个', value: 'A' },
+  { label: '米', value: 'M' },
+  { label: '克', value: 'G' },
+  { label: '千克', value: 'KG' },
+]
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getDepreciationLabel = (value) => {
+  const option = depreciationOptions.find((item) => item.value === value)
+  return option ? option.label : value || ''
+}
+
+const getUnitLabel = (value) => {
+  const option = unitOptions.find((item) => item.value === value)
+  return option ? option.label : value || ''
+}
+
 const existingProcesses = ref([])
 
 const loadProcesses = async () => {
@@ -47,42 +78,45 @@ const loadProcesses = async () => {
     }
 
     existingProcesses.value = processes.map((item) => {
-      // 解析物料数据
       let childMaterials = []
-      if (item.description) {
+      if (item.theMaterials && Array.isArray(item.theMaterials)) {
+        childMaterials = item.theMaterials.map((material) => ({
+          id: material.id,
+          materialId: material.materialId,
+          materialName: material.materialName,
+          quantity: material.expenditureQuantity,
+          unit: material.unit,
+        }))
+      } else if (item.description) {
         try {
-          childMaterials = JSON.parse(item.description)
+          childMaterials = JSON.parse(item.description).map((material) => ({
+            id: material.id,
+            materialId: material.materialId,
+            materialName: material.materialName,
+            quantity: material.expenditureQuantity,
+            unit: material.unit,
+          }))
         } catch (e) {
           console.error('解析物料数据失败:', e)
         }
       }
 
-      // 转换设备数据格式
       const devices = (item.production_TestingEquipment || []).map((device) => ({
-        equipmentId: device.equipmentId || '',
-        deviceCode: device.equipmentId || '',
-        deviceName: device.equipmentName || '',
-        manufacturer: device.manufacturer || '',
-        brand: device.brand || '',
-        specModel: device.specModel || '',
-        supplier: device.supplier || '',
-        productionDate: device.productionDate || '',
-        serviceLife: device.serviceLife || '',
-        depreciationMethod: device.depreciationMethod || '',
-        location: device.location || '',
-        stockQuantity: device.stockQuantity || '',
-        unit: device.unit || '',
+        deviceId: device.equipmentId,
+        equipmentId: device.equipmentId,
+        deviceName: device.equipmentName,
+        quantity: device.expenditureQuantity,
+        unit: device.unit,
       }))
 
-      // 转换操作人员数据格式
       const operators = item.operator
         ? [
             {
-              id: item.operator.id || '',
-              employeeCode: item.operator.productionStaffId || item.operator.employeeCode || '',
-              employeeName: item.operator.productionStaffName || item.operator.name || '',
-              deptName: item.operator.deptName || item.operator.department || '',
-              position: item.operator.position || item.operator.role || '',
+              id: item.operator.id,
+              productionStaffId: item.operator.productionStaffId,
+              operatorId: item.operator.id,
+              userName: item.operator.productionStaffName || item.operator.name,
+              employeeName: item.operator.productionStaffName || item.operator.name,
             },
           ]
         : []
@@ -175,109 +209,22 @@ const handleSelectProcess = async (process) => {
     return
   }
 
-  try {
-    // 深拷贝原始数据
-    const newStep = {
-      id: Date.now(),
-      processId: process.id,
-      processCode: process.processCode,
-      stepName: process.processName,
-      description: process.description,
-      devices: JSON.parse(JSON.stringify(process.devices || [])),
-      operators: JSON.parse(JSON.stringify(process.operators || [])),
-      bom: JSON.parse(JSON.stringify(process.bom || { parentMaterial: null, childMaterials: [] })),
-    }
-
-    // 获取设备详细信息
-    if (newStep.devices && newStep.devices.length > 0) {
-      for (let i = 0; i < newStep.devices.length; i++) {
-        const device = newStep.devices[i]
-        if (device.equipmentId) {
-          try {
-            const res = await getDeviceDetailByEquipmentId(device.equipmentId)
-            const deviceDetail = res.data?.data || {}
-            // 更新设备详情
-            newStep.devices[i] = {
-              ...device,
-              deviceCode: deviceDetail.equipmentId || device.deviceCode || '',
-              deviceName: deviceDetail.equipmentName || device.deviceName || '',
-              manufacturer: deviceDetail.manufacturer || device.manufacturer || '',
-              brand: deviceDetail.brand || device.brand || '',
-              specModel: deviceDetail.specModel || device.specModel || '',
-              supplier: deviceDetail.supplier || device.supplier || '',
-              productionDate: deviceDetail.productionDate || device.productionDate || '',
-              serviceLife: deviceDetail.serviceLife || device.serviceLife || '',
-              depreciationMethod:
-                deviceDetail.depreciationMethod || device.depreciationMethod || '',
-              location: deviceDetail.location || device.location || '',
-              stockQuantity: deviceDetail.stockQuantity || device.stockQuantity || '',
-              unit: deviceDetail.unit || device.unit || '',
-            }
-          } catch (error) {
-            console.error('获取设备详情失败:', error)
-          }
-        }
-      }
-    }
-
-    // 获取操作人员详细信息
-    if (newStep.operators && newStep.operators.length > 0) {
-      for (let i = 0; i < newStep.operators.length; i++) {
-        const operator = newStep.operators[i]
-        if (operator.id) {
-          try {
-            const res = await getProductionStaffDetail(operator.id)
-            const operatorDetail = res.data?.data || {}
-            // 更新操作人员详情
-            newStep.operators[i] = {
-              ...operator,
-              employeeCode: operatorDetail.productionStaffId || operator.employeeCode || '',
-              employeeName: operatorDetail.productionStaffName || operator.employeeName || '',
-              deptName:
-                operatorDetail.departmentName || operatorDetail.deptName || operator.deptName || '',
-              position: operatorDetail.position || operator.position || '',
-            }
-          } catch (error) {
-            console.error('获取操作人员详情失败:', error)
-          }
-        }
-      }
-    }
-
-    // 获取物料详细信息
-    if (newStep.bom?.childMaterials && newStep.bom.childMaterials.length > 0) {
-      for (let i = 0; i < newStep.bom.childMaterials.length; i++) {
-        const material = newStep.bom.childMaterials[i]
-        if (material.id || material.materialCode) {
-          try {
-            const materialId = material.id || material.materialCode
-            const res = await getPartDetail(materialId)
-            const materialDetail = res.data?.data || {}
-            // 更新物料详情
-            newStep.bom.childMaterials[i] = {
-              ...material,
-              specModel: materialDetail.specModel || material.specModel || '',
-              stockQuantity: materialDetail.stockQuantity || material.stockQuantity || '',
-              supplier: materialDetail.supplier || material.supplier || '',
-              version: materialDetail.version || material.version || '',
-              category: materialDetail.category || material.category || '',
-              location: materialDetail.location || material.location || '',
-            }
-          } catch (error) {
-            console.error('获取物料详情失败:', error)
-          }
-        }
-      }
-    }
-
-    formData.processSteps.push(newStep)
-    selectedStepId.value = newStep.id
-    processSelectDialogVisible.value = false
-    ElMessage.success(`已添加工序：${process.processName}`)
-  } catch (error) {
-    console.error('处理工序选择失败:', error)
-    ElMessage.error('处理工序数据失败')
+  const newStep = {
+    id: Date.now(),
+    processId: process.id,
+    processCode: process.processCode,
+    stepName: process.processName,
+    description: process.description,
+    devices: JSON.parse(JSON.stringify(process.devices || [])),
+    operators: JSON.parse(JSON.stringify(process.operators || [])),
+    bom: JSON.parse(JSON.stringify(process.bom || { parentMaterial: null, childMaterials: [] })),
   }
+  formData.processSteps.push(newStep)
+  selectedStepId.value = newStep.id
+  processSelectDialogVisible.value = false
+  ElMessage.success(`已添加工序：${process.processName}`)
+
+  await loadStepDetails(newStep)
 }
 
 const handleRemoveStep = (index) => {
@@ -288,8 +235,193 @@ const handleRemoveStep = (index) => {
   formData.processSteps.splice(index, 1)
 }
 
-const handleSelectStep = (step) => {
+const handleSelectStep = async (step) => {
   selectedStepId.value = step.id
+  await loadStepDetails(step)
+}
+
+const loadStepDetails = async (step) => {
+  const stepIndex = formData.processSteps.findIndex((s) => s.id === step.id)
+  if (stepIndex === -1) return
+
+  const stepData = formData.processSteps[stepIndex]
+
+  if (stepData.devices && stepData.devices.length > 0) {
+    const deviceDetails = await Promise.all(
+      stepData.devices.map(async (device) => {
+        const equipmentId = device.equipmentId || device.deviceId
+        if (equipmentId) {
+          try {
+            const res = await getDeviceDetailByEquipmentId(equipmentId)
+            const detail = res.data?.data?.data || res.data?.data || res.data
+            if (detail) {
+              const locationName = detail.location?.warhouseName || detail.location || ''
+              return {
+                ...device,
+                deviceCode: detail.equipmentId || device.deviceCode,
+                deviceName: detail.equipmentName || device.deviceName,
+                manufacturer: detail.manufacturer || '',
+                brand: detail.brand || '',
+                specModel: detail.specificationModel || detail.specModel || '',
+                supplier: detail.supplier || '',
+                productionDate: detail.productionDate || '',
+                serviceLife: detail.serviceLife || '',
+                depreciationMethod: detail.depreciationMethod || '',
+                location: locationName,
+                stockQuantity:
+                  detail.equipmentQuantity || detail.stockQuantity || detail.quantity || '',
+                unit: detail.unit || '',
+              }
+            }
+          } catch (error) {
+            console.error('获取设备详情失败:', error)
+          }
+        }
+        return device
+      }),
+    )
+    formData.processSteps[stepIndex] = {
+      ...stepData,
+      devices: deviceDetails,
+    }
+  }
+
+  if (stepData.operators && stepData.operators.length > 0) {
+    const operatorDetails = await Promise.all(
+      stepData.operators.map(async (operator) => {
+        const productionStaffId = operator.productionStaffId
+        if (productionStaffId) {
+          try {
+            const res = await getProductionStaffDetail(productionStaffId)
+            const detail = res.data?.data || res.data
+            if (detail) {
+              const actualDetail = detail.data || detail
+              return {
+                ...operator,
+                employeeCode: actualDetail.productionStaffId,
+                employeeName: actualDetail.productionStaffName,
+                deptName: actualDetail.department?.departmentName || '',
+                position: actualDetail.position,
+              }
+            } else {
+              return {
+                ...operator,
+                employeeCode:
+                  operator.productionStaffId || operator.employeeCode || operator.userCode || '',
+                employeeName: operator.employeeName || operator.userName || '',
+                deptName: '',
+                position: '',
+              }
+            }
+          } catch (error) {
+            console.error('获取操作人员详情失败:', error)
+            return {
+              ...operator,
+              employeeCode:
+                operator.productionStaffId || operator.employeeCode || operator.userCode || '',
+              employeeName: operator.employeeName || operator.userName || '',
+              deptName: '',
+              position: '',
+            }
+          }
+        } else {
+          return {
+            ...operator,
+            employeeCode:
+              operator.productionStaffId || operator.employeeCode || operator.userCode || '',
+            employeeName: operator.employeeName || operator.userName || '',
+            deptName: '',
+            position: '',
+          }
+        }
+      }),
+    )
+    formData.processSteps[stepIndex] = {
+      ...formData.processSteps[stepIndex],
+      operators: operatorDetails,
+    }
+  }
+
+  if (stepData.bom && stepData.bom.childMaterials && stepData.bom.childMaterials.length > 0) {
+    const materialDetails = await Promise.all(
+      stepData.bom.childMaterials.map(async (material) => {
+        const dbId = material.materialId || material.id
+        if (dbId) {
+          try {
+            const res = await getPartDetail(dbId)
+            const detail = res.data?.data?.data || res.data?.data || res.data
+            if (detail) {
+              const categoryName = detail.category?.categoryName || detail.categoryName || ''
+              const locationName = detail.warhouse?.warhouseName || detail.location || ''
+              return {
+                ...material,
+                materialCode: detail.partId || material.materialId || material.materialCode || '',
+                materialName: detail.partName || material.materialName || '',
+                specModel: detail.specificationModel || material.specModel || '',
+                quantity: material.quantity || 0,
+                unit: material.unit || '',
+                stockQuantity: detail.stockQuantity || material.stockQuantity || '',
+                supplier: detail.supplier || '',
+                version: detail.versions || detail.version || '',
+                category: categoryName || material.category || '',
+                location: locationName,
+              }
+            } else {
+              return {
+                ...material,
+                materialCode: material.materialId || material.materialCode || '',
+                materialName: material.materialName || '',
+                specModel: material.specModel || '',
+                quantity: material.quantity || 0,
+                unit: material.unit || '',
+                stockQuantity: material.stockQuantity || '',
+                supplier: '',
+                version: '',
+                category: '',
+                location: '',
+              }
+            }
+          } catch (error) {
+            console.error('获取物料详情失败:', error)
+            return {
+              ...material,
+              materialCode: material.materialId || material.materialCode || '',
+              materialName: material.materialName || '',
+              specModel: material.specModel || '',
+              quantity: material.quantity || 0,
+              unit: material.unit || '',
+              stockQuantity: material.stockQuantity || '',
+              supplier: '',
+              version: '',
+              category: '',
+              location: '',
+            }
+          }
+        } else {
+          return {
+            ...material,
+            materialCode: material.materialId || material.materialCode || '',
+            materialName: material.materialName || '',
+            specModel: material.specModel || '',
+            quantity: material.quantity || 0,
+            unit: material.unit || '',
+            stockQuantity: material.stockQuantity || '',
+            supplier: '',
+            version: '',
+            category: '',
+            location: '',
+          }
+        }
+      }),
+    )
+    formData.processSteps[stepIndex] = {
+      ...formData.processSteps[stepIndex],
+      bom: {
+        ...stepData.bom,
+        childMaterials: materialDetails,
+      },
+    }
+  }
 }
 
 const handleUpdateDevice = (deviceIndex, field, value) => {
@@ -550,12 +682,24 @@ const handleCancel = () => {
                         <el-table-column prop="brand" label="品牌" width="100" />
                         <el-table-column prop="specModel" label="规格型号" width="120" />
                         <el-table-column prop="supplier" label="供应商" width="180" />
-                        <el-table-column prop="productionDate" label="生产日期" width="120" />
+                        <el-table-column label="生产日期" width="120">
+                          <template #default="{ row }">
+                            {{ formatDate(row.productionDate) }}
+                          </template>
+                        </el-table-column>
                         <el-table-column prop="serviceLife" label="使用年限" width="100" />
-                        <el-table-column prop="depreciationMethod" label="折旧方式" width="100" />
+                        <el-table-column label="折旧方式" width="100">
+                          <template #default="{ row }">
+                            {{ getDepreciationLabel(row.depreciationMethod) }}
+                          </template>
+                        </el-table-column>
                         <el-table-column prop="location" label="位置" width="100" />
                         <el-table-column prop="stockQuantity" label="库存数量" width="100" />
-                        <el-table-column prop="unit" label="单位" width="80" />
+                        <el-table-column label="单位" width="80">
+                          <template #default="{ row }">
+                            {{ getUnitLabel(row.unit) }}
+                          </template>
+                        </el-table-column>
                       </el-table>
                     </div>
                     <el-empty v-else description="该工序暂无关联设备" />
@@ -574,73 +718,19 @@ const handleCancel = () => {
                   </div>
 
                   <div v-show="activeDetailTab === 'bom'" class="tab-content">
-                    <div v-if="selectedStep.bom?.parentMaterial" class="bom-section">
-                      <div class="bom-section-title">父物料信息</div>
-                      <div class="material-info-card">
-                        <div class="info-row">
-                          <div class="info-col">
-                            <span class="label">物料编号：</span>
-                            <el-tag size="small">{{
-                              selectedStep.bom.parentMaterial.materialCode
-                            }}</el-tag>
-                          </div>
-                          <div class="info-col">
-                            <span class="label">物料名称：</span>
-                            <span class="value">{{
-                              selectedStep.bom.parentMaterial.materialName
-                            }}</span>
-                          </div>
-                          <div class="info-col">
-                            <span class="label">规格型号：</span>
-                            <span class="value">{{
-                              selectedStep.bom.parentMaterial.specModel
-                            }}</span>
-                          </div>
-                          <div class="info-col">
-                            <span class="label">库存数量：</span>
-                            <span class="value">{{
-                              selectedStep.bom.parentMaterial.stockQuantity
-                            }}</span>
-                          </div>
-                        </div>
-                        <div class="info-row">
-                          <div class="info-col">
-                            <span class="label">供应商：</span>
-                            <span class="value">{{
-                              selectedStep.bom.parentMaterial.supplier
-                            }}</span>
-                          </div>
-                          <div class="info-col">
-                            <span class="label">版本号：</span>
-                            <el-tag size="small" type="success">{{
-                              selectedStep.bom.parentMaterial.version
-                            }}</el-tag>
-                          </div>
-                          <div class="info-col">
-                            <span class="label">分类：</span>
-                            <el-tag size="small" type="info">{{
-                              selectedStep.bom.parentMaterial.category
-                            }}</el-tag>
-                          </div>
-                          <div class="info-col">
-                            <span class="label">位置：</span>
-                            <el-tag size="small" type="warning">{{
-                              selectedStep.bom.parentMaterial.location
-                            }}</el-tag>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     <div v-if="selectedStep.bom?.childMaterials?.length" class="bom-section">
-                      <div class="bom-section-title">子物料清单</div>
+                      <div class="bom-section-title">物料清单</div>
                       <div class="data-table-container">
                         <el-table :data="selectedStep.bom.childMaterials" border size="small">
                           <el-table-column prop="materialCode" label="物料编号" width="120" />
                           <el-table-column prop="materialName" label="物料名称" width="150" />
                           <el-table-column prop="specModel" label="规格型号" width="120" />
                           <el-table-column prop="quantity" label="支出数量" width="100" />
-                          <el-table-column prop="unit" label="单位" width="80" />
+                          <el-table-column label="单位" width="80">
+                            <template #default="{ row }">
+                              {{ getUnitLabel(row.unit) }}
+                            </template>
+                          </el-table-column>
                           <el-table-column prop="stockQuantity" label="库存数量" width="100" />
                           <el-table-column prop="supplier" label="供应商" width="150" />
                           <el-table-column prop="version" label="版本号" width="80" />
@@ -651,11 +741,8 @@ const handleCancel = () => {
                     </div>
 
                     <el-empty
-                      v-if="
-                        !selectedStep.bom?.parentMaterial &&
-                        !selectedStep.bom?.childMaterials?.length
-                      "
-                      description="该工序暂无关联物料BOM"
+                      v-if="!selectedStep.bom?.childMaterials?.length"
+                      description="该工序暂无关联物料"
                     />
                   </div>
                 </div>

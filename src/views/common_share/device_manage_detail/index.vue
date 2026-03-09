@@ -11,6 +11,7 @@ import {
   getBrandList,
   getLocationList,
 } from '@/api/device'
+import { getPartDetail } from '@/api/material'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +25,8 @@ const deviceData = ref({})
 const formData = reactive({})
 const extendFields = ref([])
 const formRef = ref()
+const sparePartsDetails = ref([])
+const hasSpareParts = ref(false)
 
 const brandOptions = ref([])
 
@@ -87,6 +90,130 @@ const getUnitLabel = (value) => {
   return option ? option.label : value
 }
 
+const loadSparePartsDetails = async (sparePartsData) => {
+  try {
+    console.log('开始加载备品备件详情:', sparePartsData)
+
+    // 重置状态
+    sparePartsDetails.value = []
+    hasSpareParts.value = false
+
+    if (!sparePartsData) {
+      console.log('无备品备件数据')
+      return
+    }
+
+    let parsedData
+    if (typeof sparePartsData === 'string') {
+      try {
+        parsedData = JSON.parse(sparePartsData)
+        console.log('解析后的数据:', parsedData)
+      } catch (e) {
+        console.error('解析备品备件数据失败:', e)
+        return
+      }
+    } else {
+      parsedData = sparePartsData
+      console.log('直接使用数据:', parsedData)
+    }
+
+    // 处理各种数据格式
+    let sparePartsArray = []
+    if (Array.isArray(parsedData)) {
+      sparePartsArray = parsedData
+    } else if (parsedData && typeof parsedData === 'object') {
+      // 如果是单个对象，包装成数组
+      sparePartsArray = [parsedData]
+    }
+
+    console.log('处理后的备品备件数组:', sparePartsArray)
+
+    if (!Array.isArray(sparePartsArray) || sparePartsArray.length === 0) {
+      console.log('备品备件数组为空或无效')
+      return
+    }
+
+    // 不调用API获取详情，直接使用原始数据
+    // 这样可以避免API调用失败导致的显示问题
+    const details = sparePartsArray.map((part) => {
+      // 检查是否有完整的物料信息
+      if (part.materialName && part.materialName !== '未知物料') {
+        return {
+          ...part,
+          materialCode: part.partId || part.materialCode || part.id,
+          materialName: part.partName || part.materialName,
+          specModel: part.specificationModel || part.specModel || '',
+          stockQuantity: part.stockQuantity || '',
+          supplier: part.supplier || '',
+          version: part.versions || part.version || '',
+          category: part.category?.categoryName || part.categoryName || part.category || '',
+          location: part.warhouse?.warhouseName || part.location || '',
+        }
+      }
+
+      // 如果没有完整信息，尝试通过API获取
+      const partId = part.id || part.partId
+      if (partId) {
+        // 不等待API响应，先显示基本信息
+        getPartDetail(partId)
+          .then((res) => {
+            console.log('物料详情API返回:', res)
+            const detail = res.data?.data?.data || res.data?.data || res.data
+            if (detail) {
+              const categoryName = detail.category?.categoryName || detail.categoryName || ''
+              const locationName = detail.warhouse?.warhouseName || detail.location || ''
+
+              // 更新对应位置的数据
+              const index = sparePartsDetails.value.findIndex(
+                (p) => p.id === partId || p.partId === partId,
+              )
+              if (index !== -1) {
+                sparePartsDetails.value[index] = {
+                  ...sparePartsDetails.value[index],
+                  materialCode: detail.partId || part.materialCode || partId,
+                  materialName: detail.partName || '未知物料',
+                  specModel: detail.specificationModel || '',
+                  stockQuantity: detail.stockQuantity || '',
+                  supplier: detail.supplier || '',
+                  version: detail.versions || detail.version || '',
+                  category: categoryName || '',
+                  location: locationName || '',
+                }
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('获取物料详情失败:', error)
+          })
+      }
+
+      // 返回基本信息
+      return {
+        ...part,
+        materialCode: part.partId || part.materialCode || part.id || '未知',
+        materialName: part.partName || part.materialName || '未知物料',
+        specModel: part.specificationModel || part.specModel || '',
+        stockQuantity: part.stockQuantity || '',
+        supplier: part.supplier || '',
+        version: part.versions || part.version || '',
+        category: part.category?.categoryName || part.categoryName || part.category || '',
+        location: part.warhouse?.warhouseName || part.location || '',
+      }
+    })
+
+    // 使用普通数组而不是 Proxy
+    sparePartsDetails.value = [...details]
+    hasSpareParts.value = sparePartsDetails.value.length > 0
+
+    console.log('处理后的备品备件详情:', sparePartsDetails.value)
+    console.log('hasSpareParts:', hasSpareParts.value)
+  } catch (error) {
+    console.error('加载备品备件详情失败:', error)
+    sparePartsDetails.value = []
+    hasSpareParts.value = false
+  }
+}
+
 const loadDeviceData = async () => {
   loading.value = true
   try {
@@ -96,14 +223,16 @@ const loadDeviceData = async () => {
 
     const data = res.data?.data.data || {}
     const extAttrs = data.extAttrs || []
+    console.log('extAttrs数据:', extAttrs)
 
     const getExtAttrValue = (name) => {
       const attr = extAttrs.find((item) => item.name === name)
+      console.log(`查找属性 ${name}:`, attr)
       if (!attr) return ''
-      if (attr.type === 'REFERENCE_OBJECT' && attr.value) {
+      if (attr.value) {
         return typeof attr.value === 'string' ? attr.value : JSON.stringify(attr.value)
       }
-      return attr.value || ''
+      return ''
     }
 
     const mappedData = {
@@ -127,9 +256,16 @@ const loadDeviceData = async () => {
       spareParts: getExtAttrValue('SparePartsInfo'),
       remark: data.remark || '',
     }
+    console.log('mappedData:', mappedData)
+    console.log('spareParts原始值:', mappedData.spareParts)
+
     deviceData.value = { ...mappedData }
     Object.assign(formData, mappedData)
     initExtendFields()
+
+    // 加载备品备件的物料详情
+    await loadSparePartsDetails(mappedData.spareParts)
+    console.log('sparePartsDetails加载后:', sparePartsDetails.value)
   } catch (error) {
     console.error('获取设备详情失败:', error)
     ElMessage.error('获取设备详情失败')
@@ -388,14 +524,7 @@ onMounted(() => {
                 <el-input v-model="formData.manufacturer" placeholder="请输入生产厂家" />
               </el-form-item>
               <el-form-item label="品牌" prop="brand">
-                <el-select v-model="formData.brand" placeholder="请选择品牌" style="width: 100%">
-                  <el-option
-                    v-for="item in brandOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
+                <el-input v-model="formData.brand" placeholder="请输入品牌" />
               </el-form-item>
               <el-form-item label="规格型号" prop="specModel">
                 <el-input v-model="formData.specModel" placeholder="请输入规格型号" />
@@ -495,7 +624,27 @@ onMounted(() => {
             <div class="extend-item">
               <div class="extend-label">备品备件信息</div>
               <div class="extend-content">
-                <pre class="content-pre">{{ deviceData.spareParts || '暂无' }}</pre>
+                <div v-if="hasSpareParts" class="data-table-container">
+                  <el-table :data="sparePartsDetails" border size="small">
+                    <el-table-column prop="materialCode" label="物料编号" width="120" />
+                    <el-table-column prop="materialName" label="物料名称" width="150" />
+                    <el-table-column prop="specModel" label="规格型号" width="120" />
+                    <el-table-column prop="stockQuantity" label="库存数量" width="100" />
+                    <el-table-column prop="supplier" label="供应商" width="150" />
+                    <el-table-column prop="version" label="版本号" width="80" />
+                    <el-table-column prop="category" label="分类" width="120" />
+                    <el-table-column prop="location" label="位置" width="100" />
+                  </el-table>
+                </div>
+                <div v-else-if="deviceData.spareParts" class="data-table-container">
+                  <div style="margin-bottom: 10px; color: #666">原始数据:</div>
+                  <pre
+                    class="content-pre"
+                    style="background: #f5f5f5; padding: 10px; border-radius: 4px"
+                    >{{ deviceData.spareParts }}</pre
+                  >
+                </div>
+                <div v-else class="empty-content">暂无备品备件信息</div>
               </div>
             </div>
           </div>
@@ -714,6 +863,41 @@ onMounted(() => {
               line-height: 1.8;
               font-size: 16px;
               color: #303133;
+            }
+
+            .data-table-container {
+              width: 100% !important;
+              border: 1px solid #ebeef5;
+              border-radius: 4px;
+              box-sizing: border-box;
+
+              :deep(.el-table) {
+                width: 100% !important;
+              }
+
+              :deep(.el-table__body-wrapper) {
+                overflow-x: auto !important;
+
+                &::-webkit-scrollbar {
+                  height: 8px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                  background: #c0c4cc;
+                  border-radius: 4px;
+                }
+
+                &::-webkit-scrollbar-track {
+                  background: #f5f7fa;
+                }
+              }
+            }
+
+            .empty-content {
+              text-align: center;
+              color: #909399;
+              padding: 40px 20px;
+              font-size: 16px;
             }
           }
         }

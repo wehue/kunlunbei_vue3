@@ -76,7 +76,7 @@ const passwordRules = {
 
 const handleAvatarChange = async (uploadFile) => {
   const file = uploadFile.raw || uploadFile
-  
+
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
     ElMessage.error('只能上传 JPG/PNG 格式的图片')
@@ -99,11 +99,11 @@ const handleAvatarChange = async (uploadFile) => {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('userId', userStore.userInfo?.id || userInfo.value.userId || '300')
-    
+
     const res = await uploadAvatar(formData)
     console.log('头像上传完整响应:', res)
     console.log('响应数据:', res.data)
-    
+
     if (res.data && res.data.code === 200) {
       const newAvatarUrl = res.data.data?.avatarUrl || res.data.avatarUrl
       if (newAvatarUrl) {
@@ -113,7 +113,7 @@ const handleAvatarChange = async (uploadFile) => {
           console.log('更新用户存储前:', userStore.userInfo)
           userStore.setUserInfo({
             ...userStore.userInfo,
-            avatar: newAvatarUrl
+            avatar: newAvatarUrl,
           })
           console.log('更新用户存储后:', userStore.userInfo)
         }
@@ -217,7 +217,7 @@ const fetchUserDetail = async () => {
           if (userStore.userInfo) {
             userStore.setUserInfo({
               ...userStore.userInfo,
-              avatar: userData.avatar
+              avatar: userData.avatar,
             })
           }
         }
