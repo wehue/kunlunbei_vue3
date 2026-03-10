@@ -7,6 +7,7 @@ import { useUserStore } from '@/stores/modules/user'
 import { useTabsStore } from '@/stores/modules/tabs'
 import { useKeepAliveStore } from '@/stores/modules/keepAlive'
 import { userLogin } from '@/api/login'
+import { getUserDetailById } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -115,8 +116,22 @@ const login = (formEl) => {
           localStorage.removeItem('rememberedUserName')
         }
 
-        // 保存token和用户信息
+        // 保存token
         userStore.setToken(token)
+
+        // 获取完整用户信息（包括头像）
+        let avatar = ''
+        if (userInfo?.id) {
+          try {
+            const detailRes = await getUserDetailById(userInfo.id)
+            if (detailRes.data.code === 200 && detailRes.data.data?.data) {
+              avatar = detailRes.data.data.data.avatar || ''
+            }
+          } catch (e) {
+            console.warn('获取用户详情失败:', e)
+          }
+        }
+
         userStore.setUserInfo({
           id: userInfo?.id,
           name:
@@ -126,6 +141,7 @@ const login = (formEl) => {
             loginForm.userName ||
             '用户',
           role: userInfo?.role,
+          avatar: avatar,
         })
 
         tabsStore.setTabs([])

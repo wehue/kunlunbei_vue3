@@ -6,7 +6,7 @@ import { ArrowLeft, Rank, Plus, Delete, Monitor, User, Box } from '@element-plus
 import draggable from 'vuedraggable'
 import { useUserStore } from '@/stores/modules/user'
 import { getProductFind } from '@/api/product'
-import { getProcessList } from '@/api/process'
+import { getProcessList, createProcessRoute } from '@/api/process'
 import { getDeviceDetailByEquipmentId } from '@/api/device'
 import { getProductionStaffDetail } from '@/api/productionStaff'
 import { getPartDetail } from '@/api/material'
@@ -29,6 +29,7 @@ const loadProducts = async () => {
     productOptions.value = products.map((item) => ({
       label: item.productName,
       value: item.productName,
+      id: item.id,
     }))
   } catch (error) {
     console.error('获取产品列表失败:', error)
@@ -183,9 +184,48 @@ const validateProduct = (rule, value, callback) => {
   callback()
 }
 
+const validateRouteCode = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入工艺编号'))
+    return
+  }
+  if (value.length < 2 || value.length > 20) {
+    callback(new Error('工艺编号长度应在2-20个字符之间'))
+    return
+  }
+  callback()
+}
+
+const validateEstimatedDuration = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入预计工艺总时长'))
+    return
+  }
+  if (isNaN(value) || parseFloat(value) <= 0) {
+    callback(new Error('预计工艺总时长必须是大于0的数字'))
+    return
+  }
+  callback()
+}
+
+const validateDescription = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入工艺描述'))
+    return
+  }
+  if (value.length > 500) {
+    callback(new Error('工艺描述长度不能超过500个字符'))
+    return
+  }
+  callback()
+}
+
 const rules = {
+  routeCode: [{ required: true, validator: validateRouteCode, trigger: 'blur' }],
   routeName: [{ required: true, validator: validateRouteName, trigger: 'blur' }],
   product: [{ required: true, validator: validateProduct, trigger: 'change' }],
+  estimatedDuration: [{ required: true, validator: validateEstimatedDuration, trigger: 'blur' }],
+  description: [{ required: true, validator: validateDescription, trigger: 'blur' }],
 }
 
 const canSubmitAudit = computed(() => currentRole.value === 'designer')
@@ -448,18 +488,68 @@ const handleBack = () => {
     .catch(() => {})
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!formRef.value) return
 
-  formRef.value.validate((valid) => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       if (formData.processSteps.length === 0) {
         ElMessage.warning('请至少添加一个工艺流程步骤')
         return
       }
 
-      ElMessage.success('保存成功，请前往详情页提交审核')
-      router.push('/process-route-manage/process-route-manage-info')
+      try {
+        // 获取当前用户ID
+        const currentUserId = userStore.userInfo?.id || ''
+        console.log('当前用户ID:', currentUserId)
+
+        // 获取选择的产品ID
+        const selectedProduct = productOptions.value.find((item) => item.value === formData.product)
+        const productId = selectedProduct?.id || ''
+        console.log('选择的产品ID:', productId, '产品名称:', formData.product)
+
+        // 获取当前时间
+        const currentTime = new Date().toISOString()
+
+        // 构建请求参数
+        const requestData = {
+          id: '',
+          workingPlanId: formData.routeCode,
+          workingPlanName: formData.routeName,
+          workingPlanDescription: formData.description,
+          version: 'V1.0',
+          totalProcess: formData.estimatedDuration,
+          applicant: {
+            id: currentUserId,
+          },
+          associatedProduct: {
+            id: productId,
+          },
+          workingProcedures: formData.processSteps.map((step) => ({
+            workingProcedureName: step.stepName,
+            workingProcedureId: step.processCode,
+          })),
+          createDate: currentTime,
+          operateTime: currentTime,
+          submitTime: currentTime,
+        }
+
+        console.log('保存工艺路线请求参数:', requestData)
+
+        // 调用API保存工艺路线
+        const res = await createProcessRoute(requestData)
+        console.log('保存工艺路线响应:', res)
+
+        if (res.data?.code === 200) {
+          ElMessage.success('工艺路线保存成功')
+          router.push('/process-route-manage/process-route-manage-info')
+        } else {
+          ElMessage.error('保存失败')
+        }
+      } catch (error) {
+        console.error('保存工艺路线失败:', error)
+        ElMessage.error('保存失败')
+      }
     }
   })
 }
@@ -523,7 +613,7 @@ const handleCancel = () => {
             <span class="section-title">基本信息</span>
           </div>
           <div class="form-grid">
-            <el-form-item label="工艺编号">
+            <el-form-item label="工艺编号" prop="routeCode">
               <el-input v-model="formData.routeCode" placeholder="请输入工艺编号" />
             </el-form-item>
             <el-form-item label="工艺名称" prop="routeName">
@@ -547,12 +637,12 @@ const handleCancel = () => {
             <el-form-item label="版本">
               <el-input v-model="formData.version" disabled placeholder="默认V1.0" />
             </el-form-item>
-            <el-form-item label="预计工艺总时长">
+            <el-form-item label="预计工艺总时长" prop="estimatedDuration">
               <el-input v-model="formData.estimatedDuration" placeholder="请输入预计工艺总时长">
                 <template #append>分钟</template>
               </el-input>
             </el-form-item>
-            <el-form-item label="工艺描述" style="grid-column: span 2">
+            <el-form-item label="工艺描述" prop="description" style="grid-column: span 2">
               <el-input
                 v-model="formData.description"
                 type="textarea"
@@ -676,13 +766,13 @@ const handleCancel = () => {
                   <div v-show="activeDetailTab === 'devices'" class="tab-content">
                     <div v-if="selectedStep.devices?.length" class="data-table-container">
                       <el-table :data="selectedStep.devices" border size="small">
-                        <el-table-column prop="deviceCode" label="设备编码" width="120" />
-                        <el-table-column prop="deviceName" label="设备名称" width="150" />
-                        <el-table-column prop="manufacturer" label="生产厂家" width="180" />
+                        <el-table-column prop="deviceCode" label="设备编码" width="155" />
+                        <el-table-column prop="deviceName" label="设备名称" width="155" />
+                        <el-table-column prop="manufacturer" label="生产厂家" width="150" />
                         <el-table-column prop="brand" label="品牌" width="100" />
-                        <el-table-column prop="specModel" label="规格型号" width="120" />
-                        <el-table-column prop="supplier" label="供应商" width="180" />
-                        <el-table-column label="生产日期" width="120">
+                        <el-table-column prop="specModel" label="规格型号" width="180" />
+                        <el-table-column prop="supplier" label="供应商" width="160" />
+                        <el-table-column label="生产日期" width="140">
                           <template #default="{ row }">
                             {{ formatDate(row.productionDate) }}
                           </template>
@@ -695,7 +785,7 @@ const handleCancel = () => {
                         </el-table-column>
                         <el-table-column prop="location" label="位置" width="100" />
                         <el-table-column prop="stockQuantity" label="库存数量" width="100" />
-                        <el-table-column label="单位" width="80">
+                        <el-table-column label="单位" width="100">
                           <template #default="{ row }">
                             {{ getUnitLabel(row.unit) }}
                           </template>
@@ -732,7 +822,7 @@ const handleCancel = () => {
                             </template>
                           </el-table-column>
                           <el-table-column prop="stockQuantity" label="库存数量" width="100" />
-                          <el-table-column prop="supplier" label="供应商" width="150" />
+                          <el-table-column prop="supplier" label="供应商" width="120" />
                           <el-table-column prop="version" label="版本号" width="80" />
                           <el-table-column prop="category" label="分类" width="120" />
                           <el-table-column prop="location" label="位置" width="100" />

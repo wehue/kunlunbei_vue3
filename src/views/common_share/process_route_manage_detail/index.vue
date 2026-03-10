@@ -18,8 +18,14 @@ import {
 import * as XLSX from 'xlsx'
 import draggable from 'vuedraggable'
 import { usePermission } from '@/hooks/usePermission'
+import { useUserStore } from '@/stores/modules/user'
 import { getProductFind } from '@/api/product'
-import { getProcessList, getProcessDetail } from '@/api/process'
+import {
+  getProcessList,
+  getProcessDetail,
+  getProcessRouteDetail,
+  updateProcessRoute,
+} from '@/api/process'
 import { getDeviceDetailByEquipmentId } from '@/api/device'
 import { getProductionStaffDetail } from '@/api/productionStaff'
 import { getPartDetail } from '@/api/material'
@@ -27,6 +33,7 @@ import { getPartDetail } from '@/api/material'
 const route = useRoute()
 const router = useRouter()
 const { isDesignerRole, isSupervisorRole } = usePermission()
+const userStore = useUserStore()
 
 const isEdit = ref(false)
 const loading = ref(false)
@@ -92,6 +99,7 @@ const loadProducts = async () => {
     productOptions.value = products.map((item) => ({
       label: item.productName,
       value: item.productName,
+      id: item.id,
     }))
   } catch (error) {
     console.error('获取产品列表失败:', error)
@@ -175,8 +183,6 @@ onMounted(() => {
   loadProducts()
   loadProcesses()
 })
-
-// 原有的硬编码数据已替换为从API获取
 
 const allRouteData = ref([
   {
@@ -667,7 +673,12 @@ const versionOptions = computed(() => {
 })
 
 const canEdit = computed(() => {
-  return isDesignerRole.value && routeData.value.status === 'rejected'
+  return (
+    isDesignerRole.value &&
+    (routeData.value.status === 'rejected' ||
+      routeData.value.status === 'W' ||
+      routeData.value.status === 'pending')
+  )
 })
 
 const canApprove = computed(() => {
@@ -676,6 +687,10 @@ const canApprove = computed(() => {
 
 const getStatusType = (status) => {
   const map = {
+    W: 'info',
+    F: 'warning',
+    T: 'success',
+    Y: 'danger',
     pending: 'warning',
     approved: 'success',
     rejected: 'danger',
@@ -685,6 +700,10 @@ const getStatusType = (status) => {
 
 const getStatusLabel = (status) => {
   const map = {
+    W: '待提交',
+    F: '审核中',
+    T: '已通过',
+    Y: '已驳回',
     pending: '待审核',
     approved: '已通过',
     rejected: '已驳回',
@@ -692,24 +711,103 @@ const getStatusLabel = (status) => {
   return map[status] || status
 }
 
-const loadRouteData = () => {
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const loadRouteData = async () => {
   loading.value = true
-  setTimeout(() => {
-    const id = route.params.id
-    const data = allRouteData.value.find((r) => r.id === parseInt(id)) || allRouteData.value[0]
-    routeData.value = { ...data }
-    currentVersionId.value = data.id
+  try {
+    const workingPlanId = route.params.id
+    const res = await getProcessRouteDetail({ workingPlanId })
+    console.log('获取工艺路线详情成功:', res)
+
+    const detail = res.data?.data?.data || res.data?.data || res.data
+
+    if (!detail) {
+      ElMessage.error('获取工艺路线详情失败')
+      loading.value = false
+      return
+    }
+
+    // 解析description字段中的工序列表
+    let processSteps = []
+    if (detail.description) {
+      try {
+        const processes = JSON.parse(detail.description)
+        console.log('解析出的工序列表:', processes)
+
+        // 为每个工序生成唯一ID并构建processSteps数组
+        processSteps = processes.map((process, index) => ({
+          id: Date.now() + index,
+          processId: process.workingProcedureId,
+          processCode: process.workingProcedureId,
+          stepName: process.workingProcedureName,
+          description: '',
+          devices: [],
+          operators: [],
+          bom: {
+            parentMaterial: null,
+            childMaterials: [],
+          },
+        }))
+      } catch (e) {
+        console.error('解析工序数据失败:', e)
+      }
+    }
+
+    // 映射字段
+    const mappedData = {
+      id: detail.id,
+      routeCode: detail.workingPlanId || '',
+      routeName: detail.workingPlanName || '',
+      product: detail.associatedProduct?.name || detail.associatedProduct?.productName || '',
+      description: detail.workingPlanDescription || '',
+      version: detail.version || '',
+      estimatedDuration: detail.totalProcess || '',
+      status: detail.status || '',
+      rejectReason: detail.rejectionReason || '',
+      submitTime: formatDateTime(detail.submitTime),
+      createTime: formatDateTime(detail.createDate),
+      operationTime: formatDateTime(detail.operateTime),
+      processSteps: processSteps,
+      isCurrent: true,
+      baseId: detail.workingPlanId,
+    }
+
+    routeData.value = { ...mappedData }
+    currentVersionId.value = detail.id
+
     Object.assign(formData, {
-      routeCode: data.routeCode,
-      routeName: data.routeName,
-      product: data.product,
-      description: data.description,
-      version: data.version,
-      estimatedDuration: data.estimatedDuration || '',
-      processSteps: JSON.parse(JSON.stringify(data.processSteps || [])),
+      routeCode: mappedData.routeCode,
+      routeName: mappedData.routeName,
+      product: mappedData.product,
+      description: mappedData.description,
+      version: mappedData.version,
+      estimatedDuration: mappedData.estimatedDuration,
+      processSteps: JSON.parse(JSON.stringify(mappedData.processSteps || [])),
     })
+
+    // 如果有工序，自动加载所有工序的详情
+    if (processSteps.length > 0) {
+      selectedStepId.value = processSteps[0].id
+      // 并行加载所有工序的详情，提高加载速度
+      await Promise.all(processSteps.map((step) => loadStepDetails(step)))
+    }
+  } catch (error) {
+    console.error('获取工艺路线详情失败:', error)
+    ElMessage.error('获取工艺路线详情失败')
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const handleVersionChange = (versionId) => {
@@ -733,6 +831,8 @@ const handleEdit = () => {
     ElMessage.warning('您没有修改权限或该工艺路线不可修改')
     return
   }
+  // 确保formData.processSteps包含完整的工序信息
+  formData.processSteps = JSON.parse(JSON.stringify(routeData.value.processSteps || []))
   isEdit.value = true
 }
 
@@ -757,10 +857,10 @@ const handleCancel = () => {
     .catch(() => {})
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!formRef.value) return
 
-  formRef.value.validate((valid) => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       const hasChanges =
         formData.routeName !== routeData.value.routeName ||
@@ -770,44 +870,67 @@ const handleSave = () => {
         JSON.stringify(formData.processSteps) !== JSON.stringify(routeData.value.processSteps)
 
       if (hasChanges) {
-        const maxId = allRouteData.value.reduce((max, item) => {
-          const id = parseInt(item.id)
-          return id > max ? id : max
-        }, 0)
+        try {
+          // 获取当前用户ID
+          const currentUserId = userStore.userInfo?.id || ''
+          console.log('当前用户ID:', currentUserId)
 
-        const currentMaxVersion = Math.max(
-          ...routeVersions.value.map((r) => parseFloat(r.version.replace('V', ''))),
-        )
-        const newVersion = `V${(currentMaxVersion + 1).toFixed(1)}`
+          // 获取选择的产品ID
+          const selectedProduct = productOptions.value.find(
+            (item) => item.value === formData.product,
+          )
+          const productId = selectedProduct?.id || ''
+          console.log('选择的产品ID:', productId, '产品名称:', formData.product)
 
-        allRouteData.value.forEach((r) => {
-          if (r.baseId === routeData.value.baseId) {
-            r.isCurrent = false
+          // 获取当前时间
+          const currentTime = new Date().toISOString()
+
+          // 计算新版本号
+          let newVersion = 'V1.0'
+          if (routeData.value.version) {
+            const currentVersion = parseFloat(routeData.value.version.replace('V', ''))
+            newVersion = `V${(currentVersion + 1).toFixed(1)}`
           }
-        })
+          console.log('当前版本:', routeData.value.version, '新版本:', newVersion)
 
-        const newRoute = {
-          id: maxId + 1,
-          routeCode: formData.routeCode,
-          routeName: formData.routeName,
-          product: formData.product,
-          description: formData.description,
-          version: newVersion,
-          estimatedDuration: formData.estimatedDuration,
-          isCurrent: true,
-          status: 'pending',
-          rejectReason: '',
-          processSteps: formData.processSteps,
-          operationTime: new Date().toLocaleString(),
-          createTime: routeData.value.createTime,
-          baseId: routeData.value.baseId,
+          // 构建请求参数
+          const requestData = {
+            id: routeData.value.id || '',
+            workingPlanId: formData.routeCode,
+            workingPlanName: formData.routeName,
+            workingPlanDescription: formData.description,
+            version: newVersion,
+            totalProcess: formData.estimatedDuration,
+            applicant: {
+              id: currentUserId,
+            },
+            associatedProduct: {
+              id: productId,
+            },
+            workingProcedures: formData.processSteps.map((step) => ({
+              workingProcedureName: step.stepName,
+              workingProcedureId: step.processCode,
+            })),
+            operateTime: currentTime,
+          }
+
+          console.log('保存工艺路线请求参数:', requestData)
+
+          // 调用API保存工艺路线
+          const res = await updateProcessRoute(requestData)
+          console.log('保存工艺路线响应:', res)
+
+          if (res.data?.code === 200) {
+            ElMessage.success('保存成功')
+            // 重新加载工艺路线详情
+            await loadRouteData()
+          } else {
+            ElMessage.error('保存失败')
+          }
+        } catch (error) {
+          console.error('保存工艺路线失败:', error)
+          ElMessage.error('保存失败')
         }
-
-        allRouteData.value.push(newRoute)
-        routeData.value = { ...newRoute }
-        currentVersionId.value = newRoute.id
-
-        ElMessage.success(`保存成功，已生成新版本 ${newVersion}`)
       } else {
         ElMessage.success('保存成功')
       }
@@ -1125,221 +1248,266 @@ const loadStepDetails = async (step) => {
     }
   } else {
     console.log('在非编辑模式下')
-    console.log('routeData.value.processSteps:', routeData.value.processSteps)
     const stepIndex = routeData.value.processSteps?.findIndex((s) => s.id === step.id)
-    console.log('在routeData.value.processSteps中找到的索引:', stepIndex)
     if (stepIndex === -1 || !routeData.value.processSteps) {
       console.log('在routeData.value.processSteps中未找到工序')
       return
     }
 
-    const stepData = routeData.value.processSteps[stepIndex]
-    console.log('找到的stepData:', stepData)
-
-    if (stepData.devices && stepData.devices.length > 0) {
-      const deviceDetails = await Promise.all(
-        stepData.devices.map(async (device) => {
-          const equipmentId = device.equipmentId || device.deviceId
-          if (equipmentId) {
-            try {
-              const res = await getDeviceDetailByEquipmentId(equipmentId)
-              const detail = res.data?.data?.data || res.data?.data || res.data
-              if (detail) {
-                const locationName = detail.location?.warhouseName || detail.location || ''
-                return {
-                  ...device,
-                  deviceCode: detail.equipmentId || device.deviceCode,
-                  deviceName: detail.equipmentName || device.deviceName,
-                  manufacturer: detail.manufacturer || '',
-                  brand: detail.brand || '',
-                  specModel: detail.specificationModel || detail.specModel || '',
-                  supplier: detail.supplier || '',
-                  productionDate: detail.productionDate || '',
-                  serviceLife: detail.serviceLife || '',
-                  depreciationMethod: detail.depreciationMethod || '',
-                  location: locationName,
-                  stockQuantity:
-                    detail.equipmentQuantity || detail.stockQuantity || detail.quantity || '',
-                  unit: detail.unit || '',
-                }
-              }
-            } catch (error) {
-              console.error('获取设备详情失败:', error)
-            }
-          }
-          return device
-        }),
-      )
-
-      routeData.value = {
-        ...routeData.value,
-        processSteps: routeData.value.processSteps.map((s, index) =>
-          index === stepIndex ? { ...s, devices: deviceDetails } : s,
-        ),
-      }
+    // 根据工序ID获取工序详情
+    const processId = step.processId || step.processCode
+    if (!processId) {
+      console.log('工序没有processId')
+      return
     }
 
-    if (stepData.operators && stepData.operators.length > 0) {
-      console.log('开始处理操作人员数据:', stepData.operators)
-      const operatorDetails = await Promise.all(
-        stepData.operators.map(async (operator) => {
-          const productionStaffId = operator.productionStaffId
-          console.log('处理操作人员:', operator.id, 'productionStaffId:', productionStaffId)
-          if (productionStaffId) {
-            try {
-              console.log('开始获取操作人员详情:', productionStaffId)
-              const res = await getProductionStaffDetail(productionStaffId)
-              console.log('获取到的操作人员详情响应:', res)
-              const detail = res.data?.data || res.data
-              console.log('获取到的操作人员详情数据:', detail)
-              if (detail) {
-                // 确保我们获取到正确的数据结构
-                const actualDetail = detail.data || detail
-                console.log('实际的操作人员详情数据:', actualDetail)
-                const result = {
-                  ...operator,
-                  employeeCode: actualDetail.productionStaffId,
-                  employeeName: actualDetail.productionStaffName,
-                  deptName: actualDetail.department?.description || '',
-                  position: actualDetail.position,
-                }
-                console.log('处理后的操作人员数据:', result)
-                return result
-              } else {
-                console.log('操作人员详情数据为空')
-                return {
-                  ...operator,
-                  employeeCode:
-                    operator.productionStaffId || operator.employeeCode || operator.userCode || '',
-                  employeeName: operator.employeeName || operator.userName || '',
-                  deptName: '',
-                  position: '',
-                }
-              }
-            } catch (error) {
-              console.error('获取操作人员详情失败:', error)
-              return {
-                ...operator,
-                employeeCode:
-                  operator.productionStaffId || operator.employeeCode || operator.userCode || '',
-                employeeName: operator.employeeName || operator.userName || '',
-                deptName: '',
-                position: '',
-              }
-            }
-          } else {
-            console.log('操作人员无productionStaffId')
-            return {
-              ...operator,
-              employeeCode:
-                operator.productionStaffId || operator.employeeCode || operator.userCode || '',
-              employeeName: operator.employeeName || operator.userName || '',
-              deptName: '',
-              position: '',
-            }
-          }
-        }),
-      )
-      console.log('处理完成的操作人员数据:', operatorDetails)
+    try {
+      console.log('开始获取工序详情:', processId)
+      const res = await getProcessDetail({ workingProcedureId: processId })
+      console.log('获取到的工序详情:', res)
 
-      routeData.value = {
-        ...routeData.value,
-        processSteps: routeData.value.processSteps.map((s, index) =>
-          index === stepIndex ? { ...s, operators: operatorDetails } : s,
-        ),
+      const processDetail = res.data?.data?.data || res.data?.data || res.data
+      console.log('工序详情数据:', processDetail)
+      if (!processDetail) {
+        console.log('未获取到工序详情')
+        return
       }
-      console.log('更新后的routeData.value.processSteps:', routeData.value.processSteps)
-    } else {
-      console.log('没有操作人员数据')
-    }
 
-    if (stepData.bom && stepData.bom.childMaterials && stepData.bom.childMaterials.length > 0) {
-      const materialDetails = await Promise.all(
-        stepData.bom.childMaterials.map(async (material) => {
-          const dbId = material.materialId || material.id
-          if (dbId) {
-            try {
-              const res = await getPartDetail(dbId)
-              const detail = res.data?.data?.data || res.data?.data || res.data
-              if (detail) {
-                const categoryName = detail.category?.categoryName || detail.categoryName || ''
-                const locationName = detail.warhouse?.warhouseName || detail.location || ''
-                return {
-                  ...material,
-                  materialCode: detail.partId || material.materialId || material.materialCode || '',
-                  materialName: detail.partName || material.materialName || '',
-                  specModel: detail.specificationModel || material.specModel || '',
-                  quantity: material.quantity || 0,
-                  unit: material.unit || '',
-                  stockQuantity: detail.stockQuantity || material.stockQuantity || '',
-                  supplier: detail.supplier || '',
-                  version: detail.versions || detail.version || '',
-                  category: categoryName || material.category || '',
-                  location: locationName,
-                }
-              } else {
-                return {
-                  ...material,
-                  materialCode: material.materialId || material.materialCode || '',
-                  materialName: material.materialName || '',
-                  specModel: material.specModel || '',
-                  quantity: material.quantity || 0,
-                  unit: material.unit || '',
-                  stockQuantity: material.stockQuantity || '',
-                  supplier: '',
-                  version: '',
-                  category: '',
-                  location: '',
-                }
-              }
-            } catch (error) {
-              console.error('获取物料详情失败:', error)
-              return {
-                ...material,
-                materialCode: material.materialId || material.materialCode || '',
-                materialName: material.materialName || '',
-                specModel: material.specModel || '',
-                quantity: material.quantity || 0,
-                unit: material.unit || '',
-                stockQuantity: material.stockQuantity || '',
-                supplier: '',
-                version: '',
-                category: '',
-                location: '',
-              }
-            }
-          } else {
-            return {
-              ...material,
-              materialCode: material.materialId || material.materialCode || '',
-              materialName: material.materialName || '',
-              specModel: material.specModel || '',
-              quantity: material.quantity || 0,
+      // 提取设备信息
+      let devices = []
+      if (
+        processDetail.production_TestingEquipment &&
+        Array.isArray(processDetail.production_TestingEquipment)
+      ) {
+        console.log('设备信息:', processDetail.production_TestingEquipment)
+        devices = processDetail.production_TestingEquipment.map((device) => ({
+          equipmentId: device.equipmentId,
+          deviceCode: device.equipmentId,
+          deviceName: device.equipmentName,
+          quantity: device.expenditureQuantity,
+          unit: device.unit,
+        }))
+      }
+
+      // 提取操作人员信息
+      let operators = []
+      if (processDetail.operator) {
+        console.log('操作人员信息:', processDetail.operator)
+        operators = [
+          {
+            productionStaffId: processDetail.operator.productionStaffId,
+            employeeCode: processDetail.operator.productionStaffId,
+            employeeName: processDetail.operator.productionStaffName || processDetail.operator.name,
+          },
+        ]
+      }
+
+      // 提取物料信息
+      let childMaterials = []
+      console.log(
+        '物料信息字段:',
+        processDetail.theMaterials,
+        processDetail.materials,
+        processDetail.material,
+        processDetail.description,
+      )
+      if (processDetail.theMaterials && Array.isArray(processDetail.theMaterials)) {
+        console.log('theMaterials物料信息:', processDetail.theMaterials)
+        childMaterials = processDetail.theMaterials.map((material) => ({
+          materialId: material.materialId,
+          materialCode: material.materialId,
+          materialName: material.materialName,
+          quantity: material.expenditureQuantity,
+          unit: material.unit,
+        }))
+      } else if (processDetail.materials && Array.isArray(processDetail.materials)) {
+        console.log('materials物料信息:', processDetail.materials)
+        childMaterials = processDetail.materials.map((material) => ({
+          materialId: material.materialId,
+          materialCode: material.materialId,
+          materialName: material.materialName,
+          quantity: material.expenditureQuantity,
+          unit: material.unit,
+        }))
+      } else if (processDetail.material) {
+        console.log('material物料信息:', processDetail.material)
+        childMaterials = [
+          {
+            materialId: processDetail.material.materialId,
+            materialCode: processDetail.material.materialId,
+            materialName: processDetail.material.materialName,
+            quantity: processDetail.material.expenditureQuantity,
+            unit: processDetail.material.unit,
+          },
+        ]
+      } else if (processDetail.description) {
+        console.log('description物料信息:', processDetail.description)
+        try {
+          const descriptionData = JSON.parse(processDetail.description)
+          if (Array.isArray(descriptionData)) {
+            childMaterials = descriptionData.map((material) => ({
+              materialId: material.materialId,
+              materialCode: material.materialId,
+              materialName: material.materialName,
+              quantity: material.quantity || 1,
               unit: material.unit || '',
-              stockQuantity: material.stockQuantity || '',
-              supplier: '',
-              version: '',
-              category: '',
-              location: '',
-            }
+            }))
           }
-        }),
-      )
+        } catch (error) {
+          console.error('解析description字段失败:', error)
+        }
+      }
+      console.log('提取的物料列表:', childMaterials)
 
+      // 更新routeData中的工序信息
       routeData.value = {
         ...routeData.value,
         processSteps: routeData.value.processSteps.map((s, index) =>
           index === stepIndex
             ? {
                 ...s,
+                description: processDetail.productionSteps || processDetail.description || '',
+                devices: devices,
+                operators: operators,
                 bom: {
-                  ...s.bom,
-                  childMaterials: materialDetails,
+                  parentMaterial: null,
+                  childMaterials: childMaterials,
                 },
               }
             : s,
         ),
       }
+
+      // 获取设备详情
+      if (devices.length > 0) {
+        const deviceDetails = await Promise.all(
+          devices.map(async (device) => {
+            const equipmentId = device.equipmentId
+            if (equipmentId) {
+              try {
+                const res = await getDeviceDetailByEquipmentId(equipmentId)
+                const detail = res.data?.data?.data || res.data?.data || res.data
+                if (detail) {
+                  const locationName = detail.location?.warhouseName || detail.location || ''
+                  return {
+                    ...device,
+                    deviceCode: detail.equipmentId || device.deviceCode,
+                    deviceName: detail.equipmentName || device.deviceName,
+                    manufacturer: detail.manufacturer || '',
+                    brand: detail.brand || '',
+                    specModel: detail.specificationModel || detail.specModel || '',
+                    supplier: detail.supplier || '',
+                    productionDate: detail.productionDate || '',
+                    serviceLife: detail.serviceLife || '',
+                    depreciationMethod: detail.depreciationMethod || '',
+                    location: locationName,
+                    stockQuantity:
+                      detail.equipmentQuantity || detail.stockQuantity || detail.quantity || '',
+                    unit: detail.unit || '',
+                  }
+                }
+              } catch (error) {
+                console.error('获取设备详情失败:', error)
+              }
+            }
+            return device
+          }),
+        )
+        routeData.value = {
+          ...routeData.value,
+          processSteps: routeData.value.processSteps.map((s, index) =>
+            index === stepIndex ? { ...s, devices: deviceDetails } : s,
+          ),
+        }
+      }
+
+      // 获取操作人员详情
+      if (operators.length > 0) {
+        const operatorDetails = await Promise.all(
+          operators.map(async (operator) => {
+            const productionStaffId = operator.productionStaffId
+            if (productionStaffId) {
+              try {
+                const res = await getProductionStaffDetail(productionStaffId)
+                const detail = res.data?.data || res.data
+                if (detail) {
+                  const actualDetail = detail.data || detail
+                  return {
+                    ...operator,
+                    employeeCode: actualDetail.productionStaffId,
+                    employeeName: actualDetail.productionStaffName,
+                    deptName: actualDetail.department?.departmentName || '',
+                    position: actualDetail.position,
+                  }
+                }
+              } catch (error) {
+                console.error('获取操作人员详情失败:', error)
+              }
+            }
+            return operator
+          }),
+        )
+        routeData.value = {
+          ...routeData.value,
+          processSteps: routeData.value.processSteps.map((s, index) =>
+            index === stepIndex ? { ...s, operators: operatorDetails } : s,
+          ),
+        }
+      }
+
+      // 获取物料详情
+      if (childMaterials.length > 0) {
+        const materialDetails = await Promise.all(
+          childMaterials.map(async (material) => {
+            const dbId = material.materialId
+            if (dbId) {
+              try {
+                const res = await getPartDetail(dbId)
+                const detail = res.data?.data?.data || res.data?.data || res.data
+                if (detail) {
+                  const categoryName = detail.category?.categoryName || detail.categoryName || ''
+                  const locationName = detail.warhouse?.warhouseName || detail.location || ''
+                  return {
+                    ...material,
+                    materialCode:
+                      detail.partId || material.materialId || material.materialCode || '',
+                    materialName: detail.partName || material.materialName || '',
+                    specModel: detail.specificationModel || material.specModel || '',
+                    quantity: material.quantity || 0,
+                    unit: material.unit || '',
+                    stockQuantity: detail.stockQuantity || material.stockQuantity || '',
+                    supplier: detail.supplier || '',
+                    version: detail.versions || detail.version || '',
+                    category: categoryName || material.category || '',
+                    location: locationName,
+                  }
+                }
+              } catch (error) {
+                console.error('获取物料详情失败:', error)
+              }
+            }
+            return material
+          }),
+        )
+        routeData.value = {
+          ...routeData.value,
+          processSteps: routeData.value.processSteps.map((s, index) =>
+            index === stepIndex
+              ? {
+                  ...s,
+                  bom: {
+                    ...s.bom,
+                    childMaterials: materialDetails,
+                  },
+                }
+              : s,
+          ),
+        }
+      }
+
+      console.log('工序详情加载完成:', routeData.value.processSteps[stepIndex])
+    } catch (error) {
+      console.error('获取工序详情失败:', error)
     }
   }
 }
@@ -1384,22 +1552,6 @@ watch(
         </div>
       </div>
       <div class="header-right">
-        <div class="version-selector">
-          <span class="version-label">版本：</span>
-          <el-select
-            v-model="currentVersionId"
-            placeholder="选择版本"
-            style="width: 180px"
-            @change="handleVersionChange"
-          >
-            <el-option
-              v-for="item in versionOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
         <template v-if="!isEdit">
           <el-button v-if="canEdit" type="primary" :icon="Edit" @click="handleEdit">修改</el-button>
           <el-button v-if="canApprove" type="success" :icon="Check" @click="handleAudit"

@@ -264,6 +264,7 @@ const loadDeviceData = async () => {
     initExtendFields()
 
     // 加载备品备件的物料详情
+    console.log('准备加载备品备件详情:', mappedData.spareParts)
     await loadSparePartsDetails(mappedData.spareParts)
     console.log('sparePartsDetails加载后:', sparePartsDetails.value)
   } catch (error) {
@@ -626,14 +627,29 @@ onMounted(() => {
               <div class="extend-content">
                 <div v-if="hasSpareParts" class="data-table-container">
                   <el-table :data="sparePartsDetails" border size="small">
-                    <el-table-column prop="materialCode" label="物料编号" width="120" />
-                    <el-table-column prop="materialName" label="物料名称" width="150" />
-                    <el-table-column prop="specModel" label="规格型号" width="120" />
-                    <el-table-column prop="stockQuantity" label="库存数量" width="100" />
-                    <el-table-column prop="supplier" label="供应商" width="150" />
-                    <el-table-column prop="version" label="版本号" width="80" />
-                    <el-table-column prop="category" label="分类" width="120" />
-                    <el-table-column prop="location" label="位置" width="100" />
+                    <el-table-column
+                      prop="materialCode"
+                      label="物料编号"
+                      width="120"
+                      align="left"
+                    />
+                    <el-table-column
+                      prop="materialName"
+                      label="物料名称"
+                      width="150"
+                      align="left"
+                    />
+                    <el-table-column prop="specModel" label="规格型号" width="120" align="left" />
+                    <el-table-column
+                      prop="stockQuantity"
+                      label="库存数量"
+                      width="100"
+                      align="left"
+                    />
+                    <el-table-column prop="supplier" label="供应商" width="150" align="left" />
+                    <el-table-column prop="version" label="版本号" width="80" align="left" />
+                    <el-table-column prop="category" label="分类" width="120" align="left" />
+                    <el-table-column prop="location" label="位置" width="100" align="left" />
                   </el-table>
                 </div>
                 <div v-else-if="deviceData.spareParts" class="data-table-container">

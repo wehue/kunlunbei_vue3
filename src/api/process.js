@@ -30,12 +30,12 @@ export function createProcessRoute(data) {
   return instance.post('/api/workingPlan/create', data)
 }
 
-// 获取工艺路线列表
+// 获取工艺路线列表（支持多条件查询）
 export function getProcessRouteList(params) {
   return instance.get('/api/workingPlan/find', { params })
 }
 
-// 获取工艺路线详情
+// 获取工艺路线详情（根据工艺路线ID查询）
 export function getProcessRouteDetail(params) {
   return instance.get('/api/workingPlan/findByWorkingPlanId', { params })
 }
@@ -48,4 +48,15 @@ export function updateProcessRoute(data) {
 // 删除工艺路线
 export function deleteProcessRoute(params) {
   return instance.put('/api/workingPlan/delete', {}, { params })
+}
+
+// 工艺流程分析（上传文件）
+export function analyzeProcessFlow(file) {
+  const formData = new FormData()
+  formData.append('imageFile', file)
+  return instance.post('/api/ai/flowchartProcessAnalyze/analyze', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
 }

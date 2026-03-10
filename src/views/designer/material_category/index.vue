@@ -37,7 +37,7 @@ const fetchCategoryList = async () => {
   loading.value = true
   try {
     const res = await getPartCategoryList()
-    console.log('完整响应:', res)
+    console.log('获取物料分类列表成功:', res)
 
     let dataList = []
     if (res.data && Array.isArray(res.data)) {
@@ -53,12 +53,9 @@ const fetchCategoryList = async () => {
       dataList = res.data.data.data
     }
 
-    console.log('最终数据列表:', dataList)
-
     if (dataList.length > 0) {
       flatCategoryList.value = dataList
       categoryData.value = transformToTree(dataList)
-      console.log('转换后的树形数据:', categoryData.value)
     }
   } catch (error) {
     console.error('获取分类列表失败:', error)
@@ -69,15 +66,12 @@ const fetchCategoryList = async () => {
 }
 
 const transformToTree = (flatList) => {
-  console.log('开始转换数据，原始数据:', flatList)
-
   const maxList = []
   const midMap = new Map()
   const minMap = new Map()
 
   flatList.forEach((item) => {
     const id = String(item.categoryId)
-    console.log(`处理项: id=${id}, name=${item.categoryName}, level=${item.level}`)
 
     const node = {
       id: item.categoryId,
@@ -88,17 +82,14 @@ const transformToTree = (flatList) => {
 
     if (item.level === 'Max') {
       maxList.push(node)
-      console.log('添加到 Max 列表')
     } else if (item.level === 'Mid') {
       const parentId = Math.floor(parseInt(id) / 100) * 100
-      console.log(`Mid 的父级ID: ${parentId}`)
       if (!midMap.has(String(parentId))) {
         midMap.set(String(parentId), [])
       }
       midMap.get(String(parentId)).push(node)
     } else if (item.level === 'Min') {
       const parentId = id.substring(0, 3)
-      console.log(`Min 的父级ID: ${parentId}`)
       if (!minMap.has(parentId)) {
         minMap.set(parentId, [])
       }
@@ -106,25 +97,16 @@ const transformToTree = (flatList) => {
     }
   })
 
-  console.log('Max列表:', maxList)
-  console.log('MidMap:', Object.fromEntries(midMap))
-  console.log('MinMap:', Object.fromEntries(minMap))
-
   maxList.forEach((maxNode) => {
     const maxId = String(maxNode.id)
-    console.log(`处理 Max 节点: ${maxId}`)
     const midChildren = midMap.get(maxId) || []
-    console.log(`找到 ${midChildren.length} 个 Mid 子节点`)
     midChildren.forEach((midNode) => {
       const midId = String(midNode.id)
       const minChildren = minMap.get(midId) || []
-      console.log(`Mid ${midId} 找到 ${minChildren.length} 个 Min 子节点`)
       midNode.children = minChildren
     })
     maxNode.children = midChildren
   })
-
-  console.log('最终树形数据:', maxList)
   return maxList
 }
 

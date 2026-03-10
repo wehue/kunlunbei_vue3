@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Delete,
   DataAnalysis,
@@ -9,6 +9,7 @@ import {
   SuccessFilled,
   WarningFilled,
 } from '@element-plus/icons-vue'
+import { analyzeProcessFlow } from '@/api/process'
 
 const router = useRouter()
 
@@ -78,25 +79,16 @@ const analyzeFlowchart = async () => {
   analysisResult.value = null
 
   try {
-    const formData = new FormData()
-    formData.append('imageFile', selectedFile.value)
+    const response = await analyzeProcessFlow(selectedFile.value)
+    console.log('获取分析结果成功', response)
 
-    const response = await fetch('http://localhost:8080/ai/flowchartProcessAnalyze/analyze', {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!response.ok) {
-      throw new Error('分析请求失败')
-    }
-
-    const result = await response.json()
+    const result = response.data
     analysisResult.value = result
 
     handleAnalysisResult(result)
   } catch (error) {
     console.error('分析失败:', error)
-    ElMessage.error('分析失败: ' + error.message)
+    ElMessage.error('分析失败: ' + (error.message || '未知错误'))
   } finally {
     isAnalyzing.value = false
   }
@@ -104,36 +96,52 @@ const analyzeFlowchart = async () => {
 
 const handleAnalysisResult = (result) => {
   const status = result.status
-  const processes = result.missingProcesses || []
+  const processes = result.missingWorkingProcedure || []
 
   if (status === 1) {
-    const processNames = processes.map((p) => p.processName).join('、')
-    ElMessage.warning({
-      message: `分析完成，存在缺失的工序：${processNames}，请先配置工序`,
-      duration: 5000,
+    const processNames = processes.map((p) => p.workingProcedureName).join('、')
+    const message = `分析完成，存在缺失的工序：\n\n${processNames}\n\n请先配置工序后再进行工艺路线配置。`
+
+    ElMessageBox.alert(message, '提示', {
+      confirmButtonText: '前往配置',
+      cancelButtonText: '取消',
+      type: 'warning',
+      center: true,
+      showCancelButton: true,
+      callback: (action) => {
+        if (action === 'confirm') {
+          localStorage.setItem(
+            'processConfigHint',
+            JSON.stringify({
+              show: true,
+              message: `分析完成，存在缺失的工序：${processNames}，请先配置工序`,
+              missingProcesses: processes,
+            }),
+          )
+          router.push('/process-manage/process-manage-info')
+        }
+      },
     })
-    localStorage.setItem(
-      'processConfigHint',
-      JSON.stringify({
-        show: true,
-        message: '分析完成，存在缺失的工序，请先配置工序',
-        missingProcesses: processes,
-      }),
-    )
-    router.push('/process-manage/process-manage-info')
   } else if (status === 0) {
-    ElMessage.success({
-      message: '分析完成，所有工序均已存在，可以直接配置工艺路线',
-      duration: 5000,
+    ElMessageBox.alert('分析完成，所有工序均已存在，可以直接配置工艺路线。', '提示', {
+      confirmButtonText: '前往配置',
+      cancelButtonText: '取消',
+      type: 'success',
+      center: true,
+      showCancelButton: true,
+      callback: (action) => {
+        if (action === 'confirm') {
+          localStorage.setItem(
+            'routeConfigHint',
+            JSON.stringify({
+              show: true,
+              message: '分析完成，所有工序均已存在，可以直接配置工艺路线',
+            }),
+          )
+          router.push('/process-route-manage/process-route-manage-info')
+        }
+      },
     })
-    localStorage.setItem(
-      'routeConfigHint',
-      JSON.stringify({
-        show: true,
-        message: '分析完成，所有工序均已存在，可以直接配置工艺路线',
-      }),
-    )
-    router.push('/process-route-manage/process-route-manage-info')
   }
 }
 </script>
@@ -210,12 +218,12 @@ const handleAnalysisResult = (result) => {
             <p class="result-text warning">存在缺失的工序，请先配置以下工序：</p>
             <div class="missing-processes">
               <el-tag
-                v-for="process in analysisResult.missingProcesses"
+                v-for="process in analysisResult.missingWorkingProcedure"
                 :key="process.processIndex"
                 type="warning"
                 class="process-tag"
               >
-                {{ process.processIndex }}. {{ process.processName }}
+                {{ process.processIndex }}. {{ process.workingProcedureName }}
               </el-tag>
             </div>
           </template>

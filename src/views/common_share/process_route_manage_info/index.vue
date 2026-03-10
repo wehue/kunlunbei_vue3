@@ -2,29 +2,29 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, View, Download, Check } from '@element-plus/icons-vue'
+import { Plus, View, Download, Check, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import { getProcessRouteList, deleteProcessRoute } from '@/api/process'
 
 const router = useRouter()
 const { hasPermission, isAdminRole, isSupervisorRole, isDesignerRole, currentRole } =
   usePermission()
 
 const proTableRef = ref()
-const showAllVersions = ref(false)
 
 const statusOptions = [
-  { label: '待审核', value: 'pending' },
-  { label: '已通过', value: 'approved' },
-  { label: '已驳回', value: 'rejected' },
+  { label: '待提交', value: 'W' },
+  { label: '审核中', value: 'F' },
+  { label: '已通过', value: 'T' },
+  { label: '已驳回', value: 'Y' },
 ]
 
-const productOptions = [
-  { label: '汽车零部件A', value: '汽车零部件A' },
-  { label: '电子设备B', value: '电子设备B' },
-  { label: '管道组件C', value: '管道组件C' },
-  { label: '机械零件D', value: '机械零件D' },
+const versionOptions = [
+  { label: 'V1.0', value: 'V1.0' },
+  { label: 'V2.0', value: 'V2.0' },
+  { label: 'V3.0', value: 'V3.0' },
 ]
 
 const allRouteData = ref([
@@ -217,20 +217,35 @@ const canManageRoute = computed(() => isDesignerRole.value)
 
 const getStatusType = (status) => {
   const map = {
-    pending: 'warning',
-    approved: 'success',
-    rejected: 'danger',
+    W: 'info',
+    F: 'warning',
+    T: 'success',
+    Y: 'danger',
   }
   return map[status] || 'info'
 }
 
 const getStatusLabel = (status) => {
   const map = {
-    pending: '待审核',
-    approved: '已通过',
-    rejected: '已驳回',
+    W: '待提交',
+    F: '审核中',
+    T: '已通过',
+    Y: '已驳回',
   }
   return map[status] || status
+}
+
+// 格式化日期时间
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 const columns = reactive([
@@ -252,15 +267,15 @@ const columns = reactive([
     prop: 'product',
     label: '所属产品',
     minWidth: 130,
-    search: { el: 'select', key: 'product' },
-    enum: productOptions,
+    search: { el: 'input', key: 'product' },
   },
   {
     prop: 'version',
     label: '版本',
     minWidth: 80,
     align: 'center',
-    search: { el: 'input', key: 'version' },
+    search: { el: 'select', key: 'version' },
+    enum: versionOptions,
   },
   {
     prop: 'status',
@@ -279,12 +294,12 @@ const handleAdd = () => {
 }
 
 const handleView = (row) => {
-  router.push(`/process-route-manage/process-route-manage-detail/${row.id}`)
+  router.push(`/process-route-manage/process-route-manage-detail/${row.routeCode}`)
 }
 
 const handleSubmitAudit = (row) => {
-  if (row.status !== 'rejected') {
-    ElMessage.warning('只有已驳回状态的工艺路线可以提交审核')
+  if (row.status !== 'Y' && row.status !== 'W') {
+    ElMessage.warning('只有待提交或已驳回状态的工艺路线可以提交审核')
     return
   }
   ElMessageBox.confirm('确定要提交审核吗？', '提示', {
@@ -295,10 +310,67 @@ const handleSubmitAudit = (row) => {
     .then(() => {
       const route = allRouteData.value.find((r) => r.id === row.id)
       if (route) {
-        route.status = 'pending'
-        row.status = 'pending'
+        route.status = 'F'
+        row.status = 'F'
       }
       ElMessage.success('已提交审核')
+    })
+    .catch(() => {})
+}
+
+const handleDelete = (row) => {
+  console.log('删除工艺路线:', row)
+  console.log('工艺路线ID:', row.routeCode)
+
+  ElMessageBox.confirm('确定要删除该工艺路线吗？', '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'danger',
+  })
+    .then(async () => {
+      try {
+        // 确保routeCode存在
+        if (!row.routeCode) {
+          ElMessage.error('工艺路线ID不存在')
+          return
+        }
+
+        console.log('调用删除接口，参数:', { workingPlanId: row.routeCode })
+        const res = await deleteProcessRoute({ workingPlanId: row.routeCode })
+        console.log('删除接口响应:', res)
+
+        if (res.data?.code === 200) {
+          ElMessage.success('删除成功')
+          // 等待一小段时间后刷新列表
+          setTimeout(() => {
+            try {
+              // 尝试使用search方法刷新列表
+              if (proTableRef?.search) {
+                proTableRef.search()
+                console.log('使用search方法刷新列表成功')
+              } else if (proTableRef?.getTableList) {
+                proTableRef.getTableList()
+                console.log('使用getTableList方法刷新列表成功')
+              } else {
+                console.error('ProTable组件没有刷新方法')
+                // 手动重新加载数据
+                getTableList()
+                console.log('手动调用getTableList函数刷新列表')
+              }
+            } catch (error) {
+              console.error('刷新列表失败:', error)
+              // 手动重新加载数据
+              getTableList()
+              console.log('手动调用getTableList函数刷新列表')
+            }
+          }, 500)
+        } else {
+          ElMessage.error('删除失败')
+        }
+      } catch (error) {
+        console.error('删除工艺路线失败:', error)
+        ElMessage.error('删除失败')
+      }
     })
     .catch(() => {})
 }
@@ -343,50 +415,80 @@ const handleExportBatch = (selectedList) => {
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let filteredData = [...displayData.value]
+  try {
+    // 构建查询参数，映射字段名
+    const queryParams = {
+      workingPlanId: params?.routeCode,
+      workingPlanName: params?.routeName,
+      productId: params?.product,
+      version: params?.version,
+      status: params?.status,
+      pageNum: params?.pageNum || 1,
+      pageSize: params?.pageSize || 10,
+    }
 
-      if (params?.routeCode) {
-        filteredData = filteredData.filter((item) => item.routeCode.includes(params.routeCode))
+    const res = await getProcessRouteList(queryParams)
+    console.log('获取工艺路线列表信息成功', res)
+
+    let data = res.data?.data?.data || res.data?.data || []
+    if (!Array.isArray(data)) {
+      data = []
+    }
+
+    // 按工艺编号分组，只保留最新版本
+    const routeGroups = {}
+    data.forEach((item) => {
+      const routeCode = item.workingPlanId || item.id
+      if (!routeGroups[routeCode]) {
+        routeGroups[routeCode] = item
+      } else {
+        // 比较版本号，保留最新版本
+        const currentVersion = parseFloat(routeGroups[routeCode].version?.replace('V', '') || 0)
+        const newVersion = parseFloat(item.version?.replace('V', '') || 0)
+        if (newVersion > currentVersion) {
+          routeGroups[routeCode] = item
+        }
       }
+    })
 
-      if (params?.routeName) {
-        filteredData = filteredData.filter((item) => item.routeName.includes(params.routeName))
+    // 映射字段
+    const mappedData = Object.values(routeGroups).map((item, index) => {
+      const productName =
+        item.associatedProduct?.name ||
+        item.associatedProduct?.productName ||
+        item.associatedProduct?.productname ||
+        ''
+      return {
+        id: item.id,
+        routeCode: item.workingPlanId || '',
+        routeName: item.workingPlanName || '',
+        product: productName,
+        version: item.version || '',
+        status: item.status || '',
+        operationTime: formatDateTime(item.operateTime || item.operationTime || ''),
+        isCurrent: true, // 默认为当前版本
+        baseId: item.workingPlanId || item.id, // 使用工艺编号作为基础ID
+        index: ((params?.pageNum || 1) - 1) * (params?.pageSize || 10) + index + 1,
+        versionCount: 1, // 默认为1个版本
       }
+    })
 
-      if (params?.product) {
-        filteredData = filteredData.filter((item) => item.product === params.product)
-      }
-
-      if (params?.version) {
-        filteredData = filteredData.filter((item) => item.version.includes(params.version))
-      }
-
-      if (params?.status) {
-        filteredData = filteredData.filter((item) => item.status === params.status)
-      }
-
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
-
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-        versionCount: getVersionCount(item.baseId),
-      }))
-
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: filteredData.length,
-        },
-      })
-    }, 300)
-  })
+    return {
+      data: {
+        list: mappedData,
+        total: mappedData.length,
+      },
+    }
+  } catch (error) {
+    console.error('获取工艺路线列表失败:', error)
+    ElMessage.error('获取工艺路线列表失败')
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 </script>
 
@@ -412,14 +514,6 @@ const getTableList = async (params) => {
             >
               批量导出
             </el-button>
-          </div>
-          <div class="header-right">
-            <el-switch
-              v-model="showAllVersions"
-              active-text="显示所有版本"
-              inactive-text="仅显示当前版本"
-              @change="proTableRef?.getTableList()"
-            />
           </div>
         </div>
       </template>
@@ -452,7 +546,7 @@ const getTableList = async (params) => {
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
         <el-button
-          v-if="canApprove && scope.row.status === 'pending'"
+          v-if="canApprove && (scope.row.status === 'W' || scope.row.status === 'F')"
           type="primary"
           link
           :icon="Check"
@@ -461,12 +555,21 @@ const getTableList = async (params) => {
           审核
         </el-button>
         <el-button
-          v-if="canSubmitAudit && scope.row.status === 'rejected'"
+          v-if="canSubmitAudit && (scope.row.status === 'W' || scope.row.status === 'Y')"
           type="warning"
           link
           @click="handleSubmitAudit(scope.row)"
         >
           提交审核
+        </el-button>
+        <el-button
+          v-if="isAdminRole"
+          type="danger"
+          link
+          :icon="Delete"
+          @click="handleDelete(scope.row)"
+        >
+          删除
         </el-button>
       </template>
     </ProTable>
