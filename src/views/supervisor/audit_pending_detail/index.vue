@@ -26,327 +26,24 @@ const submitLoading = ref(false)
 const auditData = ref({})
 const rejectDialogVisible = ref(false)
 const rejectReason = ref('')
-const currentVersionIndex = ref(0)
-const versionHistoryVisible = ref(false)
-const compareDialogVisible = ref(false)
-const compareVersions = ref({ old: null, new: null })
+
 const selectedStepId = ref(null)
 const activeDetailTab = ref('devices')
 
-const mockVersionHistory = ref([
-  {
-    version: 'V1.0',
-    versionCode: 1,
-    submitTime: '2024-01-10 09:30:00',
-    applicant: '张三',
-    status: '已驳回',
-    rejectReason: '工艺流程顺序存在错误，请调整后重新提交',
-    changeDescription: '初始版本提交',
+
+
+const mockAuditData = {
+  1: {
+    id: 1,
     processCode: 'PR001',
     processName: '智能手机组装工艺路线',
-    product: '智能手机A1',
-    description: '该工艺路线用于智能手机A1的组装生产。',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '主板安装',
-        description: '将主板安装到手机框架中',
-        devices: [
-          {
-            id: 1,
-            deviceCode: 'DEV001',
-            deviceName: '贴片机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SMT-800',
-            supplier: '北京华工',
-            productionDate: '2022-03-15',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '一车间',
-            stockQuantity: 5,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 1,
-            employeeCode: 'EMP20240001',
-            employeeName: '张三',
-            deptName: '技术部',
-            position: '工程师',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT001',
-            materialName: '主板组件',
-            specModel: 'MB-A1',
-            stockQuantity: 100,
-            supplier: '华为供应商',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT002',
-              materialName: '焊锡',
-              specModel: '标准型',
-              quantity: 5,
-              unit: '克',
-              stockQuantity: 500,
-              supplier: '中石化',
-              version: 'V2.0',
-              category: '辅料',
-              location: '辅料仓',
-            },
-          ],
-        },
-      },
-      {
-        id: 2,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '电池组装',
-        description: '将电池组装到手机中',
-        devices: [
-          {
-            id: 2,
-            deviceCode: 'DEV002',
-            deviceName: '组装台A',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'ASSEMBLE-500',
-            supplier: '广州机电',
-            productionDate: '2023-01-10',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 8,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT003',
-            materialName: '电池组',
-            specModel: 'BAT-A1',
-            stockQuantity: 200,
-            supplier: '宁德时代',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓B区',
-          },
-          childMaterials: [],
-        },
-      },
-    ],
-  },
-  {
-    version: 'V1.1',
-    versionCode: 2,
-    submitTime: '2024-01-12 10:15:00',
-    applicant: '张三',
-    status: '已驳回',
-    rejectReason: '缺少摄像头安装工序，请补充完整',
-    changeDescription: '调整工艺流程顺序，屏幕贴合移至电池组装之前',
-    processCode: 'PR001',
-    processName: '智能手机组装工艺路线',
-    product: '智能手机A1',
-    description:
-      '该工艺路线用于智能手机A1的组装生产，包括主板安装、屏幕贴合、电池组装、外壳封装等主要工序。',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '主板安装',
-        description: '将主板安装到手机框架中',
-        devices: [
-          {
-            id: 1,
-            deviceCode: 'DEV001',
-            deviceName: '贴片机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SMT-800',
-            supplier: '北京华工',
-            productionDate: '2022-03-15',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '一车间',
-            stockQuantity: 5,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 1,
-            employeeCode: 'EMP20240001',
-            employeeName: '张三',
-            deptName: '技术部',
-            position: '工程师',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT001',
-            materialName: '主板组件',
-            specModel: 'MB-A1',
-            stockQuantity: 100,
-            supplier: '华为供应商',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT002',
-              materialName: '焊锡',
-              specModel: '标准型',
-              quantity: 5,
-              unit: '克',
-              stockQuantity: 500,
-              supplier: '中石化',
-              version: 'V2.0',
-              category: '辅料',
-              location: '辅料仓',
-            },
-          ],
-        },
-      },
-      {
-        id: 2,
-        processId: 3,
-        processCode: 'PRC003',
-        stepName: '屏幕贴合',
-        description: '将屏幕贴合到手机框架',
-        devices: [
-          {
-            id: 3,
-            deviceCode: 'DEV003',
-            deviceName: '贴合机A',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'BOND-300',
-            supplier: '上海精密',
-            productionDate: '2021-06-20',
-            serviceLife: 12,
-            depreciationMethod: '年数总和法',
-            location: '二车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT004',
-            materialName: '屏幕组件',
-            specModel: 'SCR-A1',
-            stockQuantity: 150,
-            supplier: '京东方',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓C区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT005',
-              materialName: '贴合胶',
-              specModel: '标准型',
-              quantity: 2,
-              unit: '毫升',
-              stockQuantity: 300,
-              supplier: '3M公司',
-              version: 'V1.0',
-              category: '辅料',
-              location: '辅料仓',
-            },
-          ],
-        },
-      },
-      {
-        id: 3,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '电池组装',
-        description: '将电池组装到手机中',
-        devices: [
-          {
-            id: 2,
-            deviceCode: 'DEV002',
-            deviceName: '组装台A',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'ASSEMBLE-500',
-            supplier: '广州机电',
-            productionDate: '2023-01-10',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 8,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT003',
-            materialName: '电池组',
-            specModel: 'BAT-A1',
-            stockQuantity: 200,
-            supplier: '宁德时代',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓B区',
-          },
-          childMaterials: [],
-        },
-      },
-    ],
-  },
-  {
     version: 'V1.2',
-    versionCode: 3,
-    submitTime: '2024-01-15 09:30:00',
-    applicant: '张三',
-    status: '待审核',
-    rejectReason: '',
-    changeDescription: '新增摄像头安装工序，完善工艺流程',
-    processCode: 'PR001',
-    processName: '智能手机组装工艺路线',
     product: '智能手机A1',
     description:
       '该工艺路线用于智能手机A1的组装生产，包括主板安装、屏幕贴合、电池组装、摄像头安装、外壳封装等主要工序。',
+    applicant: '张三',
+    submitTime: '2024-01-15 09:30:00',
+    hasVersionHistory: false,
     processSteps: [
       {
         id: 1,
@@ -787,22 +484,6 @@ const mockVersionHistory = ref([
         },
       },
     ],
-  },
-])
-
-const mockAuditData = {
-  1: {
-    id: 1,
-    processCode: 'PR001',
-    processName: '智能手机组装工艺路线',
-    version: 'V1.2',
-    product: '智能手机A1',
-    description:
-      '该工艺路线用于智能手机A1的组装生产，包括主板安装、屏幕贴合、电池组装、摄像头安装、外壳封装等主要工序。',
-    applicant: '张三',
-    submitTime: '2024-01-15 09:30:00',
-    hasVersionHistory: true,
-    processSteps: mockVersionHistory.value[2].processSteps,
   },
   2: {
     id: 2,
@@ -2031,11 +1712,11 @@ const mockAuditData = {
 }
 
 const currentVersion = computed(() => {
-  return mockVersionHistory.value[currentVersionIndex.value] || mockVersionHistory.value[0]
+  return auditData.value
 })
 
 const currentProcessSteps = computed(() => {
-  return currentVersion.value.processSteps || []
+  return auditData.value.processSteps || []
 })
 
 const selectedStep = computed(() => {
@@ -2052,9 +1733,8 @@ const loadAuditData = () => {
     const id = route.params.id
     const data = mockAuditData[id] || mockAuditData[1]
     auditData.value = { ...data }
-    currentVersionIndex.value = mockVersionHistory.value.length - 1
-    if (currentProcessSteps.value.length > 0) {
-      selectedStepId.value = currentProcessSteps.value[0].id
+    if (auditData.value.processSteps && auditData.value.processSteps.length > 0) {
+      selectedStepId.value = auditData.value.processSteps[0].id
     }
     loading.value = false
   }, 300)
@@ -2160,39 +1840,7 @@ const handleBack = () => {
   router.push('/audit-manage/audit-pending')
 }
 
-const handleViewVersionHistory = () => {
-  versionHistoryVisible.value = true
-}
 
-const handleSwitchVersion = (index) => {
-  currentVersionIndex.value = index
-  versionHistoryVisible.value = false
-  if (currentProcessSteps.value.length > 0) {
-    selectedStepId.value = currentProcessSteps.value[0].id
-  }
-  ElMessage.success(`已切换到版本 ${mockVersionHistory.value[index].version}`)
-}
-
-const handleCompareVersion = (oldIndex, newIndex) => {
-  compareVersions.value = {
-    old: mockVersionHistory.value[oldIndex],
-    new: mockVersionHistory.value[newIndex],
-  }
-  compareDialogVisible.value = true
-}
-
-const getStatusType = (status) => {
-  switch (status) {
-    case '待审核':
-      return 'warning'
-    case '已通过':
-      return 'success'
-    case '已驳回':
-      return 'danger'
-    default:
-      return 'info'
-  }
-}
 
 onMounted(() => {
   loadAuditData()
@@ -2210,14 +1858,6 @@ onMounted(() => {
         </div>
       </div>
       <div class="header-right">
-        <el-button
-          v-if="auditData.hasVersionHistory"
-          type="info"
-          :icon="Clock"
-          @click="handleViewVersionHistory"
-        >
-          版本历史
-        </el-button>
         <el-button type="success" :icon="Check" :loading="submitLoading" @click="handleApprove"
           >通过</el-button
         >
@@ -2228,12 +1868,7 @@ onMounted(() => {
     </div>
 
     <div v-loading="loading" class="detail-content">
-      <div class="version-info-bar" v-if="auditData.hasVersionHistory">
-        <el-tag type="primary" size="large">当前版本：{{ currentVersion.version }}</el-tag>
-        <span class="version-meta">
-          提交时间：{{ currentVersion.submitTime }} | 申请人：{{ currentVersion.applicant }}
-        </span>
-      </div>
+
 
       <div class="section-card">
         <div class="section-header">
@@ -2395,62 +2030,8 @@ onMounted(() => {
                 </div>
 
                 <div v-show="activeDetailTab === 'bom'" class="tab-content">
-                  <div v-if="selectedStep.bom?.parentMaterial" class="bom-section">
-                    <div class="bom-section-title">父物料信息</div>
-                    <div class="material-info-card">
-                      <div class="info-row">
-                        <div class="info-col">
-                          <span class="label">物料编号：</span>
-                          <el-tag size="small">{{
-                            selectedStep.bom.parentMaterial.materialCode
-                          }}</el-tag>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">物料名称：</span>
-                          <span class="value">{{
-                            selectedStep.bom.parentMaterial.materialName
-                          }}</span>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">规格型号：</span>
-                          <span class="value">{{ selectedStep.bom.parentMaterial.specModel }}</span>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">库存数量：</span>
-                          <span class="value">{{
-                            selectedStep.bom.parentMaterial.stockQuantity
-                          }}</span>
-                        </div>
-                      </div>
-                      <div class="info-row">
-                        <div class="info-col">
-                          <span class="label">供应商：</span>
-                          <span class="value">{{ selectedStep.bom.parentMaterial.supplier }}</span>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">版本号：</span>
-                          <el-tag size="small" type="success">{{
-                            selectedStep.bom.parentMaterial.version
-                          }}</el-tag>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">分类：</span>
-                          <el-tag size="small" type="info">{{
-                            selectedStep.bom.parentMaterial.category
-                          }}</el-tag>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">位置：</span>
-                          <el-tag size="small" type="warning">{{
-                            selectedStep.bom.parentMaterial.location
-                          }}</el-tag>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   <div v-if="selectedStep.bom?.childMaterials?.length" class="bom-section">
-                    <div class="bom-section-title">子物料清单</div>
+                    <!-- <div class="bom-section-title">物料</div> -->
                     <div class="data-table-container">
                       <el-table :data="selectedStep.bom.childMaterials" border size="small">
                         <el-table-column prop="materialCode" label="物料编号" width="120" />
@@ -2468,10 +2049,8 @@ onMounted(() => {
                   </div>
 
                   <el-empty
-                    v-if="
-                      !selectedStep.bom?.parentMaterial && !selectedStep.bom?.childMaterials?.length
-                    "
-                    description="该工序暂无关联物料BOM"
+                    v-if="!selectedStep.bom?.childMaterials?.length"
+                    description="该工序暂无关联物料"
                   />
                 </div>
               </div>
@@ -2484,124 +2063,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <el-dialog
-      v-model="versionHistoryVisible"
-      title="版本历史"
-      width="900px"
-      :close-on-click-modal="false"
-      destroy-on-close
-      class="version-history-dialog"
-    >
-      <div class="version-history-content">
-        <el-timeline>
-          <el-timeline-item
-            v-for="(version, index) in mockVersionHistory"
-            :key="index"
-            :timestamp="version.submitTime"
-            placement="top"
-            :type="getStatusType(version.status)"
-          >
-            <div class="version-card" :class="{ active: index === currentVersionIndex }">
-              <div class="version-header">
-                <div class="version-title">
-                  <el-tag :type="getStatusType(version.status)" size="default">
-                    {{ version.status }}
-                  </el-tag>
-                  <span class="version-number">{{ version.version }}</span>
-                </div>
-                <div class="version-actions">
-                  <el-button
-                    type="primary"
-                    link
-                    size="small"
-                    @click="handleSwitchVersion(index)"
-                    :disabled="index === currentVersionIndex"
-                  >
-                    查看此版本
-                  </el-button>
-                  <el-button
-                    v-if="index < mockVersionHistory.length - 1"
-                    type="warning"
-                    link
-                    size="small"
-                    @click="handleCompareVersion(index, mockVersionHistory.length - 1)"
-                  >
-                    与当前版本对比
-                  </el-button>
-                </div>
-              </div>
-              <div class="version-body">
-                <div class="version-row">
-                  <span class="label">修改说明：</span>
-                  <span class="value">{{ version.changeDescription }}</span>
-                </div>
-                <div class="version-row">
-                  <span class="label">申请人：</span>
-                  <span class="value">{{ version.applicant }}</span>
-                </div>
-                <div v-if="version.rejectReason" class="version-row reject-reason">
-                  <span class="label">驳回原因：</span>
-                  <span class="value">{{ version.rejectReason }}</span>
-                </div>
-              </div>
-            </div>
-          </el-timeline-item>
-        </el-timeline>
-      </div>
-    </el-dialog>
 
-    <el-dialog
-      v-model="compareDialogVisible"
-      title="版本对比"
-      width="1000px"
-      :close-on-click-modal="false"
-      destroy-on-close
-      class="compare-dialog"
-    >
-      <div class="compare-content" v-if="compareVersions.old && compareVersions.new">
-        <div class="compare-header">
-          <div class="compare-col">
-            <el-tag type="info">{{ compareVersions.old.version }}</el-tag>
-            <span class="compare-time">{{ compareVersions.old.submitTime }}</span>
-          </div>
-          <div class="compare-arrow">
-            <el-icon><Refresh /></el-icon>
-          </div>
-          <div class="compare-col">
-            <el-tag type="primary">{{ compareVersions.new.version }}</el-tag>
-            <span class="compare-time">{{ compareVersions.new.submitTime }}</span>
-          </div>
-        </div>
-        <div class="compare-body">
-          <div class="compare-item">
-            <div class="compare-label">工艺描述</div>
-            <div class="compare-values">
-              <div class="compare-value old">
-                <pre>{{ compareVersions.old.description }}</pre>
-              </div>
-              <div class="compare-value new">
-                <pre>{{ compareVersions.new.description }}</pre>
-              </div>
-            </div>
-          </div>
-          <div class="compare-item">
-            <div class="compare-label">工序列表</div>
-            <div class="compare-values">
-              <div class="compare-value old">
-                <pre>{{
-                  compareVersions.old.processSteps?.map((s) => s.stepName).join(' → ') || '暂无'
-                }}</pre>
-              </div>
-              <div class="compare-value new">
-                <pre>{{
-                  compareVersions.new.processSteps?.map((s) => s.stepName).join(' → ') || '暂无'
-                }}</pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
 
     <el-dialog
       v-model="rejectDialogVisible"
@@ -3070,157 +2532,7 @@ onMounted(() => {
   }
 }
 
-.version-history-dialog {
-  .version-history-content {
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 10px;
 
-    .version-card {
-      background: #fafafa;
-      border-radius: 8px;
-      padding: 16px;
-      border: 1px solid #e4e7ed;
-      transition: all 0.3s;
-
-      &.active {
-        border-color: #409eff;
-        background: #f0f9ff;
-      }
-
-      .version-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-
-        .version-title {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-
-          .version-number {
-            font-size: 18px;
-            font-weight: 600;
-            color: #303133;
-          }
-        }
-
-        .version-actions {
-          display: flex;
-          gap: 8px;
-        }
-      }
-
-      .version-body {
-        .version-row {
-          display: flex;
-          margin-bottom: 8px;
-          font-size: 14px;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          .label {
-            color: #909399;
-            min-width: 80px;
-          }
-
-          .value {
-            color: #303133;
-            flex: 1;
-          }
-
-          &.reject-reason {
-            .value {
-              color: #f56c6c;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-.compare-dialog {
-  .compare-content {
-    .compare-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #ebeef5;
-
-      .compare-col {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .compare-time {
-          font-size: 14px;
-          color: #909399;
-        }
-      }
-
-      .compare-arrow {
-        color: #409eff;
-        font-size: 20px;
-      }
-    }
-
-    .compare-body {
-      .compare-item {
-        margin-bottom: 20px;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        .compare-label {
-          font-size: 16px;
-          font-weight: 500;
-          color: #303133;
-          margin-bottom: 12px;
-        }
-
-        .compare-values {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-
-          .compare-value {
-            padding: 16px;
-            border-radius: 4px;
-            font-size: 14px;
-            line-height: 1.6;
-
-            &.old {
-              background: #fef0f0;
-              border: 1px solid #fbc4c4;
-              color: #f56c6c;
-            }
-
-            &.new {
-              background: #f0f9ff;
-              border: 1px solid #b3d8ff;
-              color: #409eff;
-            }
-
-            pre {
-              margin: 0;
-              white-space: pre-wrap;
-              word-wrap: break-word;
-              font-family: inherit;
-            }
-          }
-        }
-      }
-    }
-  }
-}
 
 .reject-dialog {
   :deep(.el-dialog__header) {

@@ -50,6 +50,11 @@ export function deleteProcessRoute(params) {
   return instance.put('/api/workingPlan/delete', {}, { params })
 }
 
+// 提交工艺路线审核
+export function submitProcessRoute(data) {
+  return instance.put('/api/workingPlan/submit', data)
+}
+
 // 工艺流程分析（上传文件）
 export function analyzeProcessFlow(file) {
   const formData = new FormData()

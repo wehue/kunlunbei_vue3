@@ -7,10 +7,6 @@ import ProTable from '@/components/ProTable/index.vue'
 const router = useRouter()
 
 const proTableRef = ref()
-const searchForm = reactive({
-  auditor: '',
-  auditStatus: '',
-})
 
 const auditStatusOptions = ref([
   { label: '已通过', value: '已通过' },
@@ -142,54 +138,28 @@ const mockData = ref([
 
 const columns = reactive([
   { type: 'index', label: '序号', width: 60 },
-  { prop: 'processCode', label: '工艺编号', minWidth: 100 },
-  { prop: 'processName', label: '工艺路线名称', minWidth: 180 },
-  { prop: 'auditStatus', label: '审核状态', width: 90 },
-  { prop: 'applicant', label: '申请人', width: 80 },
+  { prop: 'processCode', label: '工艺编号', minWidth: 100, search: { el: 'input', key: 'processCode' } },
+  { prop: 'processName', label: '工艺路线名称', minWidth: 180, search: { el: 'input', key: 'processName' } },
+  { prop: 'auditStatus', label: '审核状态', width: 90, search: { el: 'select', key: 'auditStatus' }, enum: auditStatusOptions.value },
+  { prop: 'applicant', label: '申请人', width: 80, search: { el: 'input', key: 'applicant' } },
   { prop: 'submitTime', label: '提交时间', minWidth: 160 },
-  { prop: 'auditor', label: '审核人', width: 80 },
+  { prop: 'auditor', label: '审核人', width: 80, search: { el: 'input', key: 'auditor' } },
   { prop: 'auditTime', label: '审核时间', minWidth: 160 },
   { prop: 'operation', label: '操作', width: 100, fixed: 'right' },
 ])
-
-const handleSearch = () => {
-  proTableRef.value?.getTableList()
-}
-
-const handleReset = () => {
-  searchForm.auditor = ''
-  searchForm.auditStatus = ''
-  proTableRef.value?.getTableList()
-}
 
 const handleView = (row) => {
   router.push(`/audit-manage/audit-record-detail/${row.id}`)
 }
 
-const filterData = (data, params) => {
-  let filteredData = [...data]
-
-  if (searchForm.auditor) {
-    filteredData = filteredData.filter((item) => item.auditor.includes(searchForm.auditor))
-  }
-
-  if (searchForm.auditStatus) {
-    filteredData = filteredData.filter((item) => item.auditStatus === searchForm.auditStatus)
-  }
-
-  return filteredData
-}
-
 const getTableList = async (params) => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const filteredData = filterData(mockData.value, params)
-
       const pageNum = params?.pageNum || 1
       const pageSize = params?.pageSize || 10
       const startIndex = (pageNum - 1) * pageSize
       const endIndex = startIndex + pageSize
-      const paginatedData = filteredData.slice(startIndex, endIndex)
+      const paginatedData = mockData.value.slice(startIndex, endIndex)
 
       const dataWithIndex = paginatedData.map((item, index) => ({
         ...item,
@@ -199,7 +169,7 @@ const getTableList = async (params) => {
       resolve({
         data: {
           list: dataWithIndex,
-          total: filteredData.length,
+          total: mockData.value.length,
         },
       })
     }, 300)
@@ -209,44 +179,11 @@ const getTableList = async (params) => {
 
 <template>
   <div class="audit-record-container">
-    <div class="search-area">
-      <el-form :model="searchForm" inline>
-        <el-form-item label="审核人">
-          <el-input
-            v-model="searchForm.auditor"
-            placeholder="模糊查询"
-            clearable
-            style="width: 150px"
-          />
-        </el-form-item>
-        <el-form-item label="审核状态">
-          <el-select
-            v-model="searchForm.auditStatus"
-            placeholder="请选择状态"
-            clearable
-            style="width: 120px"
-          >
-            <el-option
-              v-for="item in auditStatusOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </div>
-
     <ProTable
       ref="proTableRef"
       :columns="columns"
       :request-api="getTableList"
       :init-param="{}"
-      :search-config="{ show: false }"
     >
       <template #auditStatus="scope">
         <el-tag :type="scope.row.auditStatus === '已通过' ? 'success' : 'danger'">
@@ -265,25 +202,8 @@ const getTableList = async (params) => {
 
 <style lang="scss" scoped>
 .audit-record-container {
-  .search-area {
-    background: #fff;
-    padding: 16px 20px 0;
-    margin-bottom: 16px;
-    border-radius: 4px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-
-    :deep(.el-form-item) {
-      margin-bottom: 16px;
-    }
-
-    :deep(.el-form-item__label) {
-      font-size: 14px;
-      color: #606266;
-    }
-  }
-
   :deep(.table-search) {
-    display: none;
+    margin-bottom: 16px !important;
   }
 }
 </style>

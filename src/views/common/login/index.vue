@@ -6,7 +6,7 @@ import { User, Lock, Key, View, Hide, CircleClose, UserFilled } from '@element-p
 import { useUserStore } from '@/stores/modules/user'
 import { useTabsStore } from '@/stores/modules/tabs'
 import { useKeepAliveStore } from '@/stores/modules/keepAlive'
-import { userLogin } from '@/api/login'
+import { loginApi } from '@/api/login'
 import { getUserDetailById } from '@/api/user'
 
 const router = useRouter()
@@ -103,7 +103,7 @@ const login = (formEl) => {
       }
 
       // 调用登录API
-      const res = await userLogin(loginData)
+      const res = await loginApi.userLogin(loginData)
       console.log('登录成功响应:', res)
 
       if (res.data.code === 200) {

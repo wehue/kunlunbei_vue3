@@ -6,7 +6,7 @@ import { Plus, View, Download, Check, Delete } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getProcessRouteList, deleteProcessRoute } from '@/api/process'
+import { getProcessRouteList, deleteProcessRoute, submitProcessRoute } from '@/api/process'
 
 const router = useRouter()
 const { hasPermission, isAdminRole, isSupervisorRole, isDesignerRole, currentRole } =
@@ -27,187 +27,7 @@ const versionOptions = [
   { label: 'V3.0', value: 'V3.0' },
 ]
 
-const allRouteData = ref([
-  {
-    id: 1,
-    routeCode: 'PR20240001',
-    routeName: '汽车零部件加工工艺',
-    product: '汽车零部件A',
-    description: '用于汽车零部件的加工工艺路线',
-    version: 'V1.0',
-    isCurrent: false,
-    status: 'approved',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        stepName: '车削加工',
-        order: 1,
-        devices: ['数控车床'],
-        operators: ['张三'],
-        bomItems: ['铝合金板'],
-      },
-      {
-        id: 2,
-        stepName: '铣削加工',
-        order: 2,
-        devices: ['数控铣床'],
-        operators: ['李四'],
-        bomItems: ['黄铜'],
-      },
-    ],
-    operationTime: '2024-01-15 10:30:00',
-    createTime: '2024-01-10 09:00:00',
-    baseId: 'PR001',
-  },
-  {
-    id: 2,
-    routeCode: 'PR20240001',
-    routeName: '汽车零部件加工工艺',
-    product: '汽车零部件A',
-    description: '用于汽车零部件的加工工艺路线（优化版）',
-    version: 'V2.0',
-    isCurrent: true,
-    status: 'approved',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        stepName: '车削加工',
-        order: 1,
-        devices: ['数控车床'],
-        operators: ['张三'],
-        bomItems: ['铝合金板'],
-      },
-      {
-        id: 2,
-        stepName: '铣削加工',
-        order: 2,
-        devices: ['数控铣床'],
-        operators: ['李四'],
-        bomItems: ['黄铜'],
-      },
-      {
-        id: 3,
-        stepName: '质量检测',
-        order: 3,
-        devices: ['检测设备'],
-        operators: ['王五'],
-        bomItems: [],
-      },
-    ],
-    operationTime: '2024-01-20 14:00:00',
-    createTime: '2024-01-10 09:00:00',
-    baseId: 'PR001',
-  },
-  {
-    id: 3,
-    routeCode: 'PR20240002',
-    routeName: '电子设备组装工艺',
-    product: '电子设备B',
-    description: '电子设备的组装工艺路线',
-    version: 'V1.0',
-    isCurrent: true,
-    status: 'pending',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        stepName: '组装工序',
-        order: 1,
-        devices: ['组装台'],
-        operators: ['赵六'],
-        bomItems: ['ABS塑料', '集成电路'],
-      },
-      {
-        id: 2,
-        stepName: '质量检测',
-        order: 2,
-        devices: ['检测设备'],
-        operators: ['王五'],
-        bomItems: [],
-      },
-    ],
-    operationTime: '2024-01-18 11:00:00',
-    createTime: '2024-01-18 11:00:00',
-    baseId: 'PR002',
-  },
-  {
-    id: 4,
-    routeCode: 'PR20240003',
-    routeName: '管道组件焊接工艺',
-    product: '管道组件C',
-    description: '管道组件的焊接工艺路线',
-    version: 'V1.0',
-    isCurrent: true,
-    status: 'rejected',
-    rejectReason: '工艺流程不完整，缺少质量检测环节',
-    processSteps: [
-      {
-        id: 1,
-        stepName: '焊接',
-        order: 1,
-        devices: ['焊接设备'],
-        operators: ['孙七'],
-        bomItems: ['碳钢'],
-      },
-    ],
-    operationTime: '2024-01-22 16:30:00',
-    createTime: '2024-01-22 16:30:00',
-    baseId: 'PR003',
-  },
-  {
-    id: 5,
-    routeCode: 'PR20240004',
-    routeName: '机械零件精加工工艺',
-    product: '机械零件D',
-    description: '机械零件的精加工工艺路线',
-    version: 'V1.0',
-    isCurrent: true,
-    status: 'approved',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        stepName: '车削加工',
-        order: 1,
-        devices: ['数控车床'],
-        operators: ['张三'],
-        bomItems: ['黄铜'],
-      },
-      {
-        id: 2,
-        stepName: '磨削精加工',
-        order: 2,
-        devices: ['磨床'],
-        operators: ['李四'],
-        bomItems: [],
-      },
-      {
-        id: 3,
-        stepName: '质量检测',
-        order: 3,
-        devices: ['检测设备'],
-        operators: ['王五'],
-        bomItems: [],
-      },
-    ],
-    operationTime: '2024-01-25 09:00:00',
-    createTime: '2024-01-25 09:00:00',
-    baseId: 'PR004',
-  },
-])
-
-const getVersionCount = (baseId) => {
-  return allRouteData.value.filter((r) => r.baseId === baseId).length
-}
-
-const displayData = computed(() => {
-  if (showAllVersions.value) {
-    return allRouteData.value
-  }
-  return allRouteData.value.filter((r) => r.isCurrent)
-})
+const allRouteData = ref([])
 
 const canAdd = computed(() => isDesignerRole.value)
 const canApprove = computed(() => isSupervisorRole.value)
@@ -307,13 +127,44 @@ const handleSubmitAudit = (row) => {
     cancelButtonText: '取消',
     type: 'info',
   })
-    .then(() => {
-      const route = allRouteData.value.find((r) => r.id === row.id)
-      if (route) {
-        route.status = 'F'
-        row.status = 'F'
+    .then(async () => {
+      try {
+        // 确保row.id存在
+        if (!row.id) {
+          ElMessage.error('工艺路线ID不存在')
+          return
+        }
+
+        console.log('调用提交审核接口，参数:', { id: row.id })
+        const res = await submitProcessRoute({ id: row.id })
+        console.log('提交审核接口响应:', res)
+
+        if (res.data?.code === 200) {
+          ElMessage.success('已提交审核')
+          // 等待一小段时间后刷新列表
+          setTimeout(() => {
+            try {
+              // 使用.value访问组件实例
+              if (proTableRef.value?.search) {
+                proTableRef.value.search()
+                console.log('使用search方法刷新列表成功')
+              } else if (proTableRef.value?.getTableList) {
+                proTableRef.value.getTableList()
+                console.log('使用getTableList方法刷新列表成功')
+              } else {
+                console.error('ProTable组件没有刷新方法')
+              }
+            } catch (error) {
+              console.error('刷新列表失败:', error)
+            }
+          }, 500)
+        } else {
+          ElMessage.error('提交审核失败')
+        }
+      } catch (error) {
+        console.error('提交审核失败:', error)
+        ElMessage.error('提交审核失败')
       }
-      ElMessage.success('已提交审核')
     })
     .catch(() => {})
 }
@@ -344,24 +195,18 @@ const handleDelete = (row) => {
           // 等待一小段时间后刷新列表
           setTimeout(() => {
             try {
-              // 尝试使用search方法刷新列表
-              if (proTableRef?.search) {
-                proTableRef.search()
+              // 使用.value访问组件实例
+              if (proTableRef.value?.search) {
+                proTableRef.value.search()
                 console.log('使用search方法刷新列表成功')
-              } else if (proTableRef?.getTableList) {
-                proTableRef.getTableList()
+              } else if (proTableRef.value?.getTableList) {
+                proTableRef.value.getTableList()
                 console.log('使用getTableList方法刷新列表成功')
               } else {
                 console.error('ProTable组件没有刷新方法')
-                // 手动重新加载数据
-                getTableList()
-                console.log('手动调用getTableList函数刷新列表')
               }
             } catch (error) {
               console.error('刷新列表失败:', error)
-              // 手动重新加载数据
-              getTableList()
-              console.log('手动调用getTableList函数刷新列表')
             }
           }, 500)
         } else {

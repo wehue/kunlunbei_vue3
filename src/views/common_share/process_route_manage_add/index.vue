@@ -809,7 +809,7 @@ const handleCancel = () => {
 
                   <div v-show="activeDetailTab === 'bom'" class="tab-content">
                     <div v-if="selectedStep.bom?.childMaterials?.length" class="bom-section">
-                      <div class="bom-section-title">物料清单</div>
+                      <!-- <div class="bom-section-title">物料清单</div> -->
                       <div class="data-table-container">
                         <el-table :data="selectedStep.bom.childMaterials" border size="small">
                           <el-table-column prop="materialCode" label="物料编号" width="120" />
