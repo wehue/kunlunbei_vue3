@@ -24,12 +24,7 @@ const routes = [
     component: () => import('@/views/common/password_find/index.vue'),
     meta: { title: '找回密码', isHide: true },
   },
-  {
-    path: '/role-test',
-    name: 'RoleTest',
-    component: () => import('@/views/role-test/index.vue'),
-    meta: { title: '角色测试', isHide: true },
-  },
+
   {
     path: '/403',
     name: '403',
@@ -114,23 +109,6 @@ const routes = [
             name: 'MaterialCategory',
             component: () => import('@/views/designer/material_category/index.vue'),
             meta: { title: '物料分类', icon: 'Folder', roles: ['admin', 'supervisor', 'designer'] },
-          },
-          {
-            path: 'bom-manage',
-            name: 'BomManage',
-            component: () => import('@/views/designer/bom_manage_info/index.vue'),
-            meta: { title: 'BOM管理', icon: 'List', roles: ['admin', 'supervisor', 'designer'] },
-          },
-          {
-            path: 'bom-manage-detail/:id',
-            name: 'BomManageDetail',
-            component: () => import('@/views/designer/bom_manage_detail/index.vue'),
-            meta: {
-              title: 'BOM详情',
-              icon: 'Document',
-              roles: ['admin', 'supervisor', 'designer'],
-              isHide: true,
-            },
           },
         ],
       },
@@ -314,12 +292,7 @@ const routes = [
           },
         ],
       },
-      {
-        path: 'backup-manage',
-        name: 'BackupManage',
-        component: () => import('@/views/admin/backup_manage/index.vue'),
-        meta: { title: '数据备份', icon: 'Box', roles: ['admin'] },
-      },
+
       // 主管路由
       {
         path: 'supervisor-index',
@@ -391,12 +364,6 @@ const routes = [
             name: 'MessageInfo',
             component: () => import('@/views/designer/message_info/index.vue'),
             meta: { title: '消息台账', icon: 'Message', roles: ['designer'] },
-          },
-          {
-            path: 'message-detail/:id',
-            name: 'MessageDetail',
-            component: () => import('@/views/designer/message_detail/index.vue'),
-            meta: { title: '消息详情', icon: 'Message', roles: ['designer'], isHide: true },
           },
         ],
       },

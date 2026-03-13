@@ -14,17 +14,7 @@ const currentRole = computed(() => userStore.userInfo?.role)
 const loading = ref(false)
 const avatarUploading = ref(false)
 
-const userInfo = ref({
-  userId: 'U001',
-  userName: '张三',
-  role: 'admin',
-  roleName: '管理员',
-  registerTime: '2023-06-15 10:30:00',
-  lastLoginTime: '2024-01-15 08:30:25',
-  phone: '138****5678',
-  email: 'zhang***@example.com',
-  avatar: '',
-})
+const userInfo = ref({})
 
 const avatarUrl = ref(defaultAvatar)
 
@@ -98,7 +88,16 @@ const handleAvatarChange = async (uploadFile) => {
   try {
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('userId', userStore.userInfo?.id || userInfo.value.userId || '300')
+    // 使用用户详情中的userId（如U001格式）而不是主键ID
+    const userId = userInfo.value.userId
+    console.log('Using userId for upload:', userId)
+    console.log('User store id:', userStore.userInfo?.id)
+    console.log('User info userId:', userInfo.value.userId)
+    if (!userId) {
+      ElMessage.error('用户信息不完整，无法上传头像')
+      return false
+    }
+    formData.append('userId', userId)
 
     const res = await uploadAvatar(formData)
     console.log('头像上传完整响应:', res)
@@ -185,57 +184,68 @@ const getRoleName = (role) => {
 
 const fetchUserDetail = async () => {
   const currentUser = userStore.userInfo
-  if (currentUser && currentUser.id) {
-    loading.value = true
-    try {
-      const res = await getUserDetailById(currentUser.id)
-      console.log('获取用户详情成功:', res)
-      if (res.data.code === 200 && res.data.data.data) {
-        const userData = res.data.data.data
-        userInfo.value = {
-          userId: userData.userId || currentUser.id,
-          userName: userData.userName || currentUser.name,
-          role: userData.role || currentUser.role,
-          roleName: getRoleName(userData.role || currentUser.role),
-          registerTime: userData.createTime
-            ? timeFormat.formatDate(userData.createTime, 'YYYY-MM-DD HH:mm:ss')
-            : userInfo.value.registerTime,
-          lastLoginTime: userData.endTime
-            ? timeFormat.formatDate(userData.endTime, 'YYYY-MM-DD HH:mm:ss')
-            : userInfo.value.lastLoginTime,
-          phone: userData.phone
-            ? userData.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-            : userInfo.value.phone,
-          email: userData.email
-            ? userData.email.replace(/(^.{3})[^@]*(@.*$)/, '$1***$2')
-            : userInfo.value.email,
-          avatar: userData.avatar || userInfo.value.avatar,
-        }
-        if (userData.avatar) {
-          avatarUrl.value = userData.avatar
-          // 更新用户存储中的头像
-          if (userStore.userInfo) {
-            userStore.setUserInfo({
-              ...userStore.userInfo,
-              avatar: userData.avatar,
-            })
-          }
+  console.log('fetchUserDetail - currentUser:', currentUser)
+
+  // 使用 userStore 中的 userId 作为主要参数
+  const userId = currentUser?.userId || currentUser?.id
+  console.log('fetchUserDetail - userId to fetch:', userId)
+
+  if (!userId) {
+    console.error('No userId found in userStore')
+    return
+  }
+
+  loading.value = true
+  try {
+    const res = await getUserDetailById(userId)
+    console.log('获取用户详情成功:', res)
+    if (res.data.code === 200 && res.data.data.data) {
+      const userData = res.data.data.data
+      userInfo.value = {
+        userId: userData.userId || userId,
+        userName: userData.userName || currentUser.name,
+        role: userData.role || currentUser.role,
+        roleName: getRoleName(userData.role || currentUser.role),
+        registerTime: userData.createTime
+          ? timeFormat.formatDate(userData.createTime, 'YYYY-MM-DD HH:mm:ss')
+          : userInfo.value.registerTime,
+        lastLoginTime: userData.endTime
+          ? timeFormat.formatDate(userData.endTime, 'YYYY-MM-DD HH:mm:ss')
+          : userInfo.value.lastLoginTime,
+        phone: userData.phone
+          ? userData.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+          : userInfo.value.phone,
+        email: userData.email
+          ? userData.email.replace(/(^.{3})[^@]*(@.*$)/, '$1***$2')
+          : userInfo.value.email,
+        avatar: userData.avatar || userInfo.value.avatar,
+      }
+      if (userData.avatar) {
+        avatarUrl.value = userData.avatar
+        // 更新用户存储中的头像
+        if (userStore.userInfo) {
+          userStore.setUserInfo({
+            ...userStore.userInfo,
+            avatar: userData.avatar,
+          })
         }
       }
-    } catch (error) {
-      console.error('获取用户详情失败:', error)
-      ElMessage.error('获取用户详情失败')
-    } finally {
-      loading.value = false
     }
+  } catch (error) {
+    console.error('获取用户详情失败:', error)
+    ElMessage.error('获取用户详情失败')
+  } finally {
+    loading.value = false
   }
 }
 
 onMounted(() => {
+  console.log('userStore.userInfo on mount:', userStore.userInfo)
   if (userStore.userInfo) {
-    userInfo.value.userName =
-      userStore.userInfo?.userName || userStore.userInfo?.name || userInfo.value.userName
-    userInfo.value.role = userStore.userInfo?.role || userInfo.value.role
+    // 初始化用户信息，使用 userStore 中的数据
+    userInfo.value.userId = userStore.userInfo?.userId || ''
+    userInfo.value.userName = userStore.userInfo?.userName || userStore.userInfo?.name || ''
+    userInfo.value.role = userStore.userInfo?.role || ''
     userInfo.value.roleName = getRoleName(userInfo.value.role)
     // 从用户存储中获取头像
     if (userStore.userInfo.avatar) {

@@ -5,12 +5,14 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, ArrowLeft, Download } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
-import { getPartDetail, getPartCategoryList } from '@/api/material'
+import { useUserStore } from '@/stores/modules/user'
+import { getPartDetail, getPartCategoryList, updatePart } from '@/api/material'
 import { getWarehouseList } from '@/api/warehouse'
 
 const route = useRoute()
 const router = useRouter()
 const { isDesignerRole, isAdminRole } = usePermission()
+const userStore = useUserStore()
 
 const warehouseMap = ref(new Map())
 const categoryMap = ref(new Map())
@@ -129,19 +131,6 @@ const formData = reactive({
   warehouse: null,
 })
 const formRef = ref()
-const currentVersionId = ref(null)
-
-const materialVersions = computed(() => {
-  if (!materialData.value.id) return []
-  return [materialData.value].filter(Boolean)
-})
-
-const versionOptions = computed(() => {
-  return materialVersions.value.map((m) => ({
-    label: m.isCurrent ? `${m.version}（当前）` : m.version,
-    value: m.id,
-  }))
-})
 
 const findCategoryPath = (categoryId, tree, path = []) => {
   const targetId = String(categoryId)
@@ -195,7 +184,6 @@ const loadMaterialData = async () => {
     console.log('转换后的数据:', transformedData)
 
     materialData.value = { ...transformedData }
-    currentVersionId.value = transformedData.id
 
     console.log('开始查找分类路径, categoryId:', categoryId)
     console.log('categoryTreeData:', categoryTreeData.value)
@@ -225,10 +213,6 @@ const loadMaterialData = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const handleVersionChange = async (versionId) => {
-  await loadMaterialData()
 }
 
 const handleEdit = () => {
@@ -266,44 +250,63 @@ const handleCancel = () => {
 const handleSave = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((valid) => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       const hasChanges =
         formData.specModel !== materialData.value.specModel ||
         formData.supplier !== materialData.value.supplier ||
-        formData.category !== materialData.value.category ||
-        formData.location !== materialData.value.location
+        formData.selectedCategoryId !== materialData.value.categoryId ||
+        formData.warehouse?.id !== materialData.value.warehouseId
 
       if (hasChanges) {
-        // 计算新版本号
-        const currentMaxVersion = Math.max(
-          ...materialVersions.value.map((m) => parseFloat(m.version.replace('V', ''))),
-        )
-        const newVersion = `V${(currentMaxVersion + 1).toFixed(1)}`
+        try {
+          const currentUserId = userStore.userInfo?.id || ''
+          console.log('当前用户ID:', currentUserId)
 
-        // 由于我们没有 allMaterials 数组，这里应该调用 API 来创建新版本
-        // 暂时先模拟保存成功的逻辑
-        const newMaterial = {
-          id: materialData.value.id + 1, // 临时 ID，实际应该由 API 返回
-          materialCode: formData.materialCode,
-          materialName: formData.materialName,
-          version: newVersion,
-          isCurrent: true,
-          specModel: formData.specModel,
-          stockQuantity: formData.stockQuantity,
-          supplier: formData.supplier,
-          category: formData.category,
-          location: formData.location,
-          baseId: materialData.value.baseId,
+          const currentTime = new Date().toISOString()
+
+          let newVersion = 'V1.0'
+          if (materialData.value.version) {
+            const currentVersion = parseFloat(materialData.value.version.replace('V', ''))
+            newVersion = `V${(currentVersion + 1).toFixed(1)}`
+          }
+          console.log('当前版本:', materialData.value.version, '新版本:', newVersion)
+
+          const requestData = {
+            id: materialData.value.id,
+            materialId: materialData.value.materialCode,
+            materialName: formData.materialName,
+            versions: newVersion,
+            supplier: formData.supplier,
+            specificationModel: formData.specModel,
+            stockQuantity: formData.stockQuantity != null ? String(formData.stockQuantity) : '',
+            unit: materialData.value.unit || 'A',
+            warhouse: formData.warehouse,
+            category: formData.selectedCategoryId ? { id: formData.selectedCategoryId } : null,
+            master: {
+              id: materialData.value.id,
+            },
+            branch: {
+              id: materialData.value.id,
+            },
+          }
+
+          console.log('保存物料请求参数:', requestData)
+
+          const res = await updatePart(requestData)
+          console.log('保存物料响应:', res)
+
+          if (res.data?.code === 200) {
+            ElMessage.success(`保存成功，已生成新版本 ${newVersion}`)
+            await loadMaterialData()
+          } else {
+            ElMessage.error('保存失败')
+          }
+        } catch (error) {
+          console.error('保存物料失败:', error)
+          ElMessage.error('保存失败')
         }
-
-        materialData.value = { ...newMaterial }
-        currentVersionId.value = newMaterial.id
-
-        ElMessage.success(`保存成功，已生成新版本 ${newVersion}`)
       } else {
-        // 直接更新当前物料数据
-        materialData.value = { ...materialData.value, ...formData }
         ElMessage.success('保存成功')
       }
 
@@ -391,22 +394,6 @@ watch(
         </div>
       </div>
       <div class="header-right">
-        <div class="version-selector">
-          <span class="version-label">版本：</span>
-          <el-select
-            v-model="currentVersionId"
-            placeholder="选择版本"
-            style="width: 180px"
-            @change="handleVersionChange"
-          >
-            <el-option
-              v-for="item in versionOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </div>
         <template v-if="!isEdit">
           <el-button v-if="canManage" type="primary" :icon="Edit" @click="handleEdit"
             >编辑</el-button
@@ -453,9 +440,8 @@ watch(
             <div class="info-item">
               <div class="info-label">版本号</div>
               <div class="info-value">
-                <el-tag :type="materialData.isCurrent ? 'success' : 'info'" size="default">
+                <el-tag type="success" size="default">
                   {{ materialData.version }}
-                  <span v-if="materialData.isCurrent">（当前）</span>
                 </el-tag>
               </div>
             </div>
@@ -533,36 +519,6 @@ watch(
           </el-form>
         </template>
       </div>
-
-      <div class="section-card">
-        <div class="section-header">
-          <span class="section-title">版本历史</span>
-        </div>
-        <div class="version-history">
-          <el-timeline>
-            <el-timeline-item
-              v-for="version in materialVersions"
-              :key="version.id"
-              :type="version.isCurrent ? 'primary' : 'info'"
-              :hollow="!version.isCurrent"
-            >
-              <div class="version-item" :class="{ current: version.isCurrent }">
-                <div class="version-header">
-                  <span class="version-name">{{ version.version }}</span>
-                  <el-tag v-if="version.isCurrent" type="success" size="small">当前版本</el-tag>
-                </div>
-                <div class="version-info">
-                  <span>规格型号：{{ version.specModel }}</span>
-                  <span>供应商：{{ version.supplier }}</span>
-                  <span>库存：{{ version.stockQuantity }}</span>
-                  <span>分类：{{ version.category }}</span>
-                  <span>位置：{{ version.location }}</span>
-                </div>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -606,17 +562,6 @@ watch(
       display: flex;
       align-items: center;
       gap: 12px;
-
-      .version-selector {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        .version-label {
-          font-size: 15px;
-          color: #606266;
-        }
-      }
 
       .el-button {
         padding: 10px 20px;
@@ -711,39 +656,6 @@ watch(
             color: #606266;
             font-weight: 500;
             padding-bottom: 8px;
-          }
-        }
-      }
-
-      .version-history {
-        padding: 20px;
-
-        .version-item {
-          &.current {
-            .version-name {
-              color: #409eff;
-              font-weight: 600;
-            }
-          }
-
-          .version-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-
-            .version-name {
-              font-size: 16px;
-              font-weight: 500;
-              color: #606266;
-            }
-          }
-
-          .version-info {
-            display: flex;
-            gap: 20px;
-            font-size: 14px;
-            color: #909399;
           }
         }
       }

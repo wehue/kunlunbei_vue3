@@ -5,6 +5,11 @@ export function getMessageList(params) {
   return instance.get('/api/notice/find', { params })
 }
 
+// 获取消息详情
+export function getMessageDetail(noticeId) {
+  return instance.get('/api/notice/findByNoticeId', { params: { noticeId } })
+}
+
 // 删除消息
 export function deleteMessages(noticeId) {
   return instance.put('/api/notice/delete', {}, { params: { noticeId } })

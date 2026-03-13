@@ -5,7 +5,7 @@ export function getUserList(params) {
   return instance.get('/api/user/find', { params })
 }
 
-// 获取用户详情
+// 获取用户详情（通过userId）
 export function getUserDetailById(userId) {
   return instance.get('/api/user/findByUserId', { params: { userId } })
 }
@@ -72,7 +72,11 @@ export function getAdminConsole2() {
 
 // 上传头像
 export function uploadAvatar(data) {
-  return instance.post('/api/user/uploadAvatar', data)
+  return instance.post('/api/user/uploadAvatar', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
 }
 
 // 获取设计师首页卡片数据
@@ -103,4 +107,9 @@ export function getSupervisorConsole3() {
 // 获取审批超时预警
 export function getSupervisorConsole4() {
   return instance.get('/api/user/supervisorConsole4')
+}
+
+// 获取设计师近7天业务趋势
+export function getDesignerConsole3() {
+  return instance.get('/api/user/designerConsole3')
 }

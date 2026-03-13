@@ -6,7 +6,7 @@ import { User, Lock, Key, View, Hide, CircleClose, UserFilled } from '@element-p
 import { useUserStore } from '@/stores/modules/user'
 import { useTabsStore } from '@/stores/modules/tabs'
 import { useKeepAliveStore } from '@/stores/modules/keepAlive'
-import { loginApi } from '@/api/login'
+import { userLogin } from '@/api/login'
 import { getUserDetailById } from '@/api/user'
 
 const router = useRouter()
@@ -103,7 +103,7 @@ const login = (formEl) => {
       }
 
       // 调用登录API
-      const res = await loginApi.userLogin(loginData)
+      const res = await userLogin(loginData)
       console.log('登录成功响应:', res)
 
       if (res.data.code === 200) {
@@ -121,9 +121,17 @@ const login = (formEl) => {
 
         // 获取完整用户信息（包括头像）
         let avatar = ''
-        if (userInfo?.id) {
+        const loginUserId = userInfo?.userId
+        const loginId = userInfo?.id
+        console.log('Login response userInfo:', userInfo)
+        console.log('loginUserId:', loginUserId, 'loginId:', loginId)
+
+        if (loginUserId || loginId) {
           try {
-            const detailRes = await getUserDetailById(userInfo.id)
+            // 优先使用 userId，如果没有则使用 id
+            const fetchId = loginUserId || loginId
+            console.log('Fetching user detail with userId:', fetchId)
+            const detailRes = await getUserDetailById(fetchId)
             if (detailRes.data.code === 200 && detailRes.data.data?.data) {
               avatar = detailRes.data.data.data.avatar || ''
             }
@@ -133,7 +141,8 @@ const login = (formEl) => {
         }
 
         userStore.setUserInfo({
-          id: userInfo?.id,
+          id: loginId,
+          userId: loginUserId,
           name:
             userInfo?.userName ||
             userInfo?.name ||

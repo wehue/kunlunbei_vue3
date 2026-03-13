@@ -10,59 +10,16 @@ import {
   TrendCharts,
   Download,
   RefreshRight,
-  Warning,
-  CircleClose,
-  Timer,
+  DataAnalysis,
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
 import { getAdminConsole1, getAdminConsole2 } from '@/api/user'
+import { getPartCategoryList } from '@/api/material'
 
 const loading = ref(false)
 const loginTimeRange = ref('7days')
 const overviewData = ref({})
-
-const loginAnomalies = ref([
-  {
-    id: 1,
-    user: '张三',
-    ip: '192.168.1.105',
-    location: '北京市',
-    time: '2024-01-15 08:32:15',
-    type: '异地登录',
-    status: 'warning',
-  },
-  {
-    id: 2,
-    user: '李四',
-    ip: '10.0.0.88',
-    location: '上海市',
-    time: '2024-01-15 09:15:42',
-    type: '频繁失败',
-    status: 'danger',
-  },
-  {
-    id: 3,
-    user: '王五',
-    ip: '172.16.0.55',
-    location: '广州市',
-    time: '2024-01-15 10:22:08',
-    type: '异常时段',
-    status: 'warning',
-  },
-])
-
-const operationStats = ref({
-  todayOperations: 1256,
-  weeklyOperations: 8542,
-  monthlyOperations: 32156,
-  topOperations: [
-    { name: '物料查询', count: 456 },
-    { name: '工艺路线审核', count: 312 },
-    { name: 'BOM导出', count: 245 },
-    { name: '设备管理', count: 189 },
-  ],
-})
 
 const generateLoginData = (days) => {
   const dates = []
@@ -80,6 +37,70 @@ const generateLoginData = (days) => {
 }
 
 const loginTrendData = ref(generateLoginData(7))
+
+const materialCategoryData = ref([])
+
+const pieChartOption = computed(() => ({
+  tooltip: {
+    trigger: 'item',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#eee',
+    borderWidth: 1,
+    textStyle: {
+      color: '#333',
+    },
+    formatter: '{b}: {c} ({d}%)',
+  },
+  legend: {
+    orient: 'vertical',
+    right: '5%',
+    top: 'center',
+    textStyle: {
+      color: '#666',
+      fontSize: 13,
+    },
+  },
+  series: [
+    {
+      name: '物料分类',
+      type: 'pie',
+      radius: ['45%', '70%'],
+      center: ['40%', '50%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 8,
+        borderColor: '#fff',
+        borderWidth: 2,
+      },
+      label: {
+        show: false,
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 16,
+          fontWeight: 'bold',
+        },
+        itemStyle: {
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowColor: 'rgba(0, 0, 0, 0.2)',
+        },
+      },
+      labelLine: {
+        show: false,
+      },
+      data: materialCategoryData.value.map((item, index) => ({
+        ...item,
+        itemStyle: {
+          color: ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#9c27b0', '#00bcd4'][
+            index % 7
+          ],
+        },
+      })),
+    },
+  ],
+}))
 
 const loginChartOption = computed(() => ({
   tooltip: {
@@ -195,41 +216,6 @@ const loginChartOption = computed(() => ({
   ],
 }))
 
-const activeTimeChartOption = computed(() => ({
-  tooltip: {
-    trigger: 'axis',
-    axisPointer: {
-      type: 'shadow',
-    },
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#eee',
-    borderWidth: 1,
-    textStyle: { color: '#333' },
-  },
-  series: [
-    {
-      name: '操作次数',
-      type: 'bar',
-      barWidth: '50%',
-      itemStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 1,
-          y2: 0,
-          colorStops: [
-            { offset: 0, color: '#667eea' },
-            { offset: 1, color: '#764ba2' },
-          ],
-        },
-        borderRadius: [0, 6, 6, 0],
-      },
-      data: operationStats.value.topOperations.map((item) => item.count).reverse(),
-    },
-  ],
-}))
-
 const handleLoginTimeRangeChange = (range) => {
   loginTimeRange.value = range
   // 如果已经有数据，根据选择的时间范围截取数据
@@ -251,57 +237,6 @@ const handleLoginTimeRangeChange = (range) => {
   }
 }
 
-const operationChartOption = computed(() => ({
-  tooltip: {
-    trigger: 'axis',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#eee',
-    borderWidth: 1,
-    textStyle: { color: '#333' },
-  },
-  grid: {
-    left: '3%',
-    right: '8%',
-    bottom: '3%',
-    top: 10,
-    containLabel: true,
-  },
-  xAxis: {
-    type: 'value',
-    axisLabel: { color: '#666' },
-    axisLine: { lineStyle: { color: '#ddd' } },
-    splitLine: { lineStyle: { color: '#f0f0f0' } },
-  },
-  yAxis: {
-    type: 'category',
-    data: operationStats.value.topOperations.map((item) => item.name).reverse(),
-    axisLabel: { color: '#666', fontSize: 13 },
-    axisLine: { lineStyle: { color: '#ddd' } },
-  },
-  series: [
-    {
-      name: '操作次数',
-      type: 'bar',
-      barWidth: '50%',
-      itemStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 1,
-          y2: 0,
-          colorStops: [
-            { offset: 0, color: '#667eea' },
-            { offset: 1, color: '#764ba2' },
-          ],
-        },
-        borderRadius: [0, 6, 6, 0],
-      },
-      data: operationStats.value.topOperations.map((item) => item.count).reverse(),
-    },
-  ],
-}))
-
 const exportToExcel = (data, fileName) => {
   const worksheet = XLSX.utils.json_to_sheet(data)
   const workbook = XLSX.utils.book_new()
@@ -321,10 +256,15 @@ const handleExportLoginData = () => {
 const fetchData = async () => {
   loading.value = true
   try {
-    // 获取卡片数据
-    const cardDataResponse = await getAdminConsole1()
-    console.log('获取卡片数据成功', cardDataResponse)
+    // 并行获取所有数据
+    const [cardDataResponse, loginDataResponse, categoryResponse] = await Promise.all([
+      getAdminConsole1(),
+      getAdminConsole2(),
+      getPartCategoryList(),
+    ])
 
+    // 获取卡片数据
+    console.log('获取卡片数据成功', cardDataResponse)
     if (cardDataResponse.data && cardDataResponse.data.code === 200) {
       const data = cardDataResponse.data.data
       overviewData.value = {
@@ -337,7 +277,6 @@ const fetchData = async () => {
     }
 
     // 获取登录趋势数据
-    const loginDataResponse = await getAdminConsole2()
     console.log('获取登录趋势数据成功', loginDataResponse)
     if (loginDataResponse.data && loginDataResponse.data.code === 200) {
       const loginTrend = loginDataResponse.data.data['近30天登录人次趋势']
@@ -378,6 +317,80 @@ const fetchData = async () => {
       // 如果API返回失败，使用默认数据
       loginTrendData.value = generateLoginData(7)
       console.log('使用默认登录趋势数据:', loginTrendData.value)
+    }
+
+    // 获取物料分类数据
+    console.log('获取物料分类数据成功', categoryResponse)
+    let categoryList = []
+    if (categoryResponse.data && Array.isArray(categoryResponse.data)) {
+      categoryList = categoryResponse.data
+    } else if (
+      categoryResponse.data &&
+      categoryResponse.data.data &&
+      Array.isArray(categoryResponse.data.data)
+    ) {
+      categoryList = categoryResponse.data.data
+    } else if (
+      categoryResponse.data &&
+      categoryResponse.data.data &&
+      categoryResponse.data.data.data &&
+      Array.isArray(categoryResponse.data.data.data)
+    ) {
+      categoryList = categoryResponse.data.data.data
+    }
+
+    // 统计每个 Max 分类的子级数量
+    const maxList = []
+    const midMap = new Map()
+    const minMap = new Map()
+
+    categoryList.forEach((item) => {
+      if (item.level === 'Max') {
+        maxList.push({
+          id: item.categoryId,
+          label: item.categoryName,
+          children: [],
+        })
+      } else if (item.level === 'Mid') {
+        const parentId = Math.floor(parseInt(item.categoryId) / 100) * 100
+        if (!midMap.has(String(parentId))) {
+          midMap.set(String(parentId), [])
+        }
+        midMap.get(String(parentId)).push({
+          id: item.categoryId,
+          label: item.categoryName,
+          children: [],
+        })
+      } else if (item.level === 'Min') {
+        const parentId = item.categoryId.substring(0, 3)
+        if (!minMap.has(parentId)) {
+          minMap.set(parentId, [])
+        }
+        minMap.get(parentId).push({
+          id: item.categoryId,
+          label: item.categoryName,
+        })
+      }
+    })
+
+    // 构建树形结构并统计数量
+    const categoryData = []
+    maxList.forEach((maxNode) => {
+      const midChildren = midMap.get(String(maxNode.id)) || []
+      let totalCount = 0
+      midChildren.forEach((midNode) => {
+        const minChildren = minMap.get(String(midNode.id)) || []
+        totalCount += 1 + minChildren.length
+      })
+      categoryData.push({
+        name: maxNode.label,
+        value: totalCount,
+      })
+    })
+
+    // 更新物料分类数据
+    if (categoryData.length > 0) {
+      materialCategoryData.value = categoryData
     }
   } catch (error) {
     console.error('数据加载失败:', error)
@@ -508,67 +521,17 @@ onMounted(() => {
           <ECharts :option="loginChartOption" />
         </div>
       </div>
-    </div>
 
-    <div class="operation-warning-row">
-      <div class="operation-section">
+      <div class="chart-section pie-chart">
         <div class="section-header">
           <div class="section-title">
-            <el-icon><Timer /></el-icon>
-            <span>操作统计</span>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>物料分类分布</span>
           </div>
+          <div class="section-subtitle">各分类物料数量占比</div>
         </div>
-        <div class="operation-summary">
-          <div class="summary-item">
-            <span class="summary-value">{{ operationStats.todayOperations }}</span>
-            <span class="summary-label">今日操作</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-value">{{ operationStats.weeklyOperations }}</span>
-            <span class="summary-label">本周操作</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-value">{{ operationStats.monthlyOperations }}</span>
-            <span class="summary-label">本月操作</span>
-          </div>
-        </div>
-        <div class="chart-container" style="height: 240px">
-          <ECharts :option="operationChartOption" />
-        </div>
-      </div>
-
-      <div class="warning-section">
-        <div class="section-header">
-          <div class="section-title">
-            <el-icon><Warning /></el-icon>
-            <span>异常登录预警</span>
-          </div>
-          <el-badge :value="loginAnomalies.length" type="danger" />
-        </div>
-        <div class="warning-list">
-          <div
-            v-for="item in loginAnomalies"
-            :key="item.id"
-            class="warning-item"
-            :class="item.status"
-          >
-            <div class="warning-icon">
-              <el-icon v-if="item.status === 'danger'"><CircleClose /></el-icon>
-              <el-icon v-else><Warning /></el-icon>
-            </div>
-            <div class="warning-content">
-              <div class="warning-title">
-                <span class="user-name">{{ item.user }}</span>
-                <el-tag :type="item.status" size="small">{{ item.type }}</el-tag>
-              </div>
-              <div class="warning-meta">
-                <span>IP: {{ item.ip }}</span>
-                <span>位置: {{ item.location }}</span>
-                <span>时间: {{ item.time }}</span>
-              </div>
-            </div>
-            <el-button type="primary" size="small" plain>处理</el-button>
-          </div>
+        <div class="chart-container">
+          <ECharts :option="pieChartOption" />
         </div>
       </div>
     </div>
@@ -803,175 +766,12 @@ onMounted(() => {
       }
     }
   }
-
-  .operation-warning-row {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    gap: 20px;
-
-    .operation-section,
-    .warning-section {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-
-      .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px 20px;
-        border-bottom: 1px solid #ebeef5;
-
-        .section-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 16px;
-          font-weight: 600;
-          color: #303133;
-
-          .el-icon {
-            color: #1a2a6c;
-            font-size: 18px;
-          }
-        }
-      }
-    }
-
-    .operation-section {
-      .operation-summary {
-        display: flex;
-        justify-content: space-around;
-        padding: 20px;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-
-        .summary-item {
-          text-align: center;
-
-          .summary-value {
-            display: block;
-            font-size: 28px;
-            font-weight: 700;
-            color: #1a2a6c;
-            font-family: 'DIN', sans-serif;
-          }
-
-          .summary-label {
-            font-size: 13px;
-            color: #909399;
-            margin-top: 4px;
-          }
-        }
-      }
-
-      .chart-container {
-        padding: 16px;
-      }
-    }
-
-    .warning-section {
-      .section-header {
-        .section-title .el-icon {
-          color: #f56c6c;
-        }
-      }
-
-      .warning-list {
-        padding: 16px;
-        max-height: 360px;
-        overflow-y: auto;
-
-        .warning-item {
-          display: flex;
-          align-items: center;
-          padding: 16px;
-          margin-bottom: 12px;
-          border-radius: 8px;
-          background: #fafafa;
-          transition: all 0.3s ease;
-          border-left: 3px solid transparent;
-
-          &:last-child {
-            margin-bottom: 0;
-          }
-
-          &:hover {
-            background: #f5f7fa;
-            transform: translateX(4px);
-          }
-
-          &.danger {
-            background: #fef0f0;
-            border-left-color: #f56c6c;
-
-            .warning-icon {
-              background: #f56c6c;
-            }
-          }
-
-          &.warning {
-            background: #fdf6ec;
-            border-left-color: #e6a23c;
-
-            .warning-icon {
-              background: #e6a23c;
-            }
-          }
-
-          .warning-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #909399;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 20px;
-            margin-right: 16px;
-            flex-shrink: 0;
-          }
-
-          .warning-content {
-            flex: 1;
-
-            .warning-title {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-bottom: 6px;
-
-              .user-name {
-                font-size: 15px;
-                font-weight: 500;
-                color: #303133;
-              }
-            }
-
-            .warning-meta {
-              font-size: 12px;
-              color: #909399;
-
-              span {
-                margin-right: 16px;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 }
 
 @media screen and (max-width: 1600px) {
   .admin-home {
     .overview-section .overview-cards {
       grid-template-columns: repeat(3, 1fr);
-    }
-
-    .operation-warning-row {
-      grid-template-columns: 1fr;
     }
   }
 }

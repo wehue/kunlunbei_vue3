@@ -17,14 +17,11 @@ const canManage = computed(() => isDesignerRole.value || isAdminRole.value)
 const router = useRouter()
 
 const generateProcessCode = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const hour = String(now.getHours()).padStart(2, '0')
-  const minute = String(now.getMinutes()).padStart(2, '0')
-  const second = String(now.getSeconds()).padStart(2, '0')
-  return `PROC-${year}${month}${day}${hour}${minute}${second}`
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `GX${year}${month}${day}${random}`
 }
 
 const proTableRef = ref()
@@ -265,7 +262,7 @@ const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    processCode: '',
+    processCode: generateProcessCode(),
     processName: '',
     productionStep: '',
     devices: [],
@@ -433,8 +430,14 @@ const handleExportBatch = (selectedList) => {
 
 const getTableList = async (params) => {
   try {
-    const response = await getProcessList(params)
-    console.log('获取工序列表信息成功', response)
+    // 转换搜索参数为后端API期望的格式
+    const apiParams = {
+      workingProcedureId: params?.processCode,
+      workingProcedureName: params?.processName,
+    }
+    
+    const response = await getProcessList(apiParams)
+    console.log('获取工序列表信息成功', response, '请求参数:', apiParams)
 
     // 根据后端返回的数据结构获取工序列表数组
     const processList = response.data.data.data
@@ -574,7 +577,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="工序编号">
-              <el-input v-model="formData.processCode" placeholder="请输入工序编号" />
+              <el-input v-model="formData.processCode" :disabled="true" placeholder="系统自动生成" />
             </el-form-item>
             <el-form-item label="工序名称" prop="processName">
               <el-input v-model="formData.processName" placeholder="请输入工序名称" />

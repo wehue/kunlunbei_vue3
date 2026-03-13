@@ -54,11 +54,19 @@ const rules = {
   position: [{ required: true, message: '请输入岗位', trigger: 'blur' }],
 }
 
+const generateOperatorCode = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `RY${year}${month}${day}${random}`
+}
+
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    productionStaffId: '',
+    productionStaffId: generateOperatorCode(),
     productionStaffName: '',
     departmentId: '',
     position: '',
@@ -239,7 +247,7 @@ onMounted(() => {
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
         <div class="form-grid">
           <el-form-item label="工号">
-            <el-input v-model="formData.productionStaffId" placeholder="请输入工号" />
+            <el-input v-model="formData.productionStaffId" :disabled="true" placeholder="系统自动生成" />
           </el-form-item>
           <el-form-item label="姓名" prop="productionStaffName">
             <el-input v-model="formData.productionStaffName" placeholder="请输入姓名" />

@@ -54,7 +54,7 @@ const columns = reactive([
     search: { el: 'select', key: 'userStatus' },
     enum: statusOptions,
   },
-  { prop: 'operation', label: '操作', width: 280, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -134,11 +134,19 @@ const rules = {
   password: [{ required: true, validator: validatePassword, trigger: 'blur' }],
 }
 
+const generateUserId = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `YH${year}${month}${day}${random}`
+}
+
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    userId: '',
+    userId: generateUserId(),
     userName: '',
     phone: '',
     email: '',
@@ -257,7 +265,7 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    await deleteUser(row.userId)
+    await deleteUser(row.id)
     ElMessage.success('删除成功')
     proTableRef.value?.getTableList()
   } catch (error) {
@@ -398,6 +406,7 @@ const handleSubmit = async () => {
             address: formData.email,
             role: formData.role,
             userStatus: formData.userStatus,
+            password: formData.password,
           }
           console.log('新增的用户数据:', userData)
           await createUser(userData)
@@ -589,7 +598,7 @@ const getTableList = async (params) => {
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
         <div class="form-grid">
           <el-form-item label="用户ID">
-            <el-input v-model="formData.userId" />
+            <el-input v-model="formData.userId" :disabled="true" placeholder="系统自动生成" />
           </el-form-item>
           <el-form-item label="用户名" prop="userName">
             <el-input v-model="formData.userName" placeholder="请输入用户名" />
@@ -603,7 +612,7 @@ const getTableList = async (params) => {
           <el-form-item label="角色" prop="role">
             <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
               <el-option
-                v-for="item in roleOptions"
+                v-for="item in roleOptions.filter((role) => role.value !== 'Admin')"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"

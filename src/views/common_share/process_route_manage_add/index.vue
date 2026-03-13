@@ -232,8 +232,10 @@ const canSubmitAudit = computed(() => currentRole.value === 'designer')
 
 const generateRouteCode = () => {
   const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
   const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
-  return `PR${year}${random}`
+  return `GY${year}${month}${day}${random}`
 }
 
 formData.routeCode = generateRouteCode()
@@ -614,7 +616,7 @@ const handleCancel = () => {
           </div>
           <div class="form-grid">
             <el-form-item label="工艺编号" prop="routeCode">
-              <el-input v-model="formData.routeCode" placeholder="请输入工艺编号" />
+              <el-input v-model="formData.routeCode" :disabled="true" placeholder="系统自动生成" />
             </el-form-item>
             <el-form-item label="工艺名称" prop="routeName">
               <el-input v-model="formData.routeName" placeholder="请输入工艺名称" />

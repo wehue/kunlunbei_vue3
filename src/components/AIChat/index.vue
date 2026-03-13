@@ -29,16 +29,41 @@ async function fetchNewSessionId(oldSessionId) {
   let url = `http://localhost:8080/ai/chat/generateSessionId`
   if (oldSessionId) url += `?oldSessionId=${encodeURIComponent(oldSessionId)}`
 
-  const res = await fetch(url)
-  const id = await res.text()
+  try {
+    const res = await fetch(url)
 
-  localStorage.setItem('chatSessionId', id)
-  return id
+    if (!res.ok) {
+      console.error('获取会话ID失败:', res.status, res.statusText)
+      localStorage.removeItem('chatSessionId')
+      return null
+    }
+
+    const id = await res.text()
+
+    if (!id || id.includes('error') || id.includes('Error') || id.includes('{')) {
+      console.error('无效的会话ID:', id)
+      localStorage.removeItem('chatSessionId')
+      return null
+    }
+
+    localStorage.setItem('chatSessionId', id)
+    return id
+  } catch (error) {
+    console.error('获取会话ID请求失败:', error)
+    localStorage.removeItem('chatSessionId')
+    return null
+  }
 }
 
 async function initSession() {
   if (!isInitialized) {
-    sessionId.value = await fetchNewSessionId(null)
+    const newSessionId = await fetchNewSessionId(null)
+    if (!newSessionId) {
+      appendMessage('系统：无法连接AI服务，请检查后端服务是否正常运行', 'system')
+      isSessionExpired.value = true
+      return
+    }
+    sessionId.value = newSessionId
     appendMessage('系统：会话已创建，可以开始聊天', 'system')
     isInitialized = true
   }
@@ -98,7 +123,13 @@ async function newChat() {
     socket.value = null
   }
 
-  sessionId.value = await fetchNewSessionId(sessionId.value)
+  const newSessionId = await fetchNewSessionId(sessionId.value)
+  if (!newSessionId) {
+    appendMessage('系统：无法创建新会话，请检查后端服务是否正常运行', 'system')
+    isSessionExpired.value = true
+    return
+  }
+  sessionId.value = newSessionId
   appendMessage('系统：新会话已创建，可以开始提问', 'system')
 
   initWebSocket()
@@ -197,7 +228,13 @@ watch(
     if (isSessionExpired.value) return
 
     if (!sessionId.value) {
-      sessionId.value = await fetchNewSessionId(null)
+      const newSessionId = await fetchNewSessionId(null)
+      if (!newSessionId) {
+        appendMessage('系统：无法连接AI服务，请检查后端服务是否正常运行', 'system')
+        isSessionExpired.value = true
+        return
+      }
+      sessionId.value = newSessionId
     }
 
     if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {

@@ -32,11 +32,19 @@ const rules = {
   departmentName: [{ required: true, message: '请输入部门名称', trigger: 'blur' }],
 }
 
+const generateDeptCode = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `BM${year}${month}${day}${random}`
+}
+
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: null,
-    departmentId: '',
+    departmentId: generateDeptCode(),
     departmentName: '',
   })
   dialogVisible.value = true
@@ -49,7 +57,7 @@ const handleView = (row) => {
 const handleEdit = (row) => {
   isEdit.value = true
   Object.assign(formData, {
-    id: row.departmentId || row.deptId || row.id || null,
+    id: row.id, // 使用数字类型的主键ID
     departmentId: row.departmentId || row.deptId || row.deptCode || '',
     departmentName: row.departmentName || row.deptName || row.name || '',
   })
@@ -63,7 +71,7 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    const deptId = row.departmentId || row.deptId || row.id
+    const deptId = row.departmentId
     await deleteDept(deptId)
     ElMessage.success('删除成功')
     proTableRef.value?.getTableList()
@@ -141,7 +149,8 @@ const getTableList = async (params) => {
     const paginatedList = list.slice(startIndex, endIndex)
     const dataWithIndex = paginatedList.map((item, index) => ({
       ...item,
-      id: item.departmentId || item.deptId || item.id,
+      id: item.id || item.deptId, // 数字类型的主键ID
+      departmentId: item.departmentId || item.deptId || item.deptCode || '', // 字符串格式的部门编号
       deptCode: item.departmentId || item.deptId || item.deptCode || '',
       deptName: item.departmentName || item.deptName || item.name || '',
       establishDate: formatDateTime(item.createTime || item.establishDate || ''),
@@ -197,7 +206,7 @@ const getTableList = async (params) => {
       <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
         <div class="form-grid">
           <el-form-item label="部门编号">
-            <el-input v-model="formData.departmentId" placeholder="请输入部门编号" />
+            <el-input v-model="formData.departmentId" :disabled="true" placeholder="系统自动生成" />
           </el-form-item>
           <el-form-item label="部门名称" prop="departmentName">
             <el-input v-model="formData.departmentName" placeholder="请输入部门名称" />

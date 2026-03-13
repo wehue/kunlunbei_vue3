@@ -6,10 +6,12 @@ import { Plus, View, Download, Delete, Edit } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
+import { useUserStore } from '@/stores/modules/user'
 import { getPartList, getPartCategoryList, addPart, updatePart, deletePart } from '@/api/material'
 import { getWarehouseList } from '@/api/warehouse'
 
 const { hasPermission, isDesignerRole, isAdminRole } = usePermission()
+const userStore = useUserStore()
 
 const warehouseMap = ref(new Map())
 const categoryMap = ref(new Map())
@@ -48,7 +50,6 @@ const proTableRef = ref()
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref()
-const showAllVersions = ref(false)
 
 const columns = reactive([
   { type: 'selection', width: 50 },
@@ -234,18 +235,28 @@ const rules = {
 }
 
 const handleCategoryChange = (value) => {
+  console.log('分类选择变化:', value)
   if (value && value.length > 0) {
     formData.selectedCategoryId = value[value.length - 1]
+    console.log('选中的分类ID:', formData.selectedCategoryId)
   } else {
     formData.selectedCategoryId = null
   }
+}
+
+const generateMaterialCode = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `WL${year}${month}${day}${random}`
 }
 
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: '',
-    materialId: '',
+    materialId: generateMaterialCode(),
     materialName: '',
     versions: 'V1.0',
     supplier: '',
@@ -261,7 +272,13 @@ const handleAdd = () => {
 
 const handleEdit = (row) => {
   isEdit.value = true
+  console.log('编辑行数据:', row)
+  console.log('分类ID:', row.categoryId, '类型:', typeof row.categoryId)
+  console.log('分类树数据:', categoryTreeData.value)
+
   const categoryPath = findCategoryPath(categoryTreeData.value, row.categoryId || row.category?.id)
+  console.log('找到的分类路径:', categoryPath)
+
   const warehouseId = row.warhouseId || row.warhouse?.id
   Object.assign(formData, {
     id: row.id,
@@ -273,16 +290,21 @@ const handleEdit = (row) => {
     stockQuantity: row.stockQuantity,
     unit: row.unit || 'A',
     warehouse: warehouseId ? { id: warehouseId } : null,
-    category: categoryPath,
+    category: categoryPath || [],
     selectedCategoryId: row.categoryId || row.category?.id,
   })
+  console.log('编辑表单数据:', formData)
   dialogVisible.value = true
 }
 
 const findCategoryPath = (tree, targetId, path = []) => {
+  if (!tree || !targetId) return null
+
   for (const node of tree) {
-    const currentPath = [...path, node.id]
-    if (node.id === targetId) {
+    const currentPath = [...path, node.value]
+    // 统一转换为字符串进行比较，避免类型不匹配
+    if (String(node.value) === String(targetId)) {
+      console.log('找到匹配节点:', node.value, '目标ID:', targetId)
       return currentPath
     }
     if (node.children && node.children.length > 0) {
@@ -296,14 +318,28 @@ const findCategoryPath = (tree, targetId, path = []) => {
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate(async (valid) => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       try {
+        const currentUserId = userStore.userInfo?.id || ''
+        console.log('当前用户ID:', currentUserId)
+
+        let newVersion = formData.versions
+        if (isEdit.value) {
+          if (formData.versions) {
+            const currentVersion = parseFloat(formData.versions.replace('V', ''))
+            newVersion = `V${(currentVersion + 1).toFixed(1)}`
+          } else {
+            newVersion = 'V1.0'
+          }
+          console.log('当前版本:', formData.versions, '新版本:', newVersion)
+        }
+
         const submitData = {
-          id: formData.id || formData.materialId,
+          id: isEdit.value ? formData.id : Date.now().toString(),
           materialId: formData.materialId,
           materialName: formData.materialName,
-          versions: formData.versions,
+          versions: newVersion,
           supplier: formData.supplier,
           specificationModel: formData.specificationModel,
           stockQuantity: formData.stockQuantity != null ? String(formData.stockQuantity) : '',
@@ -311,19 +347,35 @@ const handleSubmit = async () => {
           warhouse: formData.warehouse,
           category: formData.selectedCategoryId ? { id: formData.selectedCategoryId } : null,
           master: {
-            id: formData.id || formData.materialId,
+            id: isEdit.value ? formData.id : Date.now().toString(),
           },
           branch: {
-            id: formData.id || formData.materialId,
+            id: isEdit.value ? formData.id : Date.now().toString(),
           },
         }
 
+        console.log('提交物料请求参数:', submitData)
+        console.log('选中的分类ID:', formData.selectedCategoryId)
+        console.log('分类数据:', submitData.category)
+
         if (isEdit.value) {
-          await updatePart(submitData)
-          ElMessage.success('修改成功')
+          const res = await updatePart(submitData)
+          console.log('修改物料响应:', res)
+          if (res.data?.code === 200) {
+            ElMessage.success(`修改成功，已生成新版本 ${newVersion}`)
+          } else {
+            ElMessage.error('修改失败')
+            return
+          }
         } else {
-          await addPart(submitData)
-          ElMessage.success('新增成功')
+          const res = await addPart(submitData)
+          console.log('新增物料响应:', res)
+          if (res.data?.code === 200) {
+            ElMessage.success('新增成功')
+          } else {
+            ElMessage.error('新增失败')
+            return
+          }
         }
         dialogVisible.value = false
         proTableRef.value?.getTableList()
@@ -436,9 +488,12 @@ const getTableList = async (params) => {
         warehouseMap.value.get(item.warhouse?.id || item.warhouseId || item.warhouse) ||
         item.warhouse?.warhouseName ||
         '',
-      categoryId: item.category?.categoryId || item.categoryId || item.category,
+      categoryId:
+        item.category?.id || item.category?.categoryId || item.categoryId || item.category,
       categoryName:
-        categoryMap.value.get(item.category?.categoryId || item.categoryId || item.category) ||
+        categoryMap.value.get(
+          item.category?.id || item.category?.categoryId || item.categoryId || item.category,
+        ) ||
         item.category?.categoryName ||
         '',
       master: item.master,
@@ -500,14 +555,6 @@ const getTableList = async (params) => {
               批量导出
             </el-button>
           </div>
-          <div class="header-right">
-            <el-switch
-              v-model="showAllVersions"
-              active-text="显示所有版本"
-              inactive-text="仅显示当前版本"
-              @change="proTableRef?.getTableList()"
-            />
-          </div>
         </div>
       </template>
 
@@ -566,7 +613,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="物料编号" prop="materialId">
-              <el-input v-model="formData.materialId" placeholder="请输入物料编号" />
+              <el-input v-model="formData.materialId" :disabled="true" placeholder="系统自动生成" />
             </el-form-item>
             <el-form-item label="物料名称" prop="materialName">
               <el-input v-model="formData.materialName" placeholder="请输入物料名称" />
@@ -655,7 +702,7 @@ const getTableList = async (params) => {
 
   .header-controls {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     width: 100%;
 
@@ -663,11 +710,6 @@ const getTableList = async (params) => {
       display: flex;
       align-items: center;
       gap: 12px;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
     }
   }
 

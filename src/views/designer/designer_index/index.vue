@@ -10,17 +10,14 @@ import {
   Guide,
   TrendCharts,
   Plus,
-  Document,
   Bell,
   Clock,
   ArrowRight,
   Edit,
-  DataAnalysis,
   RefreshRight,
 } from '@element-plus/icons-vue'
 import { useMessageStore } from '@/stores/modules/message'
-import { getDesignerConsole1, getDesignerConsole2 } from '@/api/user'
-import { getPartCategoryList } from '@/api/material'
+import { getDesignerConsole1, getDesignerConsole2, getDesignerConsole3 } from '@/api/user'
 
 const router = useRouter()
 const messageStore = useMessageStore()
@@ -72,28 +69,6 @@ const quickActions = ref([
     color: '#f56c6c',
     route: '/process-route-manage/process-route-manage-add',
   },
-  {
-    id: 5,
-    title: '新增BOM',
-    icon: markRaw(Document),
-    color: '#909399',
-    route: '/material-manage/bom-manage',
-  },
-  {
-    id: 6,
-    title: '物料分类管理',
-    icon: markRaw(DataAnalysis),
-    color: '#9c27b0',
-    route: '/material-manage/material-category',
-  },
-])
-
-const materialCategoryData = ref([
-  { name: '电子元器件', value: 425 },
-  { name: '机械零件', value: 312 },
-  { name: '金属材料', value: 256 },
-  { name: '塑料件', value: 158 },
-  { name: '成品', value: 105 },
 ])
 
 const chartOption = computed(() => ({
@@ -275,66 +250,6 @@ const chartOption = computed(() => ({
   ],
 }))
 
-const pieChartOption = computed(() => ({
-  tooltip: {
-    trigger: 'item',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#eee',
-    borderWidth: 1,
-    textStyle: {
-      color: '#333',
-    },
-    formatter: '{b}: {c} ({d}%)',
-  },
-  legend: {
-    orient: 'vertical',
-    right: '5%',
-    top: 'center',
-    textStyle: {
-      color: '#666',
-      fontSize: 13,
-    },
-  },
-  series: [
-    {
-      name: '物料分类',
-      type: 'pie',
-      radius: ['45%', '70%'],
-      center: ['40%', '50%'],
-      avoidLabelOverlap: false,
-      itemStyle: {
-        borderRadius: 8,
-        borderColor: '#fff',
-        borderWidth: 2,
-      },
-      label: {
-        show: false,
-      },
-      emphasis: {
-        label: {
-          show: true,
-          fontSize: 16,
-          fontWeight: 'bold',
-        },
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.2)',
-        },
-      },
-      labelLine: {
-        show: false,
-      },
-      data: materialCategoryData.value.map((item, index) => ({
-        ...item,
-        itemStyle: {
-          color: ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399'][index],
-        },
-      })),
-    },
-  ],
-}))
-
 const animateNumber = (target, key, end, duration = 1000) => {
   const start = 0
   const startTime = performance.now()
@@ -383,10 +298,10 @@ const fetchData = async () => {
   loading.value = true
   try {
     // 并行获取所有数据
-    const [cardResponse, todoResponse, categoryResponse] = await Promise.all([
+    const [cardResponse, todoResponse, trendResponse] = await Promise.all([
       getDesignerConsole1(),
       getDesignerConsole2(),
-      getPartCategoryList(),
+      getDesignerConsole3(),
     ])
 
     // 获取卡片数据
@@ -440,78 +355,35 @@ const fetchData = async () => {
       todoList.value = newTodoList
     }
 
-    // 获取物料分类数据
-    console.log('获取物料分类数据成功', categoryResponse)
-    let categoryList = []
-    if (categoryResponse.data && Array.isArray(categoryResponse.data)) {
-      categoryList = categoryResponse.data
-    } else if (
-      categoryResponse.data &&
-      categoryResponse.data.data &&
-      Array.isArray(categoryResponse.data.data)
-    ) {
-      categoryList = categoryResponse.data.data
-    } else if (
-      categoryResponse.data &&
-      categoryResponse.data.data &&
-      categoryResponse.data.data.data &&
-      Array.isArray(categoryResponse.data.data.data)
-    ) {
-      categoryList = categoryResponse.data.data.data
-    }
+    // 获取近7天业务趋势数据
+    console.log('获取近7天业务趋势数据成功', trendResponse)
+    if (trendResponse.data && trendResponse.data.code === 200) {
+      const trendDataResponse = trendResponse.data.data
+      if (trendDataResponse && trendDataResponse['近7日操作日志统计']) {
+        const stats = trendDataResponse['近7日操作日志统计']
 
-    // 统计每个 Max 分类的子级数量
-    const maxList = []
-    const midMap = new Map()
-    const minMap = new Map()
+        // 提取日期数组（按日期排序）
+        const dates = Object.keys(stats['新增设备']).sort()
 
-    categoryList.forEach((item) => {
-      if (item.level === 'Max') {
-        maxList.push({
-          id: item.categoryId,
-          label: item.categoryName,
-          children: [],
+        // 提取数据
+        const newEquipment = dates.map((date) => stats['新增设备'][date] || 0)
+        const newMaterials = dates.map((date) => stats['新增物料'][date] || 0)
+        const approvedRoutes = dates.map((date) => stats['审核通过数'][date] || 0)
+
+        // 格式化日期为 MM-DD 格式
+        const formattedDates = dates.map((date) => {
+          const parts = date.split('-')
+          return `${parts[1]}-${parts[2]}`
         })
-      } else if (item.level === 'Mid') {
-        const parentId = Math.floor(parseInt(item.categoryId) / 100) * 100
-        if (!midMap.has(String(parentId))) {
-          midMap.set(String(parentId), [])
+
+        // 更新趋势数据
+        trendData.value = {
+          dates: formattedDates,
+          approvedRoutes,
+          newEquipment,
+          newMaterials,
         }
-        midMap.get(String(parentId)).push({
-          id: item.categoryId,
-          label: item.categoryName,
-          children: [],
-        })
-      } else if (item.level === 'Min') {
-        const parentId = item.categoryId.substring(0, 3)
-        if (!minMap.has(parentId)) {
-          minMap.set(parentId, [])
-        }
-        minMap.get(parentId).push({
-          id: item.categoryId,
-          label: item.categoryName,
-        })
       }
-    })
-
-    // 构建树形结构并统计数量
-    const categoryData = []
-    maxList.forEach((maxNode) => {
-      const midChildren = midMap.get(String(maxNode.id)) || []
-      let totalCount = 0
-      midChildren.forEach((midNode) => {
-        const minChildren = minMap.get(String(midNode.id)) || []
-        totalCount += 1 + minChildren.length
-      })
-      categoryData.push({
-        name: maxNode.label,
-        value: totalCount,
-      })
-    })
-
-    // 更新物料分类数据
-    if (categoryData.length > 0) {
-      materialCategoryData.value = categoryData
     }
   } catch (error) {
     console.error('数据加载失败:', error)
@@ -524,10 +396,15 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
   messageStore.startPolling((newMsg) => {
+    // 适配后端消息格式
+    const title = newMsg.noticeTitle?.workingPlanName || newMsg.title || '消息通知'
+    const summary = newMsg.summary
+    const status = newMsg.noticeTitle?.status || newMsg.auditStatus
+
     ElNotification({
-      title: newMsg.title,
-      message: newMsg.summary,
-      type: newMsg.auditStatus === '已通过' ? 'success' : 'warning',
+      title: title,
+      message: summary,
+      type: status === '已通过' ? 'success' : 'warning',
       duration: 5000,
       position: 'top-right',
       onClick: () => {
@@ -677,19 +554,6 @@ onUnmounted(() => {
         </div>
         <div class="chart-container">
           <ECharts :option="chartOption" />
-        </div>
-      </div>
-
-      <div class="chart-section pie-chart">
-        <div class="section-header">
-          <div class="section-title">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>物料分类分布</span>
-          </div>
-          <div class="section-subtitle">各分类物料数量占比</div>
-        </div>
-        <div class="chart-container">
-          <ECharts :option="pieChartOption" />
         </div>
       </div>
     </div>
@@ -896,29 +760,26 @@ onUnmounted(() => {
     }
 
     .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      display: flex;
       gap: 16px;
       padding: 20px;
 
       .action-item {
+        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 12px;
-        padding: 20px 16px;
-        background: #f8f9fa;
-        border-radius: 10px;
+        padding: 24px 16px;
+        background: #fff;
+        border: 1px solid #ebeef5;
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.3s ease;
 
         &:hover {
-          background: #f0f2f5;
-          transform: translateY(-2px);
-
-          .action-icon {
-            transform: scale(1.1);
-          }
+          border-color: #409eff;
+          box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
         }
 
         .action-icon {
@@ -937,6 +798,7 @@ onUnmounted(() => {
           font-size: 14px;
           color: #606266;
           font-weight: 500;
+          text-align: center;
         }
       }
     }
@@ -1050,7 +912,7 @@ onUnmounted(() => {
 
   .charts-row {
     display: grid;
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
 
     .chart-section {

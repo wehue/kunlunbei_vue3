@@ -45,11 +45,19 @@ const rules = {
   productName: [{ required: true, validator: validateProductName, trigger: 'blur' }],
 }
 
+const generateProductCode = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `CP${year}${month}${day}${random}`
+}
+
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
     id: '',
-    productId: '',
+    productId: generateProductCode(),
     productName: '',
     productDescription: '',
   })
@@ -192,7 +200,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="产品编码">
-              <el-input v-model="formData.productId" :disabled="isEdit" />
+              <el-input v-model="formData.productId" :disabled="true" placeholder="系统自动生成" />
             </el-form-item>
             <el-form-item label="产品名称" prop="productName">
               <el-input v-model="formData.productName" placeholder="请输入产品名称" />

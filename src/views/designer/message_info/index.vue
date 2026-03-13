@@ -1,13 +1,11 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { View, Check, Delete, Refresh } from '@element-plus/icons-vue'
+import { Check, Delete, Refresh } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
 import { useMessageStore } from '@/stores/modules/message'
 import { getMessageList, deleteMessages, markAllMessagesAsRead } from '@/api/message'
 
-const router = useRouter()
 const messageStore = useMessageStore()
 
 const proTableRef = ref()
@@ -21,7 +19,6 @@ const columns = reactive([
   { prop: 'workingPlanName', label: '消息标题', minWidth: 180 },
   { prop: 'noticeStatus', label: '审核状态', width: 160 },
   { prop: 'createTime', label: '接收时间', minWidth: 160 },
-  { prop: 'operation', label: '操作', width: 160, fixed: 'right' },
 ])
 
 const allMessages = ref([])
@@ -35,17 +32,6 @@ const messages = computed(() => allMessages.value)
 const handleFilterChange = (type) => {
   filterType.value = type
   proTableRef.value?.getTableList()
-}
-
-const handleView = async (row) => {
-  try {
-    // 调用获取消息列表接口并传参 READ=read 来标记已读
-    await getMessageList({ READ: 'read' })
-    messageStore.markAsRead(row.noticeId)
-    router.push(`/message-manage/message-detail/${row.noticeId}`)
-  } catch (error) {
-    ElMessage.error('标记已读失败')
-  }
 }
 
 const handleDeleteSelected = async () => {
@@ -261,14 +247,6 @@ const handleSelectionChange = (selection) => {
           {{ formatDate(scope.row.createTime) }}
         </div>
       </template>
-
-      <template #operation="scope">
-        <div class="operation-buttons">
-          <el-button type="primary" link :icon="View" @click="handleView(scope.row)"
-            >查看详情</el-button
-          >
-        </div>
-      </template>
     </ProTable>
   </div>
 </template>
@@ -360,13 +338,6 @@ const handleSelectionChange = (selection) => {
     &.unread {
       color: #606266;
     }
-  }
-
-  .operation-buttons {
-    display: flex;
-    gap: 8px;
-    flex-wrap: nowrap;
-    justify-content: center;
   }
 
   :deep(.el-table__row) {

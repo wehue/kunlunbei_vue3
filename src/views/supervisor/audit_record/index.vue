@@ -3,191 +3,147 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { View, Search, Refresh } from '@element-plus/icons-vue'
 import ProTable from '@/components/ProTable/index.vue'
+import { getAuditRecordsList } from '@/api/audit'
 
 const router = useRouter()
 
 const proTableRef = ref()
 
 const auditStatusOptions = ref([
-  { label: '已通过', value: '已通过' },
-  { label: '已驳回', value: '已驳回' },
+  { label: '待提交', value: 'W' },
+  { label: '审核中', value: 'F' },
+  { label: '已通过', value: 'T' },
+  { label: '已驳回', value: 'Y' },
 ])
 
-const mockData = ref([
-  {
-    id: 1,
-    processCode: 'PR001',
-    processName: '智能手机组装工艺路线',
-    auditStatus: '已通过',
-    applicant: '张三',
-    submitTime: '2024-01-10 09:30:00',
-    auditor: '李四',
-    auditTime: '2024-01-10 14:20:00',
-  },
-  {
-    id: 2,
-    processCode: 'PR002',
-    processName: '平板电脑组装工艺路线',
-    auditStatus: '已驳回',
-    applicant: '李四',
-    submitTime: '2024-01-11 10:15:00',
-    auditor: '张三',
-    auditTime: '2024-01-11 16:30:00',
-  },
-  {
-    id: 3,
-    processCode: 'PR003',
-    processName: '智能手表组装工艺路线',
-    auditStatus: '已通过',
-    applicant: '王五',
-    submitTime: '2024-01-12 11:20:00',
-    auditor: '李四',
-    auditTime: '2024-01-12 15:45:00',
-  },
-  {
-    id: 4,
-    processCode: 'PR004',
-    processName: '蓝牙耳机制造工艺路线',
-    auditStatus: '已通过',
-    applicant: '赵六',
-    submitTime: '2024-01-13 14:05:00',
-    auditor: '王五',
-    auditTime: '2024-01-13 17:10:00',
-  },
-  {
-    id: 5,
-    processCode: 'PR005',
-    processName: '充电器生产工艺路线',
-    auditStatus: '已驳回',
-    applicant: '钱七',
-    submitTime: '2024-01-14 15:30:00',
-    auditor: '张三',
-    auditTime: '2024-01-14 18:00:00',
-  },
-  {
-    id: 6,
-    processCode: 'PR006',
-    processName: '电池组装工艺路线',
-    auditStatus: '已通过',
-    applicant: '孙八',
-    submitTime: '2024-01-15 08:45:00',
-    auditor: '李四',
-    auditTime: '2024-01-15 11:30:00',
-  },
-  {
-    id: 7,
-    processCode: 'PR007',
-    processName: '显示屏贴合工艺路线',
-    auditStatus: '已通过',
-    applicant: '周九',
-    submitTime: '2024-01-15 09:20:00',
-    auditor: '王五',
-    auditTime: '2024-01-15 14:15:00',
-  },
-  {
-    id: 8,
-    processCode: 'PR008',
-    processName: '摄像头模组工艺路线',
-    auditStatus: '已驳回',
-    applicant: '吴十',
-    submitTime: '2024-01-16 10:35:00',
-    auditor: '张三',
-    auditTime: '2024-01-16 15:20:00',
-  },
-  {
-    id: 9,
-    processCode: 'PR009',
-    processName: '主板焊接工艺路线',
-    auditStatus: '已通过',
-    applicant: '郑十一',
-    submitTime: '2024-01-16 11:50:00',
-    auditor: '李四',
-    auditTime: '2024-01-16 16:40:00',
-  },
-  {
-    id: 10,
-    processCode: 'PR010',
-    processName: '外壳注塑工艺路线',
-    auditStatus: '已通过',
-    applicant: '王十二',
-    submitTime: '2024-01-17 14:10:00',
-    auditor: '王五',
-    auditTime: '2024-01-17 17:30:00',
-  },
-  {
-    id: 11,
-    processCode: 'PR011',
-    processName: '按键组装工艺路线',
-    auditStatus: '已驳回',
-    applicant: '刘明',
-    submitTime: '2024-01-18 15:25:00',
-    auditor: '张三',
-    auditTime: '2024-01-18 18:10:00',
-  },
-  {
-    id: 12,
-    processCode: 'PR012',
-    processName: '包装封装工艺路线',
-    auditStatus: '已通过',
-    applicant: '陈华',
-    submitTime: '2024-01-19 08:30:00',
-    auditor: '李四',
-    auditTime: '2024-01-19 11:45:00',
-  },
-])
+// 格式化日期时间
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+// 获取审核状态标签
+const getAuditStatusLabel = (status) => {
+  const map = {
+    W: '待提交',
+    F: '审核中',
+    T: '已通过',
+    Y: '已驳回',
+  }
+  return map[status] || status
+}
+
+// 获取审核状态类型
+const getAuditStatusType = (status) => {
+  const map = {
+    W: 'info',
+    F: 'warning',
+    T: 'success',
+    Y: 'danger',
+  }
+  return map[status] || 'info'
+}
 
 const columns = reactive([
-  { type: 'index', label: '序号', width: 60 },
-  { prop: 'processCode', label: '工艺编号', minWidth: 100, search: { el: 'input', key: 'processCode' } },
-  { prop: 'processName', label: '工艺路线名称', minWidth: 180, search: { el: 'input', key: 'processName' } },
-  { prop: 'auditStatus', label: '审核状态', width: 90, search: { el: 'select', key: 'auditStatus' }, enum: auditStatusOptions.value },
-  { prop: 'applicant', label: '申请人', width: 80, search: { el: 'input', key: 'applicant' } },
-  { prop: 'submitTime', label: '提交时间', minWidth: 160 },
-  { prop: 'auditor', label: '审核人', width: 80, search: { el: 'input', key: 'auditor' } },
-  { prop: 'auditTime', label: '审核时间', minWidth: 160 },
-  { prop: 'operation', label: '操作', width: 100, fixed: 'right' },
+  { type: 'index', label: '序号', width: 80 },
+  {
+    prop: 'processCode',
+    label: '工艺编号',
+    minWidth: 100,
+    search: { el: 'input', key: 'workingPlanId' },
+  },
+  {
+    prop: 'processName',
+    label: '工艺路线名称',
+    minWidth: 120,
+    search: { el: 'input', key: 'workingPlanName' },
+  },
+  {
+    prop: 'auditStatus',
+    label: '审核状态',
+    width: 110,
+    search: { el: 'select', key: 'status' },
+    enum: auditStatusOptions.value,
+  },
+  { prop: 'applicant', label: '申请人', width: 160 },
+  { prop: 'submitTime', label: '提交时间', minWidth: 140 },
+  { prop: 'operation', label: '操作', width: 170, fixed: 'right' },
 ])
 
 const handleView = (row) => {
-  router.push(`/audit-manage/audit-record-detail/${row.id}`)
+  router.push(`/audit-manage/audit-record-detail/${row.processCode}`)
 }
 
 const getTableList = async (params) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const pageNum = params?.pageNum || 1
-      const pageSize = params?.pageSize || 10
-      const startIndex = (pageNum - 1) * pageSize
-      const endIndex = startIndex + pageSize
-      const paginatedData = mockData.value.slice(startIndex, endIndex)
+  try {
+    // 构建查询参数，只传递有值的参数
+    const queryParams = {
+      pageNum: params?.pageNum || 1,
+      pageSize: params?.pageSize || 10,
+    }
 
-      const dataWithIndex = paginatedData.map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1,
-      }))
+    // 只在参数有值时才添加到查询对象中
+    if (params?.workingPlanId) {
+      queryParams.workingPlanId = params.workingPlanId
+    }
+    if (params?.workingPlanName) {
+      queryParams.workingPlanName = params.workingPlanName
+    }
+    if (params?.status) {
+      queryParams.status = params.status
+    }
 
-      resolve({
-        data: {
-          list: dataWithIndex,
-          total: mockData.value.length,
-        },
-      })
-    }, 300)
-  })
+    const response = await getAuditRecordsList(queryParams)
+    console.log('获取审核记录列表成功:', response)
+    console.log('查询参数:', queryParams)
+
+    let data = response.data?.data?.data || response.data?.data || []
+    if (!Array.isArray(data)) {
+      data = []
+    }
+
+    // 映射字段
+    const mappedData = data.map((item, index) => ({
+      id: item.id,
+      processCode: item.workingPlanId || '',
+      processName: item.workingPlanName || '',
+      auditStatus: item.status || '',
+      applicant: item.applicant?.userName || '',
+      submitTime: formatDateTime(item.submitTime || ''),
+      index: ((params?.pageNum || 1) - 1) * (params?.pageSize || 10) + index + 1,
+    }))
+
+    return {
+      data: {
+        list: mappedData,
+        total: response.data?.data?.total || mappedData.length,
+      },
+    }
+  } catch (error) {
+    console.error('获取审核记录列表失败:', error)
+    return {
+      data: {
+        list: [],
+        total: 0,
+      },
+    }
+  }
 }
 </script>
 
 <template>
   <div class="audit-record-container">
-    <ProTable
-      ref="proTableRef"
-      :columns="columns"
-      :request-api="getTableList"
-      :init-param="{}"
-    >
+    <ProTable ref="proTableRef" :columns="columns" :request-api="getTableList" :init-param="{}">
       <template #auditStatus="scope">
-        <el-tag :type="scope.row.auditStatus === '已通过' ? 'success' : 'danger'">
-          {{ scope.row.auditStatus }}
+        <el-tag :type="getAuditStatusType(scope.row.auditStatus)">
+          {{ getAuditStatusLabel(scope.row.auditStatus) }}
         </el-tag>
       </template>
 

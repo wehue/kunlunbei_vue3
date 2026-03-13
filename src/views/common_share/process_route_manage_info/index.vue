@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, View, Download, Check, Delete } from '@element-plus/icons-vue'
@@ -7,6 +7,7 @@ import ProTable from '@/components/ProTable/index.vue'
 import * as XLSX from 'xlsx'
 import { usePermission } from '@/hooks/usePermission'
 import { getProcessRouteList, deleteProcessRoute, submitProcessRoute } from '@/api/process'
+import { getProductFind } from '@/api/product'
 
 const router = useRouter()
 const { hasPermission, isAdminRole, isSupervisorRole, isDesignerRole, currentRole } =
@@ -21,11 +22,55 @@ const statusOptions = [
   { label: '已驳回', value: 'Y' },
 ]
 
-const versionOptions = [
-  { label: 'V1.0', value: 'V1.0' },
-  { label: 'V2.0', value: 'V2.0' },
-  { label: 'V3.0', value: 'V3.0' },
-]
+const versionOptions = ref([])
+const productOptions = ref([])
+
+const loadProducts = async () => {
+  try {
+    const res = await getProductFind()
+    let products = res.data?.data?.data || res.data?.data || []
+    if (!Array.isArray(products)) {
+      products = []
+    }
+    productOptions.value = products.map((item) => ({
+      label: item.productName,
+      value: item.productName,
+      id: item.id,
+    }))
+  } catch (error) {
+    console.error('获取产品列表失败:', error)
+  }
+}
+
+const loadVersions = async () => {
+  try {
+    const res = await getProcessRouteList({ pageSize: 1000 })
+    let data = res.data?.data?.data || res.data?.data || []
+    if (!Array.isArray(data)) {
+      data = []
+    }
+    const versions = new Set()
+    data.forEach((item) => {
+      if (item.version) {
+        versions.add(item.version)
+      }
+    })
+    versionOptions.value = Array.from(versions)
+      .sort((a, b) => {
+        const vA = parseFloat(a.replace('V', ''))
+        const vB = parseFloat(b.replace('V', ''))
+        return vB - vA
+      })
+      .map((v) => ({ label: v, value: v }))
+  } catch (error) {
+    console.error('获取版本列表失败:', error)
+  }
+}
+
+onMounted(() => {
+  loadProducts()
+  loadVersions()
+})
 
 const allRouteData = ref([])
 
@@ -87,7 +132,8 @@ const columns = reactive([
     prop: 'product',
     label: '所属产品',
     minWidth: 130,
-    search: { el: 'input', key: 'product' },
+    search: { el: 'select', key: 'product' },
+    enum: productOptions,
   },
   {
     prop: 'version',
@@ -261,11 +307,12 @@ const handleExportBatch = (selectedList) => {
 
 const getTableList = async (params) => {
   try {
-    // 构建查询参数，映射字段名
+    const selectedProduct = productOptions.value.find((item) => item.value === params?.product)
     const queryParams = {
       workingPlanId: params?.routeCode,
       workingPlanName: params?.routeName,
-      productId: params?.product,
+      productName: params?.product,
+      productId: selectedProduct?.id,
       version: params?.version,
       status: params?.status,
       pageNum: params?.pageNum || 1,
@@ -390,15 +437,7 @@ const getTableList = async (params) => {
 
       <template #operation="scope">
         <el-button type="primary" link :icon="View" @click="handleView(scope.row)">查看</el-button>
-        <el-button
-          v-if="canApprove && (scope.row.status === 'W' || scope.row.status === 'F')"
-          type="primary"
-          link
-          :icon="Check"
-          @click="handleSubmitAudit(scope.row)"
-        >
-          审核
-        </el-button>
+
         <el-button
           v-if="canSubmitAudit && (scope.row.status === 'W' || scope.row.status === 'Y')"
           type="warning"

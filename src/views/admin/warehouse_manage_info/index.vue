@@ -32,7 +32,7 @@ const userOptions = ref([])
 const columns = reactive([
   { type: 'selection', width: 50 },
   { prop: 'index', label: '序号', width: 60 },
-  { prop: 'warehouseCode', label: '仓库编码', search: { el: 'input', key: 'warehouseCode' } },
+  { prop: 'warehouseCode', label: '仓库编码', search: { el: 'input', key: 'warehouseCode' } , width: 150},
   { prop: 'warehouseName', label: '仓库名称', search: { el: 'input', key: 'warehouseName' } },
   {
     prop: 'warehouseType',
@@ -43,7 +43,7 @@ const columns = reactive([
   { prop: 'manager', label: '仓库负责人' },
   { prop: 'deptName', label: '所属部门' },
   { prop: 'establishDate', label: '成立时间' },
-  { prop: 'operation', label: '操作', width: 250, fixed: 'right' },
+  { prop: 'operation', label: '操作', width: 230, fixed: 'right' },
 ])
 
 const formData = reactive({
@@ -106,11 +106,20 @@ const loadOptions = async () => {
   }
 }
 
+const generateWarehouseCode = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `CK${year}${month}${day}${random}`
+}
+
 const handleAdd = () => {
   isEdit.value = false
+  const warehouseCode = generateWarehouseCode()
   Object.assign(formData, {
     id: null,
-    warhouseId: '',
+    warhouseId: warehouseCode,
     warhouseName: '',
     warhouseType: '',
     warhouseManager: { id: '' },
@@ -119,7 +128,7 @@ const handleAdd = () => {
     warhouseLocation: '',
     remark: '',
     createTime: '',
-    warehouseCode: '',
+    warehouseCode: warehouseCode,
     warehouseName: '',
     warehouseType: '',
     manager: '',
@@ -338,7 +347,7 @@ onMounted(() => {
           </div>
           <div class="form-grid">
             <el-form-item label="仓库编码">
-              <el-input v-model="formData.warehouseCode" />
+              <el-input v-model="formData.warehouseCode" :disabled="true" placeholder="系统自动生成" />
             </el-form-item>
             <el-form-item label="仓库名称" prop="warehouseName">
               <el-input v-model="formData.warehouseName" placeholder="请输入仓库名称" />

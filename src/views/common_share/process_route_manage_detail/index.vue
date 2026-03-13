@@ -220,14 +220,14 @@ const versionOptions = computed(() => {
 const canEdit = computed(() => {
   return (
     isDesignerRole.value &&
-    (routeData.value.status === 'rejected' ||
-      routeData.value.status === 'W' ||
-      routeData.value.status === 'pending')
+    (routeData.value.status === 'W' || // 待提交
+      routeData.value.status === 'T' || // 已通过
+      routeData.value.status === 'Y') // 已驳回
   )
 })
 
 const canApprove = computed(() => {
-  return isSupervisorRole.value && routeData.value.status === 'pending'
+  return isSupervisorRole.value && routeData.value.status === 'F'
 })
 
 const getStatusType = (status) => {
@@ -236,9 +236,6 @@ const getStatusType = (status) => {
     F: 'warning',
     T: 'success',
     Y: 'danger',
-    pending: 'warning',
-    approved: 'success',
-    rejected: 'danger',
   }
   return map[status] || 'info'
 }
@@ -249,9 +246,6 @@ const getStatusLabel = (status) => {
     F: '审核中',
     T: '已通过',
     Y: '已驳回',
-    pending: '待审核',
-    approved: '已通过',
-    rejected: '已驳回',
   }
   return map[status] || status
 }
@@ -416,21 +410,17 @@ const handleSave = async () => {
 
       if (hasChanges) {
         try {
-          // 获取当前用户ID
           const currentUserId = userStore.userInfo?.id || ''
           console.log('当前用户ID:', currentUserId)
 
-          // 获取选择的产品ID
           const selectedProduct = productOptions.value.find(
             (item) => item.value === formData.product,
           )
           const productId = selectedProduct?.id || ''
           console.log('选择的产品ID:', productId, '产品名称:', formData.product)
 
-          // 获取当前时间
           const currentTime = new Date().toISOString()
 
-          // 计算新版本号
           let newVersion = 'V1.0'
           if (routeData.value.version) {
             const currentVersion = parseFloat(routeData.value.version.replace('V', ''))
@@ -438,7 +428,6 @@ const handleSave = async () => {
           }
           console.log('当前版本:', routeData.value.version, '新版本:', newVersion)
 
-          // 构建请求参数
           const requestData = {
             id: routeData.value.id || '',
             workingPlanId: formData.routeCode,
@@ -457,18 +446,19 @@ const handleSave = async () => {
               workingProcedureId: step.processCode,
             })),
             operateTime: currentTime,
+            status: 'W',
           }
 
           console.log('保存工艺路线请求参数:', requestData)
 
-          // 调用API保存工艺路线
           const res = await updateProcessRoute(requestData)
           console.log('保存工艺路线响应:', res)
 
           if (res.data?.code === 200) {
             ElMessage.success('保存成功')
-            // 重新加载工艺路线详情
-            await loadRouteData()
+            setTimeout(() => {
+              router.push('/process-route-manage/process-route-manage-info')
+            }, 500)
           } else {
             ElMessage.error('保存失败')
           }
@@ -478,6 +468,7 @@ const handleSave = async () => {
         }
       } else {
         ElMessage.success('保存成功')
+        router.push('/process-route-manage/process-route-manage-info')
       }
 
       isEdit.value = false
@@ -498,12 +489,16 @@ const handleAudit = () => {
 const handleAuditSubmit = () => {
   const routeItem = allRouteData.value.find((r) => r.id === routeData.value.id)
   if (routeItem) {
-    routeItem.status = auditForm.approved ? 'approved' : 'rejected'
+    routeItem.status = auditForm.approved ? 'T' : 'Y'
     routeItem.rejectReason = auditForm.approved ? '' : auditForm.reason
     routeData.value = { ...routeItem }
   }
   ElMessage.success(auditForm.approved ? '审核通过' : '已驳回')
   auditDialogVisible.value = false
+  // 审核完成后跳转到列表页
+  setTimeout(() => {
+    router.push('/process-route-manage/process-route-manage-info')
+  }, 500)
 }
 
 const handleBack = () => {
@@ -1168,7 +1163,7 @@ watch(
               <div class="info-label">操作时间</div>
               <div class="info-value">{{ routeData.operationTime }}</div>
             </div>
-            <div v-if="routeData.status === 'rejected'" class="info-item full-width">
+            <div v-if="routeData.status === 'Y'" class="info-item full-width">
               <div class="info-label">驳回原因</div>
               <div class="info-value reject-reason">{{ routeData.rejectReason }}</div>
             </div>

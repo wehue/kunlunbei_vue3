@@ -2,6 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Monitor, User, Box } from '@element-plus/icons-vue'
+import { getPendingAuditDetail } from '@/api/audit'
+import { getProcessDetail } from '@/api/process'
+import { getDeviceDetailByEquipmentId } from '@/api/device'
+import { getProductionStaffDetail } from '@/api/productionStaff'
+import { getPartDetail } from '@/api/material'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,1698 +17,38 @@ const auditData = ref({})
 const selectedStepId = ref(null)
 const activeDetailTab = ref('devices')
 
-const mockAuditData = {
-  1: {
-    id: 1,
-    processCode: 'PR001',
-    processName: '智能手机组装工艺路线',
-    version: 'V1.0',
-    product: '智能手机A1',
-    description:
-      '该工艺路线用于智能手机A1的组装生产，包括主板安装、屏幕贴合、电池组装、外壳封装等主要工序。',
-    applicant: '张三',
-    submitTime: '2024-01-10 09:30:00',
-    auditor: '李四',
-    auditTime: '2024-01-10 14:20:00',
-    auditStatus: '已通过',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '主板安装',
-        description: '将主板安装到手机框架中',
-        devices: [
-          {
-            id: 1,
-            deviceCode: 'DEV001',
-            deviceName: '贴片机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SMT-800',
-            supplier: '北京华工',
-            productionDate: '2022-03-15',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '一车间',
-            stockQuantity: 5,
-            unit: '台',
-          },
-          {
-            id: 2,
-            deviceCode: 'DEV002',
-            deviceName: '贴片机B',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'SMT-600',
-            supplier: '上海精密',
-            productionDate: '2021-08-10',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '一车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 1,
-            employeeCode: 'EMP20240001',
-            employeeName: '张三',
-            deptName: '技术部',
-            position: '工程师',
-          },
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT001',
-            materialName: '主板组件',
-            specModel: 'MB-A1',
-            stockQuantity: 100,
-            supplier: '华为供应商',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT002',
-              materialName: '焊锡',
-              specModel: '标准型',
-              quantity: 5,
-              unit: '克',
-              stockQuantity: 500,
-              supplier: '中石化',
-              version: 'V2.0',
-              category: '辅料',
-              location: '辅料仓',
-            },
-            {
-              materialCode: 'MAT006',
-              materialName: '导热硅脂',
-              specModel: '高导热型',
-              quantity: 1,
-              unit: '克',
-              stockQuantity: 200,
-              supplier: '信越化学',
-              version: 'V1.0',
-              category: '辅料',
-              location: '辅料仓',
-            },
-          ],
-        },
-      },
-      {
-        id: 2,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '屏幕贴合',
-        description: '将屏幕贴合到手机框架',
-        devices: [
-          {
-            id: 3,
-            deviceCode: 'DEV003',
-            deviceName: '贴合机A',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'BOND-300',
-            supplier: '上海精密',
-            productionDate: '2021-06-20',
-            serviceLife: 12,
-            depreciationMethod: '年数总和法',
-            location: '二车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT004',
-            materialName: '屏幕组件',
-            specModel: 'SCR-A1',
-            stockQuantity: 150,
-            supplier: '京东方',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓C区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT005',
-              materialName: '贴合胶',
-              specModel: '标准型',
-              quantity: 2,
-              unit: '毫升',
-              stockQuantity: 300,
-              supplier: '3M公司',
-              version: 'V1.0',
-              category: '辅料',
-              location: '辅料仓',
-            },
-          ],
-        },
-      },
-      {
-        id: 3,
-        processId: 3,
-        processCode: 'PRC003',
-        stepName: '电池组装',
-        description: '将电池组装到手机中',
-        devices: [
-          {
-            id: 4,
-            deviceCode: 'DEV004',
-            deviceName: '组装台A',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'ASSEMBLE-500',
-            supplier: '广州机电',
-            productionDate: '2023-01-10',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 8,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 3,
-            employeeCode: 'EMP20240003',
-            employeeName: '王五',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT003',
-            materialName: '电池组',
-            specModel: 'BAT-A1',
-            stockQuantity: 200,
-            supplier: '宁德时代',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓B区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 4,
-        processId: 4,
-        processCode: 'PRC004',
-        stepName: '摄像头安装',
-        description: '安装摄像头模组',
-        devices: [
-          {
-            id: 5,
-            deviceCode: 'DEV005',
-            deviceName: '精密组装台',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PRECISE-200',
-            supplier: '北京华工',
-            productionDate: '2022-11-05',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 1,
-            employeeCode: 'EMP20240001',
-            employeeName: '张三',
-            deptName: '技术部',
-            position: '工程师',
-          },
-          {
-            id: 3,
-            employeeCode: 'EMP20240003',
-            employeeName: '王五',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT007',
-            materialName: '摄像头模组',
-            specModel: 'CAM-A1',
-            stockQuantity: 300,
-            supplier: '舜宇光学',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓D区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT008',
-              materialName: '连接排线',
-              specModel: 'FPC-A1',
-              quantity: 1,
-              unit: '条',
-              stockQuantity: 500,
-              supplier: '旗胜科技',
-              version: 'V1.0',
-              category: '电子元件',
-              location: '原料仓E区',
-            },
-          ],
-        },
-      },
-      {
-        id: 5,
-        processId: 5,
-        processCode: 'PRC005',
-        stepName: '外壳封装',
-        description: '进行手机外壳封装',
-        devices: [
-          {
-            id: 6,
-            deviceCode: 'DEV006',
-            deviceName: '封装机A',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'SEAL-400',
-            supplier: '广州机电',
-            productionDate: '2023-02-15',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 4,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-          {
-            id: 3,
-            employeeCode: 'EMP20240003',
-            employeeName: '王五',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT009',
-            materialName: '手机外壳',
-            specModel: 'CASE-A1',
-            stockQuantity: 250,
-            supplier: '比亚迪',
-            version: 'V1.0',
-            category: '结构件',
-            location: '原料仓F区',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT010',
-              materialName: '螺丝',
-              specModel: 'M2×5',
-              quantity: 6,
-              unit: '个',
-              stockQuantity: 5000,
-              supplier: '标准件厂',
-              version: 'V1.0',
-              category: '紧固件',
-              location: '辅料仓',
-            },
-          ],
-        },
-      },
-      {
-        id: 6,
-        processId: 6,
-        processCode: 'PRC006',
-        stepName: '功能测试',
-        description: '对手机进行功能测试',
-        devices: [
-          {
-            id: 7,
-            deviceCode: 'DEV007',
-            deviceName: '测试仪A',
-            manufacturer: '是德科技',
-            brand: '是德',
-            specModel: 'TEST-1000',
-            supplier: '是德科技',
-            productionDate: '2022-05-20',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '质检中心',
-            stockQuantity: 5,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 4,
-            employeeCode: 'EMP20240004',
-            employeeName: '赵六',
-            deptName: '质量部',
-            position: '质检员',
-          },
-        ],
-        bom: {
-          parentMaterial: null,
-          childMaterials: [],
-        },
-      },
-      {
-        id: 7,
-        processId: 7,
-        processCode: 'PRC007',
-        stepName: '包装',
-        description: '产品包装',
-        devices: [
-          {
-            id: 8,
-            deviceCode: 'DEV008',
-            deviceName: '包装机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PACK-500',
-            supplier: '北京华工',
-            productionDate: '2021-09-10',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '包装车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 5,
-            employeeCode: 'EMP20240005',
-            employeeName: '孙七',
-            deptName: '生产部',
-            position: '包装工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT011',
-            materialName: '包装盒',
-            specModel: 'BOX-A1',
-            stockQuantity: 500,
-            supplier: '包装材料厂',
-            version: 'V1.0',
-            category: '包材',
-            location: '包材仓',
-          },
-          childMaterials: [
-            {
-              materialCode: 'MAT012',
-              materialName: '说明书',
-              specModel: '标准型',
-              quantity: 1,
-              unit: '份',
-              stockQuantity: 1000,
-              supplier: '印刷厂',
-              version: 'V1.0',
-              category: '包材',
-              location: '包材仓',
-            },
-            {
-              materialCode: 'MAT013',
-              materialName: '充电器',
-              specModel: 'CHR-A1',
-              quantity: 1,
-              unit: '个',
-              stockQuantity: 600,
-              supplier: '充电器供应商',
-              version: 'V1.0',
-              category: '配件',
-              location: '配件仓',
-            },
-          ],
-        },
-      },
-    ],
-  },
-  2: {
-    id: 2,
-    processCode: 'PR002',
-    processName: '平板电脑组装工艺路线',
-    version: 'V1.1',
-    product: '平板电脑B2',
-    description: '该工艺路线用于平板电脑B2的组装生产，优化了屏幕贴合工序，提高了生产效率。',
-    applicant: '李四',
-    submitTime: '2024-01-11 10:15:00',
-    auditor: '张三',
-    auditTime: '2024-01-11 16:30:00',
-    auditStatus: '已驳回',
-    rejectReason: '工艺流程顺序存在错误，屏幕贴合应在电池组装之前进行，请修改后重新提交。',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '主板安装',
-        description: '将主板安装到平板框架中',
-        devices: [
-          {
-            id: 1,
-            deviceCode: 'DEV001',
-            deviceName: '贴片机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SMT-800',
-            supplier: '北京华工',
-            productionDate: '2022-03-15',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '一车间',
-            stockQuantity: 5,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT001',
-            materialName: '主板组件',
-            specModel: 'MB-B2',
-            stockQuantity: 80,
-            supplier: '华为供应商',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 2,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '电池组装',
-        description: '将电池组装到平板中',
-        devices: [
-          {
-            id: 2,
-            deviceCode: 'DEV002',
-            deviceName: '组装台A',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'ASSEMBLE-500',
-            supplier: '广州机电',
-            productionDate: '2023-01-10',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 8,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 6,
-            employeeCode: 'EMP20240006',
-            employeeName: '赵六',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT003',
-            materialName: '电池组',
-            specModel: 'BAT-B2',
-            stockQuantity: 120,
-            supplier: '宁德时代',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓B区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 3,
-        processId: 3,
-        processCode: 'PRC003',
-        stepName: '屏幕贴合',
-        description: '将屏幕贴合到平板框架',
-        devices: [
-          {
-            id: 3,
-            deviceCode: 'DEV003',
-            deviceName: '贴合机A',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'BOND-300',
-            supplier: '上海精密',
-            productionDate: '2021-06-20',
-            serviceLife: 12,
-            depreciationMethod: '年数总和法',
-            location: '二车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 6,
-            employeeCode: 'EMP20240006',
-            employeeName: '赵六',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT004',
-            materialName: '屏幕组件',
-            specModel: 'SCR-B2',
-            stockQuantity: 100,
-            supplier: '京东方',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓C区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 4,
-        processId: 4,
-        processCode: 'PRC004',
-        stepName: '扬声器安装',
-        description: '安装扬声器模组',
-        devices: [
-          {
-            id: 5,
-            deviceCode: 'DEV005',
-            deviceName: '精密组装台',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PRECISE-200',
-            supplier: '北京华工',
-            productionDate: '2022-11-05',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT014',
-            materialName: '扬声器模组',
-            specModel: 'SPK-B2',
-            stockQuantity: 200,
-            supplier: '瑞声科技',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓G区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 5,
-        processId: 5,
-        processCode: 'PRC005',
-        stepName: '外壳封装',
-        description: '进行平板外壳封装',
-        devices: [
-          {
-            id: 6,
-            deviceCode: 'DEV006',
-            deviceName: '封装机A',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'SEAL-400',
-            supplier: '广州机电',
-            productionDate: '2023-02-15',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 4,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 2,
-            employeeCode: 'EMP20240002',
-            employeeName: '李四',
-            deptName: '生产部',
-            position: '操作工',
-          },
-          {
-            id: 6,
-            employeeCode: 'EMP20240006',
-            employeeName: '赵六',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT015',
-            materialName: '平板外壳',
-            specModel: 'CASE-B2',
-            stockQuantity: 150,
-            supplier: '比亚迪',
-            version: 'V1.0',
-            category: '结构件',
-            location: '原料仓F区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 6,
-        processId: 6,
-        processCode: 'PRC006',
-        stepName: '系统测试',
-        description: '对平板进行系统测试',
-        devices: [
-          {
-            id: 7,
-            deviceCode: 'DEV007',
-            deviceName: '测试仪A',
-            manufacturer: '是德科技',
-            brand: '是德',
-            specModel: 'TEST-1000',
-            supplier: '是德科技',
-            productionDate: '2022-05-20',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '质检中心',
-            stockQuantity: 5,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 4,
-            employeeCode: 'EMP20240004',
-            employeeName: '赵六',
-            deptName: '质量部',
-            position: '质检员',
-          },
-        ],
-        bom: {
-          parentMaterial: null,
-          childMaterials: [],
-        },
-      },
-      {
-        id: 7,
-        processId: 7,
-        processCode: 'PRC007',
-        stepName: '包装',
-        description: '产品包装',
-        devices: [
-          {
-            id: 8,
-            deviceCode: 'DEV008',
-            deviceName: '包装机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PACK-500',
-            supplier: '北京华工',
-            productionDate: '2021-09-10',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '包装车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 5,
-            employeeCode: 'EMP20240005',
-            employeeName: '孙七',
-            deptName: '生产部',
-            position: '包装工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT016',
-            materialName: '包装盒',
-            specModel: 'BOX-B2',
-            stockQuantity: 300,
-            supplier: '包装材料厂',
-            version: 'V1.0',
-            category: '包材',
-            location: '包材仓',
-          },
-          childMaterials: [],
-        },
-      },
-    ],
-  },
-  3: {
-    id: 3,
-    processCode: 'PR003',
-    processName: '智能手表组装工艺路线',
-    version: 'V2.0',
-    product: '智能手表C3',
-    description: '该工艺路线用于智能手表C3的组装生产，新增了防水测试工序。',
-    applicant: '王五',
-    submitTime: '2024-01-12 11:20:00',
-    auditor: '李四',
-    auditTime: '2024-01-12 15:45:00',
-    auditStatus: '已通过',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '主板安装',
-        description: '将主板安装到手表框架中',
-        devices: [
-          {
-            id: 9,
-            deviceCode: 'DEV009',
-            deviceName: '精密贴片机',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SMT-500',
-            supplier: '北京华工',
-            productionDate: '2023-01-15',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '精密车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 3,
-            employeeCode: 'EMP20240003',
-            employeeName: '王五',
-            deptName: '技术部',
-            position: '工程师',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT017',
-            materialName: '手表主板',
-            specModel: 'MB-C3',
-            stockQuantity: 150,
-            supplier: '华为供应商',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 2,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '屏幕贴合',
-        description: '将屏幕贴合到手表框架',
-        devices: [
-          {
-            id: 10,
-            deviceCode: 'DEV010',
-            deviceName: '精密贴合机',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'BOND-200',
-            supplier: '上海精密',
-            productionDate: '2022-08-20',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '精密车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 7,
-            employeeCode: 'EMP20240007',
-            employeeName: '孙八',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT018',
-            materialName: '手表屏幕',
-            specModel: 'SCR-C3',
-            stockQuantity: 200,
-            supplier: '京东方',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓C区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 3,
-        processId: 3,
-        processCode: 'PRC003',
-        stepName: '电池组装',
-        description: '将电池组装到手表中',
-        devices: [
-          {
-            id: 11,
-            deviceCode: 'DEV011',
-            deviceName: '精密组装台',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'ASSEMBLE-300',
-            supplier: '广州机电',
-            productionDate: '2023-03-10',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '精密车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 3,
-            employeeCode: 'EMP20240003',
-            employeeName: '王五',
-            deptName: '技术部',
-            position: '工程师',
-          },
-          {
-            id: 7,
-            employeeCode: 'EMP20240007',
-            employeeName: '孙八',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT019',
-            materialName: '手表电池',
-            specModel: 'BAT-C3',
-            stockQuantity: 250,
-            supplier: '宁德时代',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓B区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 4,
-        processId: 4,
-        processCode: 'PRC004',
-        stepName: '传感器安装',
-        description: '安装各类传感器',
-        devices: [
-          {
-            id: 11,
-            deviceCode: 'DEV011',
-            deviceName: '精密组装台',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'ASSEMBLE-300',
-            supplier: '广州机电',
-            productionDate: '2023-03-10',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '精密车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 3,
-            employeeCode: 'EMP20240003',
-            employeeName: '王五',
-            deptName: '技术部',
-            position: '工程师',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT020',
-            materialName: '传感器模组',
-            specModel: 'SENS-C3',
-            stockQuantity: 300,
-            supplier: '博世',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓H区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 5,
-        processId: 5,
-        processCode: 'PRC005',
-        stepName: '外壳封装',
-        description: '进行手表外壳封装',
-        devices: [
-          {
-            id: 12,
-            deviceCode: 'DEV012',
-            deviceName: '精密封装机',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SEAL-200',
-            supplier: '北京华工',
-            productionDate: '2022-12-10',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '精密车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 7,
-            employeeCode: 'EMP20240007',
-            employeeName: '孙八',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT021',
-            materialName: '手表外壳',
-            specModel: 'CASE-C3',
-            stockQuantity: 180,
-            supplier: '比亚迪',
-            version: 'V1.0',
-            category: '结构件',
-            location: '原料仓F区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 6,
-        processId: 6,
-        processCode: 'PRC006',
-        stepName: '防水测试',
-        description: '进行防水性能测试',
-        devices: [
-          {
-            id: 13,
-            deviceCode: 'DEV013',
-            deviceName: '防水测试仪',
-            manufacturer: '是德科技',
-            brand: '是德',
-            specModel: 'WATER-500',
-            supplier: '是德科技',
-            productionDate: '2023-02-20',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '质检中心',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 4,
-            employeeCode: 'EMP20240004',
-            employeeName: '赵六',
-            deptName: '质量部',
-            position: '质检员',
-          },
-        ],
-        bom: {
-          parentMaterial: null,
-          childMaterials: [],
-        },
-      },
-      {
-        id: 7,
-        processId: 7,
-        processCode: 'PRC007',
-        stepName: '功能测试',
-        description: '对手表进行功能测试',
-        devices: [
-          {
-            id: 14,
-            deviceCode: 'DEV014',
-            deviceName: '手表测试仪',
-            manufacturer: '是德科技',
-            brand: '是德',
-            specModel: 'TEST-500',
-            supplier: '是德科技',
-            productionDate: '2023-01-25',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '质检中心',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 4,
-            employeeCode: 'EMP20240004',
-            employeeName: '赵六',
-            deptName: '质量部',
-            position: '质检员',
-          },
-        ],
-        bom: {
-          parentMaterial: null,
-          childMaterials: [],
-        },
-      },
-      {
-        id: 8,
-        processId: 8,
-        processCode: 'PRC008',
-        stepName: '包装',
-        description: '产品包装',
-        devices: [
-          {
-            id: 15,
-            deviceCode: 'DEV015',
-            deviceName: '精密包装机',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PACK-300',
-            supplier: '北京华工',
-            productionDate: '2022-10-15',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '包装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 5,
-            employeeCode: 'EMP20240005',
-            employeeName: '孙七',
-            deptName: '生产部',
-            position: '包装工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT022',
-            materialName: '手表包装盒',
-            specModel: 'BOX-C3',
-            stockQuantity: 400,
-            supplier: '包装材料厂',
-            version: 'V1.0',
-            category: '包材',
-            location: '包材仓',
-          },
-          childMaterials: [],
-        },
-      },
-    ],
-  },
-  4: {
-    id: 4,
-    processCode: 'PR004',
-    processName: '蓝牙耳机制造工艺路线',
-    version: 'V1.0',
-    product: '蓝牙耳机D4',
-    description: '该工艺路线用于蓝牙耳机D4的生产制造。',
-    applicant: '赵六',
-    submitTime: '2024-01-13 14:05:00',
-    auditor: '王五',
-    auditTime: '2024-01-13 17:10:00',
-    auditStatus: '已通过',
-    rejectReason: '',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '主板焊接',
-        description: '对主板进行焊接处理',
-        devices: [
-          {
-            id: 16,
-            deviceCode: 'DEV016',
-            deviceName: '焊接机A',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'WELD-800',
-            supplier: '北京华工',
-            productionDate: '2022-04-10',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '焊接车间',
-            stockQuantity: 4,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 6,
-            employeeCode: 'EMP20240006',
-            employeeName: '周九',
-            deptName: '生产部',
-            position: '焊接工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT023',
-            materialName: '耳机主板',
-            specModel: 'MB-D4',
-            stockQuantity: 300,
-            supplier: '华为供应商',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 2,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '喇叭安装',
-        description: '安装喇叭单元',
-        devices: [
-          {
-            id: 17,
-            deviceCode: 'DEV017',
-            deviceName: '喇叭安装台',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'INST-400',
-            supplier: '广州机电',
-            productionDate: '2023-02-15',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 6,
-            employeeCode: 'EMP20240006',
-            employeeName: '周九',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT024',
-            materialName: '喇叭单元',
-            specModel: 'SPK-D4',
-            stockQuantity: 500,
-            supplier: '瑞声科技',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓G区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 3,
-        processId: 3,
-        processCode: 'PRC003',
-        stepName: '电池组装',
-        description: '组装电池模块',
-        devices: [
-          {
-            id: 18,
-            deviceCode: 'DEV018',
-            deviceName: '电池组装台',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'BAT-INST-300',
-            supplier: '上海精密',
-            productionDate: '2022-09-20',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 8,
-            employeeCode: 'EMP20240008',
-            employeeName: '吴十',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT025',
-            materialName: '耳机电池',
-            specModel: 'BAT-D4',
-            stockQuantity: 600,
-            supplier: '宁德时代',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓B区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 4,
-        processId: 4,
-        processCode: 'PRC004',
-        stepName: '外壳封装',
-        description: '进行耳机外壳封装',
-        devices: [
-          {
-            id: 19,
-            deviceCode: 'DEV019',
-            deviceName: '耳机封装机',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'SEAL-300',
-            supplier: '北京华工',
-            productionDate: '2022-11-15',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 6,
-            employeeCode: 'EMP20240006',
-            employeeName: '周九',
-            deptName: '生产部',
-            position: '操作工',
-          },
-          {
-            id: 8,
-            employeeCode: 'EMP20240008',
-            employeeName: '吴十',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT026',
-            materialName: '耳机外壳',
-            specModel: 'CASE-D4',
-            stockQuantity: 400,
-            supplier: '比亚迪',
-            version: 'V1.0',
-            category: '结构件',
-            location: '原料仓F区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 5,
-        processId: 5,
-        processCode: 'PRC005',
-        stepName: '功能测试',
-        description: '对耳机进行功能测试',
-        devices: [
-          {
-            id: 20,
-            deviceCode: 'DEV020',
-            deviceName: '耳机测试仪',
-            manufacturer: '是德科技',
-            brand: '是德',
-            specModel: 'AUDIO-500',
-            supplier: '是德科技',
-            productionDate: '2023-01-10',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '质检中心',
-            stockQuantity: 4,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 4,
-            employeeCode: 'EMP20240004',
-            employeeName: '赵六',
-            deptName: '质量部',
-            position: '质检员',
-          },
-        ],
-        bom: {
-          parentMaterial: null,
-          childMaterials: [],
-        },
-      },
-      {
-        id: 6,
-        processId: 6,
-        processCode: 'PRC006',
-        stepName: '包装',
-        description: '产品包装',
-        devices: [
-          {
-            id: 21,
-            deviceCode: 'DEV021',
-            deviceName: '耳机包装机',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'PACK-400',
-            supplier: '广州机电',
-            productionDate: '2022-12-20',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '包装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 5,
-            employeeCode: 'EMP20240005',
-            employeeName: '孙七',
-            deptName: '生产部',
-            position: '包装工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT027',
-            materialName: '耳机包装盒',
-            specModel: 'BOX-D4',
-            stockQuantity: 500,
-            supplier: '包装材料厂',
-            version: 'V1.0',
-            category: '包材',
-            location: '包材仓',
-          },
-          childMaterials: [],
-        },
-      },
-    ],
-  },
-  5: {
-    id: 5,
-    processCode: 'PR005',
-    processName: '充电器生产工艺路线',
-    version: 'V1.2',
-    product: '充电器E5',
-    description: '该工艺路线用于充电器E5的生产制造。',
-    applicant: '钱七',
-    submitTime: '2024-01-14 15:30:00',
-    auditor: '张三',
-    auditTime: '2024-01-14 18:00:00',
-    auditStatus: '已驳回',
-    rejectReason: '缺少安全测试工序，充电器产品必须包含安全测试环节，请补充后重新提交。',
-    processSteps: [
-      {
-        id: 1,
-        processId: 1,
-        processCode: 'PRC001',
-        stepName: '电路板焊接',
-        description: '对电路板进行焊接处理',
-        devices: [
-          {
-            id: 22,
-            deviceCode: 'DEV022',
-            deviceName: '电路板焊接机',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PCB-WELD-600',
-            supplier: '北京华工',
-            productionDate: '2022-05-15',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '焊接车间',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 9,
-            employeeCode: 'EMP20240009',
-            employeeName: '钱七',
-            deptName: '生产部',
-            position: '焊接工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT028',
-            materialName: '电路板',
-            specModel: 'PCB-E5',
-            stockQuantity: 200,
-            supplier: '深南电路',
-            version: 'V1.0',
-            category: '电子元件',
-            location: '原料仓A区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 2,
-        processId: 2,
-        processCode: 'PRC002',
-        stepName: '外壳组装',
-        description: '进行外壳组装',
-        devices: [
-          {
-            id: 23,
-            deviceCode: 'DEV023',
-            deviceName: '外壳组装台',
-            manufacturer: '欧姆龙',
-            brand: '欧姆龙',
-            specModel: 'CASE-INST-500',
-            supplier: '广州机电',
-            productionDate: '2023-01-20',
-            serviceLife: 10,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 4,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 10,
-            employeeCode: 'EMP20240010',
-            employeeName: '吴十',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT029',
-            materialName: '充电器外壳',
-            specModel: 'CASE-E5',
-            stockQuantity: 250,
-            supplier: '比亚迪',
-            version: 'V1.0',
-            category: '结构件',
-            location: '原料仓F区',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 3,
-        processId: 3,
-        processCode: 'PRC003',
-        stepName: '线缆连接',
-        description: '连接电源线缆',
-        devices: [
-          {
-            id: 24,
-            deviceCode: 'DEV024',
-            deviceName: '线缆连接台',
-            manufacturer: '三菱',
-            brand: '三菱',
-            specModel: 'CABLE-300',
-            supplier: '上海精密',
-            productionDate: '2022-10-10',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '组装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 9,
-            employeeCode: 'EMP20240009',
-            employeeName: '钱七',
-            deptName: '生产部',
-            position: '操作工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT030',
-            materialName: '电源线',
-            specModel: 'CABLE-E5',
-            stockQuantity: 300,
-            supplier: '线缆供应商',
-            version: 'V1.0',
-            category: '配件',
-            location: '配件仓',
-          },
-          childMaterials: [],
-        },
-      },
-      {
-        id: 4,
-        processId: 4,
-        processCode: 'PRC004',
-        stepName: '功能测试',
-        description: '对充电器进行功能测试',
-        devices: [
-          {
-            id: 25,
-            deviceCode: 'DEV025',
-            deviceName: '充电器测试仪',
-            manufacturer: '是德科技',
-            brand: '是德',
-            specModel: 'CHARGER-500',
-            supplier: '是德科技',
-            productionDate: '2022-11-20',
-            serviceLife: 15,
-            depreciationMethod: '直线法',
-            location: '质检中心',
-            stockQuantity: 3,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 4,
-            employeeCode: 'EMP20240004',
-            employeeName: '赵六',
-            deptName: '质量部',
-            position: '质检员',
-          },
-        ],
-        bom: {
-          parentMaterial: null,
-          childMaterials: [],
-        },
-      },
-      {
-        id: 5,
-        processId: 5,
-        processCode: 'PRC005',
-        stepName: '包装',
-        description: '产品包装',
-        devices: [
-          {
-            id: 26,
-            deviceCode: 'DEV026',
-            deviceName: '充电器包装机',
-            manufacturer: '西门子',
-            brand: '西门子',
-            specModel: 'PACK-500',
-            supplier: '北京华工',
-            productionDate: '2022-08-15',
-            serviceLife: 12,
-            depreciationMethod: '直线法',
-            location: '包装车间',
-            stockQuantity: 2,
-            unit: '台',
-          },
-        ],
-        operators: [
-          {
-            id: 5,
-            employeeCode: 'EMP20240005',
-            employeeName: '孙七',
-            deptName: '生产部',
-            position: '包装工',
-          },
-        ],
-        bom: {
-          parentMaterial: {
-            materialCode: 'MAT031',
-            materialName: '充电器包装盒',
-            specModel: 'BOX-E5',
-            stockQuantity: 350,
-            supplier: '包装材料厂',
-            version: 'V1.0',
-            category: '包材',
-            location: '包材仓',
-          },
-          childMaterials: [],
-        },
-      },
-    ],
-  },
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const depreciationOptions = [
+  { label: '直线折旧', value: 'SD' },
+  { label: '快速折旧', value: 'AD' },
+]
+
+const unitOptions = [
+  { label: '个', value: 'A' },
+  { label: '米', value: 'M' },
+  { label: '克', value: 'G' },
+  { label: '千克', value: 'KG' },
+]
+
+const getDepreciationLabel = (value) => {
+  const option = depreciationOptions.find((item) => item.value === value)
+  return option ? option.label : value || ''
+}
+
+const getUnitLabel = (value) => {
+  const option = unitOptions.find((item) => item.value === value)
+  return option ? option.label : value || ''
 }
 
 const currentProcessSteps = computed(() => {
@@ -1713,29 +59,335 @@ const selectedStep = computed(() => {
   return currentProcessSteps.value.find((step) => step.id === selectedStepId.value) || null
 })
 
-const handleSelectStep = (step) => {
+const handleSelectStep = async (step) => {
   selectedStepId.value = step.id
+  await loadStepDetails(step)
 }
 
-const loadAuditData = () => {
-  loading.value = true
-  setTimeout(() => {
-    const id = route.params.id
-    const data = mockAuditData[id] || mockAuditData[1]
-    auditData.value = { ...data }
-    if (currentProcessSteps.value.length > 0) {
-      selectedStepId.value = currentProcessSteps.value[0].id
+const loadStepDetails = async (step) => {
+  console.log('开始加载工序详情:', step.id, step.stepName)
+
+  const stepIndex = auditData.value.processSteps?.findIndex((s) => s.id === step.id)
+  if (stepIndex === -1 || !auditData.value.processSteps) {
+    console.log('在auditData.value.processSteps中未找到工序')
+    return
+  }
+
+  // 根据工序ID获取工序详情
+  const processId = step.processId || step.processCode
+  if (!processId) {
+    return
+  }
+
+  try {
+    const res = await getProcessDetail({ workingProcedureId: processId })
+    const processDetail = res.data?.data?.data || res.data?.data || res.data
+    if (!processDetail) {
+      console.log('未获取到工序详情')
+      return
     }
+
+    // 提取设备信息
+    let devices = []
+    if (
+      processDetail.production_TestingEquipment &&
+      Array.isArray(processDetail.production_TestingEquipment)
+    ) {
+      devices = processDetail.production_TestingEquipment.map((device) => ({
+        equipmentId: device.equipmentId,
+        deviceCode: device.equipmentId,
+        deviceName: device.equipmentName,
+        quantity: device.expenditureQuantity,
+        unit: device.unit,
+      }))
+    }
+
+    // 提取操作人员信息
+    let operators = []
+    if (processDetail.operator) {
+      operators = [
+        {
+          productionStaffId: processDetail.operator.productionStaffId,
+          employeeCode: processDetail.operator.productionStaffId,
+          employeeName: processDetail.operator.productionStaffName || processDetail.operator.name,
+        },
+      ]
+    }
+
+    // 提取物料信息
+    let childMaterials = []
+    if (processDetail.theMaterials && Array.isArray(processDetail.theMaterials)) {
+      childMaterials = processDetail.theMaterials.map((material) => ({
+        materialId: material.materialId,
+        materialCode: material.materialId,
+        materialName: material.materialName,
+        quantity: material.expenditureQuantity,
+        unit: material.unit,
+      }))
+    } else if (processDetail.materials && Array.isArray(processDetail.materials)) {
+      childMaterials = processDetail.materials.map((material) => ({
+        materialId: material.materialId,
+        materialCode: material.materialId,
+        materialName: material.materialName,
+        quantity: material.expenditureQuantity,
+        unit: material.unit,
+      }))
+    } else if (processDetail.material) {
+      childMaterials = [
+        {
+          materialId: processDetail.material.materialId,
+          materialCode: processDetail.material.materialId,
+          materialName: processDetail.material.materialName,
+          quantity: processDetail.material.expenditureQuantity,
+          unit: processDetail.material.unit,
+        },
+      ]
+    } else if (processDetail.description) {
+      try {
+        const descriptionData = JSON.parse(processDetail.description)
+        if (Array.isArray(descriptionData)) {
+          childMaterials = descriptionData.map((material) => ({
+            materialId: material.materialId,
+            materialCode: material.materialId,
+            materialName: material.materialName,
+            quantity: material.quantity || 1,
+            unit: material.unit || '',
+          }))
+        }
+      } catch (error) {
+        console.error('解析description字段失败:', error)
+      }
+    }
+
+    // 更新auditData中的工序信息
+    auditData.value = {
+      ...auditData.value,
+      processSteps: auditData.value.processSteps.map((s, index) =>
+        index === stepIndex
+          ? {
+              ...s,
+              description: processDetail.productionSteps || processDetail.description || '',
+              devices: devices,
+              operators: operators,
+              bom: {
+                parentMaterial: null,
+                childMaterials: childMaterials,
+              },
+            }
+          : s,
+      ),
+    }
+
+    // 获取设备详情
+    if (devices.length > 0) {
+      const deviceDetails = await Promise.all(
+        devices.map(async (device) => {
+          const equipmentId = device.equipmentId
+          if (equipmentId) {
+            try {
+              const res = await getDeviceDetailByEquipmentId(equipmentId)
+              const detail = res.data?.data?.data || res.data?.data || res.data
+              if (detail) {
+                const locationName = detail.location?.warhouseName || detail.location || ''
+                return {
+                  ...device,
+                  deviceCode: detail.equipmentId || device.deviceCode,
+                  deviceName: detail.equipmentName || device.deviceName,
+                  manufacturer: detail.manufacturer || '',
+                  brand: detail.brand || '',
+                  specModel: detail.specificationModel || detail.specModel || '',
+                  supplier: detail.supplier || '',
+                  productionDate: detail.productionDate || '',
+                  serviceLife: detail.serviceLife || '',
+                  depreciationMethod: detail.depreciationMethod || '',
+                  location: locationName,
+                  stockQuantity:
+                    detail.equipmentQuantity || detail.stockQuantity || detail.quantity || '',
+                  unit: detail.unit || '',
+                }
+              }
+            } catch (error) {
+              console.error('获取设备详情失败:', error)
+            }
+          }
+          return device
+        }),
+      )
+      auditData.value = {
+        ...auditData.value,
+        processSteps: auditData.value.processSteps.map((s, index) =>
+          index === stepIndex ? { ...s, devices: deviceDetails } : s,
+        ),
+      }
+    }
+
+    // 获取操作人员详情
+    if (operators.length > 0) {
+      const operatorDetails = await Promise.all(
+        operators.map(async (operator) => {
+          const productionStaffId = operator.productionStaffId
+          if (productionStaffId) {
+            try {
+              const res = await getProductionStaffDetail(productionStaffId)
+              const detail = res.data?.data || res.data
+              if (detail) {
+                const actualDetail = detail.data || detail
+                return {
+                  ...operator,
+                  employeeCode: actualDetail.productionStaffId,
+                  employeeName: actualDetail.productionStaffName,
+                  deptName: actualDetail.department?.departmentName || '',
+                  position: actualDetail.position,
+                }
+              }
+            } catch (error) {
+              console.error('获取操作人员详情失败:', error)
+            }
+          }
+          return operator
+        }),
+      )
+      auditData.value = {
+        ...auditData.value,
+        processSteps: auditData.value.processSteps.map((s, index) =>
+          index === stepIndex ? { ...s, operators: operatorDetails } : s,
+        ),
+      }
+    }
+
+    // 获取物料详情
+    if (childMaterials.length > 0) {
+      const materialDetails = await Promise.all(
+        childMaterials.map(async (material) => {
+          const dbId = material.materialId
+          if (dbId) {
+            try {
+              const res = await getPartDetail(dbId)
+              const detail = res.data?.data?.data || res.data?.data || res.data
+              if (detail) {
+                const categoryName = detail.category?.categoryName || detail.categoryName || ''
+                const locationName = detail.warhouse?.warhouseName || detail.location || ''
+                return {
+                  ...material,
+                  materialCode: detail.partId || material.materialId || material.materialCode || '',
+                  materialName: detail.partName || material.materialName || '',
+                  specModel: detail.specificationModel || material.specModel || '',
+                  quantity: material.quantity || 0,
+                  unit: material.unit || '',
+                  stockQuantity: detail.stockQuantity || material.stockQuantity || '',
+                  supplier: detail.supplier || '',
+                  version: detail.versions || detail.version || '',
+                  category: categoryName || material.category || '',
+                  location: locationName,
+                }
+              }
+            } catch (error) {
+              console.error('获取物料详情失败:', error)
+            }
+          }
+          return material
+        }),
+      )
+      auditData.value = {
+        ...auditData.value,
+        processSteps: auditData.value.processSteps.map((s, index) =>
+          index === stepIndex
+            ? {
+                ...s,
+                bom: {
+                  ...s.bom,
+                  childMaterials: materialDetails,
+                },
+              }
+            : s,
+        ),
+      }
+    }
+
+    console.log('工序详情加载完成:', auditData.value.processSteps[stepIndex])
+  } catch (error) {
+    console.error('获取工序详情失败:', error)
+  }
+}
+
+const loadAuditData = async () => {
+  loading.value = true
+  try {
+    const workingPlanId = route.params.id
+    const response = await getPendingAuditDetail(workingPlanId)
+    console.log('获取审核记录详情成功:', response)
+
+    // 与audit_pending_detail页面保持相同的数据提取逻辑
+    const detail = response.data?.data?.data || response.data?.data || response.data
+
+    if (!detail) {
+      ElMessage.error('获取审核记录详情失败')
+      loading.value = false
+      return
+    }
+
+    // 解析description字段中的工序列表
+    let processSteps = []
+    if (detail.description) {
+      try {
+        const processes = JSON.parse(detail.description)
+
+        // 为每个工序生成唯一ID并构建processSteps数组
+        processSteps = processes.map((process, index) => ({
+          id: Date.now() + index,
+          processId: process.workingProcedureId,
+          processCode: process.workingProcedureId,
+          stepName: process.workingProcedureName,
+          description: '',
+          devices: [],
+          operators: [],
+          bom: {
+            parentMaterial: null,
+            childMaterials: [],
+          },
+        }))
+      } catch (e) {
+        console.error('解析工序数据失败:', e)
+      }
+    }
+
+    // 构建auditData对象
+    const auditDataObj = {
+      id: detail.id,
+      processCode: detail.workingPlanId || '',
+      processName: detail.workingPlanName || '',
+      version: detail.version || '',
+      product: detail.associatedProduct?.name || detail.associatedProduct?.productName || '',
+      description: detail.workingPlanDescription || '',
+      applicant: detail.applicant?.userName || detail.applicant?.creator || '',
+      submitTime: formatDateTime(detail.submitTime) || '',
+      processSteps: processSteps,
+    }
+
+    auditData.value = auditDataObj
+
+    if (auditData.value.processSteps && auditData.value.processSteps.length > 0) {
+      // 自动加载所有工序的详情
+      for (const step of auditData.value.processSteps) {
+        await loadStepDetails(step)
+      }
+      // 设置第一个工序为选中状态
+      selectedStepId.value = auditData.value.processSteps[0].id
+    }
+  } catch (error) {
+    console.error('获取审核记录详情失败:', error)
+    ElMessage.error('获取审核记录详情失败')
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const handleBack = () => {
   router.push('/audit-manage/audit-record')
 }
 
-onMounted(() => {
-  loadAuditData()
+onMounted(async () => {
+  await loadAuditData()
 })
 </script>
 
@@ -1748,11 +400,6 @@ onMounted(() => {
           <h2 class="page-title">{{ auditData.processName }}</h2>
           <span class="page-subtitle">审核记录详情</span>
         </div>
-      </div>
-      <div class="header-right">
-        <el-tag :type="auditData.auditStatus === '已通过' ? 'success' : 'danger'" size="large">
-          {{ auditData.auditStatus }}
-        </el-tag>
       </div>
     </div>
 
@@ -1887,18 +534,30 @@ onMounted(() => {
                 <div v-show="activeDetailTab === 'devices'" class="tab-content">
                   <div v-if="selectedStep.devices?.length" class="data-table-container">
                     <el-table :data="selectedStep.devices" border size="small">
-                      <el-table-column prop="deviceCode" label="设备编码" width="120" />
+                      <el-table-column prop="deviceCode" label="设备编码" width="130" />
                       <el-table-column prop="deviceName" label="设备名称" width="150" />
                       <el-table-column prop="manufacturer" label="生产厂家" width="180" />
                       <el-table-column prop="brand" label="品牌" width="100" />
-                      <el-table-column prop="specModel" label="规格型号" width="120" />
+                      <el-table-column prop="specModel" label="规格型号" width="150" />
                       <el-table-column prop="supplier" label="供应商" width="180" />
-                      <el-table-column prop="productionDate" label="生产日期" width="120" />
+                      <el-table-column label="生产日期" width="150">
+                        <template #default="{ row }">
+                          {{ formatDateTime(row.productionDate) }}
+                        </template>
+                      </el-table-column>
                       <el-table-column prop="serviceLife" label="使用年限" width="100" />
-                      <el-table-column prop="depreciationMethod" label="折旧方式" width="100" />
+                      <el-table-column label="折旧方式" width="100">
+                        <template #default="{ row }">
+                          {{ getDepreciationLabel(row.depreciationMethod) }}
+                        </template>
+                      </el-table-column>
                       <el-table-column prop="location" label="位置" width="100" />
                       <el-table-column prop="stockQuantity" label="库存数量" width="100" />
-                      <el-table-column prop="unit" label="单位" width="80" />
+                      <el-table-column label="单位" width="80">
+                        <template #default="{ row }">
+                          {{ getUnitLabel(row.unit) }}
+                        </template>
+                      </el-table-column>
                     </el-table>
                   </div>
                   <el-empty v-else description="该工序暂无关联设备" />
@@ -1917,69 +576,18 @@ onMounted(() => {
                 </div>
 
                 <div v-show="activeDetailTab === 'bom'" class="tab-content">
-                  <div v-if="selectedStep.bom?.parentMaterial" class="bom-section">
-                    <div class="bom-section-title">父物料信息</div>
-                    <div class="material-info-card">
-                      <div class="info-row">
-                        <div class="info-col">
-                          <span class="label">物料编号：</span>
-                          <el-tag size="small">{{
-                            selectedStep.bom.parentMaterial.materialCode
-                          }}</el-tag>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">物料名称：</span>
-                          <span class="value">{{
-                            selectedStep.bom.parentMaterial.materialName
-                          }}</span>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">规格型号：</span>
-                          <span class="value">{{ selectedStep.bom.parentMaterial.specModel }}</span>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">库存数量：</span>
-                          <span class="value">{{
-                            selectedStep.bom.parentMaterial.stockQuantity
-                          }}</span>
-                        </div>
-                      </div>
-                      <div class="info-row">
-                        <div class="info-col">
-                          <span class="label">供应商：</span>
-                          <span class="value">{{ selectedStep.bom.parentMaterial.supplier }}</span>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">版本号：</span>
-                          <el-tag size="small" type="success">{{
-                            selectedStep.bom.parentMaterial.version
-                          }}</el-tag>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">分类：</span>
-                          <el-tag size="small" type="info">{{
-                            selectedStep.bom.parentMaterial.category
-                          }}</el-tag>
-                        </div>
-                        <div class="info-col">
-                          <span class="label">位置：</span>
-                          <el-tag size="small" type="warning">{{
-                            selectedStep.bom.parentMaterial.location
-                          }}</el-tag>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   <div v-if="selectedStep.bom?.childMaterials?.length" class="bom-section">
-                    <div class="bom-section-title">子物料清单</div>
                     <div class="data-table-container">
                       <el-table :data="selectedStep.bom.childMaterials" border size="small">
                         <el-table-column prop="materialCode" label="物料编号" width="120" />
                         <el-table-column prop="materialName" label="物料名称" width="150" />
                         <el-table-column prop="specModel" label="规格型号" width="120" />
                         <el-table-column prop="quantity" label="支出数量" width="100" />
-                        <el-table-column prop="unit" label="单位" width="80" />
+                        <el-table-column label="单位" width="80">
+                          <template #default="{ row }">
+                            {{ getUnitLabel(row.unit) }}
+                          </template>
+                        </el-table-column>
                         <el-table-column prop="stockQuantity" label="库存数量" width="100" />
                         <el-table-column prop="supplier" label="供应商" width="150" />
                         <el-table-column prop="version" label="版本号" width="80" />
@@ -1990,10 +598,8 @@ onMounted(() => {
                   </div>
 
                   <el-empty
-                    v-if="
-                      !selectedStep.bom?.parentMaterial && !selectedStep.bom?.childMaterials?.length
-                    "
-                    description="该工序暂无关联物料BOM"
+                    v-if="!selectedStep.bom?.childMaterials?.length"
+                    description="该工序暂无关联物料"
                   />
                 </div>
               </div>
@@ -2001,39 +607,6 @@ onMounted(() => {
             <div v-else class="empty-detail">
               <el-empty description="请在左侧选择一个工序" />
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-card">
-        <div class="section-header">
-          <span class="section-title">审核信息</span>
-        </div>
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">审核人</div>
-            <div class="info-value">{{ auditData.auditor }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">审核时间</div>
-            <div class="info-value">{{ auditData.auditTime }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">审核状态</div>
-            <div class="info-value">
-              <el-tag
-                :type="auditData.auditStatus === '已通过' ? 'success' : 'danger'"
-                size="default"
-              >
-                {{ auditData.auditStatus }}
-              </el-tag>
-            </div>
-          </div>
-        </div>
-        <div v-if="auditData.rejectReason" class="reject-reason">
-          <div class="reject-label">驳回原因</div>
-          <div class="reject-content">
-            <pre class="content-pre">{{ auditData.rejectReason }}</pre>
           </div>
         </div>
       </div>

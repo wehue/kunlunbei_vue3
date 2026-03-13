@@ -13,6 +13,7 @@ import {
   addDevice,
   updateDevice,
   deleteDevice,
+  getDeviceDetailByEquipmentId,
 } from '@/api/device'
 import { getPartList } from '@/api/material'
 
@@ -229,10 +230,18 @@ const handleRemoveExtendField = (index) => {
   extendFields.value.splice(index, 1)
 }
 
+const generateDeviceCode = () => {
+  const year = new Date().getFullYear()
+  const month = String(new Date().getMonth() + 1).padStart(2, '0')
+  const day = String(new Date().getDate()).padStart(2, '0')
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
+  return `SB${year}${month}${day}${random}`
+}
+
 const handleAdd = () => {
   isEdit.value = false
   Object.assign(formData, {
-    deviceCode: '',
+    deviceCode: generateDeviceCode(),
     deviceName: '',
     manufacturer: '',
     brand: '',
@@ -252,7 +261,7 @@ const handleAdd = () => {
   dialogVisible.value = true
 }
 
-const handleEdit = (row) => {
+const handleEdit = async (row) => {
   isEdit.value = true
   Object.assign(formData, {
     id: row.id,
@@ -272,7 +281,35 @@ const handleEdit = (row) => {
     unit: row.unit || 'A',
     remark: row.remark,
   })
-  initExtendFields()
+
+  try {
+    const res = await getDeviceDetailByEquipmentId(row.deviceCode)
+    console.log('获取设备详情成功', res)
+    const data = res.data?.data?.data || res.data?.data || {}
+    const extAttrs = data.extAttrs || []
+    console.log('extAttrs数据:', extAttrs)
+
+    const getExtAttrValue = (name) => {
+      const attr = extAttrs.find((item) => item.name === name)
+      if (!attr) return ''
+      if (attr.value) {
+        return typeof attr.value === 'string' ? attr.value : JSON.stringify(attr.value)
+      }
+      return ''
+    }
+
+    const technicalParamsValue = getExtAttrValue('TechnicalParameterInfo')
+    const sparePartsValue = getExtAttrValue('SparePartsInfo')
+
+    extendFields.value = [
+      { key: 'technicalParams', label: '技术参数信息', value: technicalParamsValue, type: 'textarea' },
+      { key: 'spareParts', label: '备品备件信息', value: sparePartsValue, type: 'textarea' },
+    ]
+  } catch (error) {
+    console.error('获取设备详情失败:', error)
+    initExtendFields()
+  }
+
   dialogVisible.value = true
 }
 
@@ -585,7 +622,7 @@ const getTableList = async (params) => {
           </div>
           <div class="form-grid">
             <el-form-item label="设备编码">
-              <el-input v-model="formData.deviceCode" placeholder="请输入设备编码" />
+              <el-input v-model="formData.deviceCode" :disabled="true" placeholder="系统自动生成" />
             </el-form-item>
             <el-form-item label="设备名称" prop="deviceName">
               <el-input v-model="formData.deviceName" placeholder="请输入设备名称" />

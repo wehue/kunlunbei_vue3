@@ -8,6 +8,7 @@ export const useUserStore = defineStore(
     const token = ref('')
     const userInfo = ref({
       id: '',
+      userId: '',
       name: '',
       role: '',
       avatar: '',
@@ -28,7 +29,7 @@ export const useUserStore = defineStore(
     }
 
     const setUserInfo = (info) => {
-      userInfo.value = info || { id: '', name: '', role: '', avatar: '' }
+      userInfo.value = info || { id: '', userId: '', name: '', role: '', avatar: '' }
       if (info?.role) {
         const authStore = useAuthStore()
         authStore.getAuthMenuList()
@@ -39,6 +40,7 @@ export const useUserStore = defineStore(
       token.value = ''
       userInfo.value = {
         id: '',
+        userId: '',
         name: '',
         role: '',
         avatar: '',

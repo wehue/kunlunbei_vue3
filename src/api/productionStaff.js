@@ -24,5 +24,5 @@ export function updateProductionStaff(data) {
 
 // 删除操作人员
 export function deleteProductionStaff(productionStaffId) {
-  return instance.delete('/api/productionStaff/delete', { params: { productionStaffId } })
+  return instance.put('/api/productionStaff/delete', null, { params: { productionStaffId } })
 }
